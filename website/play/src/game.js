@@ -1609,13 +1609,20 @@ function readInput() {
 
 // ───────────────────────── scoring ─────────────────────────
 let score = 0, best = store.get('best', 0);
-let combo = { parts: [], pts: 0, mult: 0, active: false };
+let combo = { parts: [], pts: 0, mult: 0, active: false, seen: {} };
+const MULT_CAP = 12, COMBO_COIN_CAP = 2500;
 let airTricks = { counts: {}, poseTime: {} };
 let wheelieAcc = 0;
 const elScore = document.getElementById('score'), elBest = document.getElementById('best'), elCN = document.getElementById('combo-names'), elCS = document.getElementById('combo-score');
 elBest.textContent = best.toLocaleString();
 function addToCombo(name, pts, mult = 1) {
-  combo.active = true; combo.parts.push(name); combo.pts += pts; combo.mult += mult;
+  // doing the same thing again in one combo pays less each time (like a real judge would score it)
+  const key = String(name).replace(/\s*\(\d+m\)$/, '');
+  const n = combo.seen[key] = (combo.seen[key] || 0) + 1;
+  const f = Math.max(0.15, 1 - 0.3 * (n - 1));
+  combo.active = true; combo.parts.push(n > 1 ? `${name} ×${n}` : name);
+  combo.pts += pts * f;
+  combo.mult = Math.min(MULT_CAP, combo.mult + (n <= 2 ? mult : n <= 4 ? Math.min(1, mult) : 0));
   renderCombo();
 }
 function renderCombo() {
@@ -1629,7 +1636,7 @@ function endCombo(bank) {
     score += total; elScore.textContent = score.toLocaleString();
     if (score > best) { best = score; store.set('best', best); elBest.textContent = best.toLocaleString(); }
     // harder tricks score more, and coins come from the score: bigger tricks and longer combos pay more
-    const coins = earn(total / 20 * (combo.mult >= 6 ? 1.5 : combo.mult >= 3 ? 1.2 : 1));
+    const coins = earn(Math.min(COMBO_COIN_CAP, total / 20 * (combo.mult >= 6 ? 1.5 : combo.mult >= 3 ? 1.2 : 1)));
     if (total > 300) showPopup('+' + total.toLocaleString(), 'good', (combo.mult >= 4 ? 'SICK COMBO · ' : '') + `+${coins} COINS`);
     else if (coins) addFeed(`<b>+${coins} coins</b>`);
     online.submit('combo', total);
@@ -1639,7 +1646,7 @@ function endCombo(bank) {
     net.renderRoom();
     sfx.ding();
   }
-  combo = { parts: [], pts: 0, mult: 0, active: false }; renderCombo();
+  combo = { parts: [], pts: 0, mult: 0, active: false, seen: {} }; renderCombo();
 }
 let popTimer = 0;
 const elPop = document.getElementById('popup');
@@ -2087,8 +2094,9 @@ function landingFault(P, yawErr, flipRem, impact) {
   return null;
 }
 function finishOpenRotations(P) {
-  if (P.whipLeft > 0) { airTricks.counts[P.whipName] = (airTricks.counts[P.whipName] || 0) + 1; P.whip += P.whipLeft * P.whipDir; P.whipLeft = 0; }
-  if (P.barLeft > 0) { airTricks.counts.Barspin = (airTricks.counts.Barspin || 0) + 1; P.bar += P.barLeft; P.barLeft = 0; }
+  const TWO = Math.PI * 2, nearlyDone = left => left < TWO * 0.4;
+  if (P.whipLeft > 0) { if (nearlyDone(P.whipLeft)) airTricks.counts[P.whipName] = (airTricks.counts[P.whipName] || 0) + 1; P.whip += P.whipLeft * P.whipDir; P.whipLeft = 0; }
+  if (P.barLeft > 0) { if (nearlyDone(P.barLeft)) airTricks.counts.Barspin = (airTricks.counts.Barspin || 0) + 1; P.bar += P.barLeft; P.barLeft = 0; }
 }
 function land(P, C, gh) {
   if (P.pos.z < SEA_Z && gh <= 0.01) return splash(true);
@@ -2134,11 +2142,11 @@ function scoreAir(P, C, yawErr, flipErr) {
   const word = n => n === 2 ? 'Double ' : n === 3 ? 'Triple ' : n > 3 ? n + 'x ' : '';
   for (const nm of ['Tailwhip', 'Heelwhip']) {
     const w = airTricks.counts[nm] || 0; if (!w) continue;
-    parts.push(word(w) + nm); pts += 320 * w * (1 + (w - 1) * 0.25) * (nm === 'Heelwhip' ? 1.15 : 1); mult += w;
+    parts.push(word(w) + nm); pts += 320 * (1 - 0.8 ** w) / 0.2 * (nm === 'Heelwhip' ? 1.15 : 1); mult += Math.min(w, 2);
     if (w >= 2) goal('doublewhip');
   }
   const b = airTricks.counts.Barspin || 0;
-  if (b > 0) { parts.push(word(b) + 'Barspin'); pts += 200 * b; mult += b; }
+  if (b > 0) { parts.push(word(b) + 'Barspin'); pts += 200 * (1 - 0.8 ** b) / 0.2; mult += Math.min(b, 2); }
   if (b > 0 && (airTricks.counts.Tailwhip || airTricks.counts.Heelwhip)) goal('whipbar');
   const TK = TRICKS[veh.kind];
   for (const key of TRICK_KEYS) {
@@ -4213,7 +4221,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '1.5.0';
+const GAME_VERSION = '1.5.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;

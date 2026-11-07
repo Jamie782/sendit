@@ -4,6 +4,9 @@
 
 3D stunt riding game — bike, e-bike, scooter and e-scooter. Desktop app for Windows and Mac (Electron + Three.js). Everything is procedural, no asset downloads.
 
+## What's new in v1.5.1
+- Fixed a scoring exploit: holding or spamming trick buttons stacked dozens of whips and barspins for millions of points. Repeating a trick in the same combo now pays less each time, the combo multiplier tops out at ×12, a whip only counts if it's nearly finished when you land, and one combo pays at most 2,500 coins.
+
 ## What's new in v1.5
 - **Automatic updates.** The app checks for a new version when it starts and every 30 minutes. It downloads just the changed game files (a few MB) in the background, then offers **Restart now**. Saves are kept. If an update ever changes the app itself (rare), players are told to download it again from the website.
 - Version number shown at the bottom of Settings.

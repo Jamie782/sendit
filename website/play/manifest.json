@@ -1,7 +1,7 @@
 {
- "version": "1.5.0",
+ "version": "1.5.1",
  "minShell": "1.5.0",
- "notes": "Quieter sounds, faster traffic, knock people over, and automatic updates.",
+ "notes": "Fixed the trick-spam scoring glitch.",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "c5c9fe01b4c1d3113ee9d39913af59606eac8dfe7c1b86b13114717bc5d8ea8b"
+   "sha256": "6abbd79d3b3f273e61ed1ab7b8e4379aa109bdc863d24f6780769008b95a3989"
   },
   {
    "path": "src/game.js",
-   "sha256": "f1433f695c1e6b2dce161c9483acf68a2c818cd3ce18e23e2cceb318d61fd0bf"
+   "sha256": "80f0e6bbfc7f7a2c65f4934799ea81b86e52bcf3e55a8417e580e84efd4b9ad5"
   },
   {
    "path": "assets/logo-icon.png",
