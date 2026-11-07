@@ -1,0 +1,3 @@
+-- 1.5.1: tighter leaderboard limits after the trick-spam exploit (applied as migration si_tighter_score_limits)
+-- combo <= 1,500,000 · Trick Attack <= 3,000,000 · biggest air <= 60 s · one save adds at most 25,000 to the coins board
+-- (see the si_submit and si_save definitions applied to the database)
