@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join a SEND IT server</title>
+<meta property="og:title" content="You're invited to ride on SEND IT">
+<meta property="og:description" content="Open the invite to join your friend's server.">
+<meta property="og:image" content="media/hill.jpg">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="site.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="page"><div class="box">
+  <img class="logo" src="media/logo-wordmark.svg" alt="SEND IT">
+  <h1>YOU'RE INVITED</h1>
+  <p>A friend wants you on their server. The code is:</p>
+  <div class="code" id="code">—</div>
+  <a class="btn" id="open">OPEN IN SEND IT</a>
+  <a class="btn blue" id="web">PLAY IN YOUR BROWSER</a>
+  <a class="btn ghost" href="./#download">DON'T HAVE IT? DOWNLOAD</a>
+  <p class="small" style="margin-top:18px">Nothing happened? Open SEND IT, go to <b>Online</b> and type the code into <b>Join with code</b>. Friends-only servers need you to be signed in.</p>
+</div></main>
+<script>
+  const code = (new URLSearchParams(location.search).get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  document.getElementById('code').textContent = code || '—';
+  document.getElementById('open').href = 'sendit://join/' + code;
+  document.getElementById('web').href = 'play/?join=' + code;
+  if (!code) { document.getElementById('open').style.display = 'none'; document.getElementById('web').style.display = 'none'; }
+</script>
+</body>
+</html>

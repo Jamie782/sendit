@@ -1,0 +1,81 @@
+{
+  "name": "send-it",
+  "productName": "Send It",
+  "version": "1.4.1",
+  "description": "Bike, e-bike, scooter and e-scooter stunt game",
+  "main": "main.js",
+  "author": "Jamie",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "gift.jamie.sendit",
+    "productName": "Send It",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "style.css",
+      "src/**/*",
+      "vendor/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Send It"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.games",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Send It"
+    },
+    "protocols": [
+      {
+        "name": "SEND IT invite",
+        "schemes": [
+          "sendit"
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}

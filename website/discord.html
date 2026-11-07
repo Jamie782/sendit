@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEND IT · Discord</title>
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<main class="page"><div class="box">
+  <img class="logo" src="media/logo-wordmark.svg" alt="SEND IT">
+  <h1 id="t">DISCORD</h1>
+  <p id="m"></p>
+  <p class="small">You can close this tab and go back to the game.</p>
+</div></main>
+<script>
+  const q = new URLSearchParams(location.search), ok = q.get('ok') === '1';
+  document.getElementById('t').textContent = ok ? 'ALL DONE' : 'THAT DIDN\'T WORK';
+  document.getElementById('t').style.color = ok ? '#7dffa0' : '#ff8a70';
+  document.getElementById('m').textContent = q.get('msg') || (ok ? 'You\'re signed in.' : 'Try again from the game.');
+</script>
+</body>
+</html>

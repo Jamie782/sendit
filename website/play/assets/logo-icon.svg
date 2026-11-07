@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2030"/><stop offset="1" stop-color="#0a0c12"/></linearGradient>
+    <linearGradient id="ramp" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff3d1f"/><stop offset="1" stop-color="#ffb21f"/></linearGradient>
+    <radialGradient id="sun" cx="0.68" cy="0.34" r="0.42"><stop offset="0" stop-color="#ff7a2e" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a2e" stop-opacity="0"/></radialGradient>
+    <clipPath id="c"><rect x="40" y="40" width="944" height="944" rx="210"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#sun)"/>
+    <!-- quarter-pipe ramp -->
+    <path d="M40 1000 L40 905 Q 420 905 600 560 L 660 560 L 660 1000 Z" fill="url(#ramp)"/>
+    <path d="M40 905 Q 420 905 600 560" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="10"/>
+    <rect x="594" y="548" width="74" height="22" rx="11" fill="#e8ecf2"/>
+    <!-- speed streaks -->
+    <g stroke="#fff" stroke-linecap="round" stroke-width="26" opacity=".9">
+      <line x1="300" y1="430" x2="470" y2="430"/><line x1="250" y1="500" x2="440" y2="500" opacity=".6"/><line x1="340" y1="360" x2="480" y2="360" opacity=".45"/>
+    </g>
+    <!-- launched wheel -->
+    <g transform="translate(700 330) rotate(-20)">
+      <circle r="168" fill="none" stroke="#fff" stroke-width="46"/>
+      <circle r="120" fill="none" stroke="#ff4d1f" stroke-width="10"/>
+      <circle r="28" fill="#fff"/>
+      <g stroke="#fff" stroke-width="9" stroke-linecap="round">
+        <line x1="0" y1="-120" x2="0" y2="120"/><line x1="-120" y1="0" x2="120" y2="0"/>
+        <line x1="-85" y1="-85" x2="85" y2="85"/><line x1="-85" y1="85" x2="85" y2="-85"/>
+      </g>
+    </g>
+  </g>
+</svg>

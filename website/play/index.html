@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SEND IT</title>
+<link rel="icon" href="assets/logo-icon.png">
+<link rel="stylesheet" href="style.css">
+<!--IMPORTMAP-->
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+<!--/IMPORTMAP-->
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="flash"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="score-box">
+    <div class="lbl">SCORE</div>
+    <div id="score">0</div>
+    <div class="lbl small">BEST <span id="best">0</span></div>
+    <div id="letters"><i>S</i><i>E</i><i>N</i><i>D</i><i>I</i><i>T</i></div>
+    <div id="cash-row"><span id="cash"><i class="coin"></i>0</span><span id="np"></span></div>
+    <div id="feed"></div>
+  </div>
+  <div id="room-box" class="hidden"><div class="rb-title">ROOM <b id="room-code"></b></div><div id="room-list"></div></div>
+  <div id="trickbar" class="hidden"></div>
+  <div id="goal-toast"></div>
+  <div id="timer" class="hidden"></div>
+  <div id="chat" class="hidden"><input id="chat-input" maxlength="80" placeholder="Say something… (Enter to send)" autocomplete="off"></div>
+  <div id="combo-box">
+    <div id="combo-names"></div>
+    <div id="combo-score"></div>
+  </div>
+  <div id="popup"></div>
+  <div id="wheelie-meter" class="hidden">
+    <div class="wm-track"><div class="wm-zone"></div><div class="wm-needle"></div></div>
+    <div class="wm-label">WHEELIE</div>
+  </div>
+  <div id="speedo">
+    <div id="speed">0</div>
+    <div class="lbl">KM/H</div>
+    <div id="veh-name">BIKE</div>
+  </div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="hint">
+    <b>W/S</b> ride · brake &nbsp; <b>A/D</b> steer &nbsp; <b>SPACE</b> hop &nbsp; <b>SHIFT</b> wheelie<br>
+    <b>IN AIR:</b> <b>W/S</b> flips &nbsp; <b>A/D</b> spin &nbsp; <b>J K L I U O SHIFT</b> tricks (shown on screen)<br>
+    <b>GRIND:</b> hop onto any rail or ledge &nbsp; <b>SHIFT+S</b> stoppie / nose manual<br>
+    <b>1-8</b> zones &nbsp; <b>N</b> radio &nbsp; <b>Q</b> vehicle &nbsp; <b>C</b> camera &nbsp; <b>R</b> reset &nbsp; <b>T</b> chat &nbsp; <b>H</b> hide &nbsp; <b>ESC</b> menu
+  </div>
+  <button id="pause-btn" class="touch-only">II</button>
+</div>
+
+<!-- touch controls -->
+<div id="touch" class="hidden">
+  <div id="stick"><div id="stick-knob"></div></div>
+  <div id="tbtns">
+    <button data-k="t1" id="tb-t1">WHIP</button>
+    <button data-k="t2" id="tb-t2">BAR</button>
+    <button data-k="t3" id="tb-t3">SUPER</button>
+    <button data-k="t4" id="tb-t4">NO HAND</button>
+    <button data-k="t5" id="tb-t5">TABLE</button>
+    <button data-k="t6" id="tb-t6">CAN</button>
+    <button data-k="wheelie" class="big">WHEELIE</button>
+    <button data-k="jump" class="big">HOP</button>
+  </div>
+</div>
+
+<!-- Menu -->
+<div id="menu">
+  <header class="topbar">
+    <img class="tb-logo" src="assets/logo-wordmark.svg" alt="SEND IT">
+    <nav class="tabs" id="tabs">
+      <button data-tab="play" class="sel">PLAY</button>
+      <button data-tab="garage">GARAGE</button>
+      <button data-tab="online">ONLINE<i id="req-dot" class="hidden"></i></button>
+      <button data-tab="ranks">RANKS</button>
+      <button data-tab="settings">SETTINGS</button>
+    </nav>
+    <div class="tb-right">
+      <div class="coins" title="Coins: earn them with tricks, spend them in the garage"><i class="coin"></i><span id="tb-coins">0</span></div>
+      <button class="me-chip" id="me-chip"><span class="av" id="me-av"></span><span class="me-name" id="me-name">SIGN IN</span></button>
+    </div>
+  </header>
+
+  <main class="panes">
+    <!-- PLAY -->
+    <section class="pane" data-pane="play">
+      <div class="panel">
+        <div class="p-head">CHOOSE YOUR RIDE</div>
+        <div id="vehicle-cards"></div>
+        <div class="p-head">WHERE</div>
+        <div class="chips" id="zone-seg"></div>
+        <div class="p-head">PAINT COLOUR</div>
+        <div class="swatches" id="swatches"></div>
+        <div class="play-btns">
+          <button id="ride-btn">RIDE</button>
+          <button id="attack-btn" class="ghost-big" title="Score as much as you can in 2 minutes">TRICK ATTACK<small>2 MIN</small></button>
+        </div>
+        <div class="room-line hidden" id="room-line" onclick="event.target.closest('[data-copy]') && window.copyInvite()"></div>
+        <div class="controls-lbl" id="controls-lbl">W/S ride · A/D steer · SPACE hop · SHIFT wheelie · J K L I U O tricks in the air</div>
+      </div>
+    </section>
+
+    <!-- GARAGE -->
+    <section class="pane hidden" data-pane="garage">
+      <div class="panel wide">
+        <div class="g-top">
+          <div class="seg" id="garage-tabs"><button data-t="up" class="sel">UPGRADES</button><button data-t="paint">PAINT</button><button data-t="rider">SKINS</button><button data-t="avatar">AVATAR</button></div>
+          <div class="g-ride" id="g-ride"></div>
+        </div>
+        <div id="garage-body"></div>
+      </div>
+    </section>
+
+    <!-- ONLINE -->
+    <section class="pane hidden" data-pane="online">
+      <div class="panel xwide online">
+        <div id="acct"></div>
+        <div class="on-grid">
+          <div class="on-col">
+            <div class="p-head">SERVERS <button class="mini" id="srv-refresh" title="Refresh">↻</button></div>
+            <div id="srv-list" class="list"></div>
+            <div class="host-box">
+              <input id="srv-name" maxlength="28" placeholder="Server name" autocomplete="off">
+              <div class="seg small" id="srv-priv"><button data-v="0" class="sel">PUBLIC</button><button data-v="1">FRIENDS ONLY</button></div>
+              <button id="mp-host" class="act">HOST</button>
+            </div>
+            <div class="code-box">
+              <input id="mp-code" maxlength="5" placeholder="CODE" autocomplete="off">
+              <button id="mp-join" class="act blue">JOIN WITH CODE</button>
+              <button id="mp-leave" class="act ghost hidden">LEAVE SERVER</button>
+              <button id="srv-invite" class="act ghost hidden" onclick="window.copyInvite()">COPY INVITE LINK</button>
+            </div>
+            <div id="mp-status"></div>
+          </div>
+          <div class="on-col">
+            <div class="p-head">FRIENDS <span class="muted" id="fr-count"></span></div>
+            <div class="add-friend"><input id="fr-name" maxlength="16" placeholder="Add a friend by username" autocomplete="off"><button id="fr-add" class="act">ADD</button></div>
+            <div id="fr-msg" class="muted small"></div>
+            <div id="fr-list" class="list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RANKS -->
+    <section class="pane hidden" data-pane="ranks">
+      <div class="panel wide">
+        <div class="seg" id="lb-boards"></div>
+        <div class="lb-sub"><div class="seg small" id="lb-scope"><button data-v="all" class="sel">EVERYONE</button><button data-v="friends">FRIENDS</button></div><span class="muted" id="lb-note"></span></div>
+        <div id="lb-list" class="list lb"></div>
+        <div id="lb-me" class="lb-me"></div>
+        <div class="p-head">GOALS <span id="goal-count" class="muted"></span></div>
+        <div id="goals-panel"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="pane hidden" data-pane="settings">
+      <div class="panel">
+        <div class="set-row"><span>GRAPHICS</span><div class="seg" id="quality-seg"></div></div>
+        <div class="set-row"><span>TIME OF DAY</span><div class="seg" id="tod-seg"></div></div>
+        <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="easy-seg"></div></div>
+        <div class="p-head">RADIO <span class="muted">N = next station</span></div>
+        <div class="chips" id="music-seg"></div>
+        <div class="set-row"><span>MUSIC</span><input type="range" id="vol" min="0" max="100" value="70"></div>
+        <div class="set-row"><span>SOUND EFFECTS</span><input type="range" id="sfx-vol" min="0" max="100" value="60"></div>
+        <div class="p-head">CONTROLS</div>
+        <div class="keys">
+          <div><b>W / S</b>ride · brake · flips</div><div><b>A / D</b>steer · spins</div>
+          <div><b>SPACE</b>hop · hop off rails</div><div><b>SHIFT</b>wheelie · with S: stoppie</div>
+          <div><b>JKLIUO</b>air tricks</div><div><b>1–8</b>warp to a place</div>
+          <div><b>Q</b>switch ride</div><div><b>C</b>camera</div>
+          <div><b>R</b>reset</div><div><b>N</b>next radio station</div>
+          <div><b>T</b>chat on a server</div><div><b>ESC</b>menu</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="invites"></div>
+
+<div id="auth" class="modal hidden">
+  <div class="modal-box">
+    <button class="x" id="auth-x">✕</button>
+    <div class="m-title" id="auth-title">SIGN IN</div>
+    <div class="m-sub">Your coins, upgrades, skins and avatar save to your account, and you can add friends.</div>
+    <input id="auth-user" maxlength="16" placeholder="Username" autocomplete="username">
+    <input id="auth-pass" type="password" maxlength="72" placeholder="Password (6+ characters)" autocomplete="current-password">
+    <div id="auth-err" class="err"></div>
+    <button id="auth-go" class="act big">SIGN IN</button>
+    <div class="or"><span>or</span></div>
+    <button id="auth-discord" class="act big dc"><svg class="dci" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18 18 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.7.2 18.2a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-.9l.5-.4a14 14 0 0 0 12 0l.5.4c-.6.4-1.3.7-2 .9l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.8-3.5-13.8ZM8.3 15.4c-1.2 0-2.1-1-2.1-2.3s.9-2.3 2.1-2.3 2.2 1 2.1 2.3c0 1.3-.9 2.3-2.1 2.3Zm7.4 0c-1.2 0-2.1-1-2.1-2.3s.9-2.3 2.1-2.3 2.2 1 2.1 2.3c0 1.3-.9 2.3-2.1 2.3Z"/></svg>SIGN IN WITH DISCORD</button>
+    <div class="m-switch" id="auth-switch">New here? <a>Create an account</a></div>
+  </div>
+</div>
+
+<div id="loading">LOADING…</div>
+<!--PEER--><script src="vendor/peerjs/peerjs.min.js"></script><!--/PEER-->
+<script type="module" src="src/game.js"></script>
+</body>
+</html>
