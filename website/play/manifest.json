@@ -1,7 +1,7 @@
 {
- "version": "1.5.1",
+ "version": "1.5.2",
  "minShell": "1.5.0",
- "notes": "Fixed the trick-spam scoring glitch.",
+ "notes": "Smoother 808 FM radio (fixed a low rumble that built up over time).",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "6abbd79d3b3f273e61ed1ab7b8e4379aa109bdc863d24f6780769008b95a3989"
+   "sha256": "a3b6cd6f3c5632e05f8f6a71627a42cf576fd2b2cab5ef3363b3fd548a73b2de"
   },
   {
    "path": "src/game.js",
-   "sha256": "80f0e6bbfc7f7a2c65f4934799ea81b86e52bcf3e55a8417e580e84efd4b9ad5"
+   "sha256": "3235e3258db19f7b4df09d261762de28ce70b4a47467957df66c288241a7601d"
   },
   {
    "path": "assets/logo-icon.png",

@@ -3509,7 +3509,7 @@ const music = (() => {
     reese(c, o, t, m, dur, g = 1) { for (const det of [-9, 9]) { const s = c.createOscillator(); s.type = 'sawtooth'; s.frequency.value = nf(m); s.detune.value = det; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 380; const e = c.createGain(); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(0.2 * g, t + 0.03); e.gain.setValueAtTime(0.2 * g, t + dur - 0.05); e.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f).connect(e).connect(o); s.start(t); s.stop(t + dur); } },
     sub808(c, o, t, m, dur, g = 1, glideTo = null) {
       const s = c.createOscillator(); s.frequency.setValueAtTime(nf(m), t); if (glideTo != null) s.frequency.exponentialRampToValueAtTime(nf(glideTo), t + Math.min(0.2, dur * 0.6));
-      const ws = c.createWaveShaper(); const cu = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; cu[i] = Math.tanh(x * 2.2); } ws.curve = cu;
+      const ws = c.createWaveShaper(); const cu = new Float32Array(257); for (let i = 0; i < 257; i++) { const x = i / 128 - 1; cu[i] = Math.tanh(x * 2.2); } ws.curve = cu; // odd length so silence stays at exactly zero
       const e = env(c, t, 0.005, dur, 0.5 * g); s.connect(ws).connect(e).connect(o); s.start(t); s.stop(t + dur + 0.05);
     },
     pad(c, o, t, notes, dur, g = 1, cut = 1400) {
@@ -3601,7 +3601,9 @@ const music = (() => {
     const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 20000;
     const dl = c.createDelay(1); dl.delayTime.value = 0.28; const fb = c.createGain(); fb.gain.value = 0.25; const wet = c.createGain(); wet.gain.value = 0.18;
     const input = c.createGain();
-    input.connect(comp); input.connect(dl); dl.connect(fb).connect(dl); dl.connect(wet).connect(comp);
+    // block any DC offset before it reaches the echo loop, or it builds up into a thump
+    const dc = c.createBiquadFilter(); dc.type = 'highpass'; dc.frequency.value = 22; dc.Q.value = 0.7;
+    input.connect(dc); dc.connect(comp); dc.connect(dl); dl.connect(fb).connect(dl); dl.connect(wet).connect(comp);
     comp.connect(lp).connect(dest);
     return { input, lp };
   }
@@ -4221,7 +4223,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '1.5.1';
+const GAME_VERSION = '1.5.2';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -4511,7 +4513,7 @@ window.__game = {
   },
   stats() { renderer.info.autoReset = false; renderer.info.reset(); const t0 = performance.now(); composer.render(); const ms = performance.now() - t0; const r = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, ms: Math.round(ms), geos: renderer.info.memory.geometries, objects: (() => { let n = 0; scene.traverse(() => n++); return n; })() }; renderer.info.autoReset = true; return r; },
   manual(on) { manual = on; if (!on) { last = performance.now(); requestAnimationFrame(frame); } },
-  tick(dt, k = {}, press = [], r = true) { for (const c in keys) keys[c] = false; Object.assign(keys, k); for (const p of press) pressed.add(p); tick(dt, r); const P = player; return { vy: P.vel.y, air: P.air, at: P.airTime, w: P.wheelie, bailed: P.bailed, x: P.pos.x, y: P.pos.y, z: P.pos.z, v: P.v }; },
+  tick(dt, k = {}, press = [], r = true) { for (const c in keys) keys[c] = false; Object.assign(keys, k); for (const p of press) pressed.add(p); tick(dt, r); const P = player; return { vy: P.vel.y, air: P.air, at: P.airTime, w: P.wheelie, bailed: P.bailed, x: P.pos.x, y: P.pos.y, z: P.pos.z, v: P.v, flip: P.flip, yaw: P.yaw }; },
   hAt(x, z) { return heightAt(x, z); }, cols: () => colliders,
   tod(t) { applyTimeOfDay(t); },
   online, av: () => AV, net, peds: PEDS, traffic: TRAFFIC,
