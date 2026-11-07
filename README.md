@@ -4,6 +4,16 @@
 
 3D stunt riding game — bike, e-bike, scooter and e-scooter. Desktop app for Windows and Mac (Electron + Three.js). Everything is procedural, no asset downloads.
 
+## What's new in v1.5
+- **Automatic updates.** The app checks for a new version when it starts and every 30 minutes. It downloads just the changed game files (a few MB) in the background, then offers **Restart now**. Saves are kept. If an update ever changes the app itself (rare), players are told to download it again from the website.
+- Version number shown at the bottom of Settings.
+
+## Releasing an update
+1. Change the game, then bump the version in `version.json` (and `GAME_VERSION` in `src/game.js`).
+2. Run `python3 tools/make_manifest.py website "What changed"`. This copies the game into `website/play` and writes `website/play/manifest.json`.
+3. Push to GitHub. If Netlify is linked to the repo (publish directory `website`), it goes live and every player's app picks it up.
+4. Only if `main.js` changed: raise `MIN_SHELL` in `tools/make_manifest.py`, build new downloads and put them in a GitHub release.
+
 ## What's new in v1.4.1
 - Quieter, smoother ride sounds (no more buzzing), with separate Music and Sound effects volume sliders in Settings.
 - Traffic drives faster (about 55–75 km/h).
@@ -79,8 +89,9 @@ Needs Node.js (nodejs.org, LTS). In a terminal, in this folder:
 - Discord sign-in runs through the `si-discord` edge function (`server/si-discord/`). See `server/README.md` to switch it on.
 
 ## Files
-- `website/` — the play-sendit.netlify.app site (drag this folder into Netlify to deploy)
+- `website/` — the play-sendit.netlify.app site (Netlify publish directory)
 - `server/` — the online backend (Supabase SQL + Discord edge function)
+- `tools/make_manifest.py` — copies the game into `website/play` and writes the update manifest
 - `main.js` — Electron window (serves the game from a local `app://` protocol)
 - `index.html`, `style.css` — HUD and menus
 - `src/game.js` — the whole game

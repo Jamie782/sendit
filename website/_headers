@@ -1,0 +1,5 @@
+/play/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
+/play/*
+  Cache-Control: public, max-age=0, must-revalidate

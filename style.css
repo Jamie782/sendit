@@ -332,3 +332,8 @@ body:not(.touch) .touch-only{display:none}
 .inv b{color:#fff}
 .inv .grow{flex:1;min-width:0}
 .inv .s{font-size:11.5px;opacity:.6}
+#update-toast{position:fixed;right:22px;bottom:22px;z-index:56;display:flex;align-items:center;gap:10px;width:min(440px,92vw);padding:12px 14px;border-radius:14px;background:rgba(14,17,24,.94);border:1px solid rgba(255,77,31,.6);box-shadow:0 14px 40px rgba(0,0,0,.45);font-size:13.5px;animation:feedIn .25s ease-out}
+#update-toast .grow{flex:1;min-width:0}
+#update-toast .s{font-size:12px;opacity:.65}
+#update-toast .mini{padding:5px 8px}
+.ver-line{margin-top:14px;font-size:11.5px;opacity:.45}

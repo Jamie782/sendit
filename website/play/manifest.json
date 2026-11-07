@@ -1,0 +1,151 @@
+{
+ "version": "1.5.0",
+ "minShell": "1.5.0",
+ "notes": "Quieter sounds, faster traffic, knock people over, and automatic updates.",
+ "files": [
+  {
+   "path": "index.html",
+   "sha256": "fdca48db84f1a5b9baeecd91ae5bebefe74882fd1bdc8605ddc51d91e4e38577"
+  },
+  {
+   "path": "style.css",
+   "sha256": "26288102ca171800e2f5cb1589a95d722e5ea5a1a2b01ddb6147c151bdbe0d7d"
+  },
+  {
+   "path": "version.json",
+   "sha256": "c5c9fe01b4c1d3113ee9d39913af59606eac8dfe7c1b86b13114717bc5d8ea8b"
+  },
+  {
+   "path": "src/game.js",
+   "sha256": "f1433f695c1e6b2dce161c9483acf68a2c818cd3ce18e23e2cceb318d61fd0bf"
+  },
+  {
+   "path": "assets/logo-icon.png",
+   "sha256": "ce374b424b5835a4de20f7d0c4b302b5f06aca7dc5406d380c0bb609a6ca88f6"
+  },
+  {
+   "path": "assets/logo-icon.svg",
+   "sha256": "841f81aa2cdee5be1a1b83a5683a3a53165645988320d58f5ee1814a806754b1"
+  },
+  {
+   "path": "assets/logo-wordmark.png",
+   "sha256": "3a8c82f9a99fd19735d479527ff2d59e90c8a2c15fba328ec86f302d81510a63"
+  },
+  {
+   "path": "assets/logo-wordmark.svg",
+   "sha256": "5673a372eae900ea0faee35516ef7955810db62268ac4f09f9bd9efc06759458"
+  },
+  {
+   "path": "vendor/peerjs/LICENSE",
+   "sha256": "9407807dba7f47a79bfb3ac55759d63d77c9371ebd0616d5a093e97d3e810397"
+  },
+  {
+   "path": "vendor/peerjs/peerjs.min.js",
+   "sha256": "ad5d8870d1e389914f9cba8d35be313c4327c69ee0a221e482e9bf7621136fe5"
+  },
+  {
+   "path": "vendor/three/LICENSE",
+   "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+  },
+  {
+   "path": "vendor/three/examples/jsm/math/SimplexNoise.js",
+   "sha256": "4b1455617135e6b477de76244de07547d95570643379b72f4758e50161b06072"
+  },
+  {
+   "path": "vendor/three/examples/jsm/objects/Sky.js",
+   "sha256": "34121b60a3bd9adc004a5a637f6135e9d2b72757eeb9e476ae1988fe2db6a9fb"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/EffectComposer.js",
+   "sha256": "4e079a5886152d7e529a59aef644e968ab4d32c6a33ce016b36bf29b2eac26f7"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/GTAOPass.js",
+   "sha256": "a277f848d1035c751c54d9706e579aeb74689126ced25723e53d52ac3f26f445"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/MaskPass.js",
+   "sha256": "7cd08eee9d5d6f5578beaddbdcbe9c384f6873810af27f22ab7db3ceeb127aa3"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/OutputPass.js",
+   "sha256": "02e4a261af34de71338185e9e87f0cbe5cba9115608d984363e1269dec1d2272"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/Pass.js",
+   "sha256": "444b409c235ead986893c472e720da1b779a56985c7d10b279c7944b52bd61c5"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/RenderPass.js",
+   "sha256": "817f6c3cdcd0fd41515d112359ea0532568eefb5aabd3b33903957ebca1b8a6a"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/SMAAPass.js",
+   "sha256": "1a96804b8cb33ba76a67f9a8e77f2d5e2bf47b1a5c9a8476901aa75e24acb85c"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/ShaderPass.js",
+   "sha256": "e2500a5913b26bbf5148ceaae644c6edcff06a18b01494ee37bf856353d2ab9d"
+  },
+  {
+   "path": "vendor/three/examples/jsm/postprocessing/UnrealBloomPass.js",
+   "sha256": "ba8f2fcadfa6588384c9473498f974d81d120f02f0e63a0e59c265202a006b5a"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/CopyShader.js",
+   "sha256": "a33057d5ac91c43304c186ac0e8816e62bb2ed471d3a00ff3018dfd5c0389718"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/GTAOShader.js",
+   "sha256": "cdea7be60452f61105375d2c18e4da2e8ce7b39a89246b1bb8fbf79319d58cfd"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/LuminosityHighPassShader.js",
+   "sha256": "5044f780b6e6cf863947f64c36fe1587132f7fbe395ada863cd1e5f0388dcf1e"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/OutputShader.js",
+   "sha256": "353479f77a8d7e2629d49ccac9fc2f5dbfdda5442e0adf867b00377a2fcb0cb2"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/PoissonDenoiseShader.js",
+   "sha256": "61da074a9ad8b2139dd164c96b8b62c299f056ce06c216e1f707c5151d997602"
+  },
+  {
+   "path": "vendor/three/examples/jsm/shaders/SMAAShader.js",
+   "sha256": "48ce320a6bf5c33806c4fa13ade7e3ab199f7856838d36b05ae82204db8a1c15"
+  },
+  {
+   "path": "vendor/three/examples/jsm/utils/BufferGeometryUtils.js",
+   "sha256": "9fb63427ce6641fa14fd0baff9cc4d1b5f9c3d85fd084bf2e90e803c44ec1797"
+  },
+  {
+   "path": "vendor/three/build/three.core.js",
+   "sha256": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6"
+  },
+  {
+   "path": "vendor/three/build/three.module.js",
+   "sha256": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea"
+  },
+  {
+   "path": "vendor/fonts/OFL-LICENSE.txt",
+   "sha256": "66c436339f7490c1a99e4f6a7b8aef5c176676edfd071a31638e7d54c1b0aeda"
+  },
+  {
+   "path": "vendor/fonts/bebas-neue-latin-400-normal.woff2",
+   "sha256": "a7c90c89240c134f7fdd33d40c000ec90b79d675ea53e8cc5a6d423c073de412"
+  },
+  {
+   "path": "vendor/fonts/inter-latin-400-normal.woff2",
+   "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc"
+  },
+  {
+   "path": "vendor/fonts/inter-latin-600-normal.woff2",
+   "sha256": "f9a06e79cd3a2a20951c0f0e28f66dd0e6d3fda73911d640a2125c8fcb78f21a"
+  },
+  {
+   "path": "vendor/fonts/inter-latin-800-normal.woff2",
+   "sha256": "a7d0a50f15d389cad679238466bdb5fc9787aa0715719064ce25abaff042820d"
+  }
+ ]
+}

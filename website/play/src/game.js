@@ -4212,6 +4212,19 @@ function setAvatar(key, v) {
   applyAvatarLook(); renderGarage(); renderMe(); online.saveSoon(1500);
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
+// ── updates: the desktop app downloads new game files by itself and tells us here ──
+const GAME_VERSION = '1.5.0';
+window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
+window.__sendItUpdate = info => {
+  const el = document.getElementById('update-toast'); if (!el) return;
+  if (info.kind === 'ready') el.innerHTML = `<div class="grow"><b>SEND IT ${esc(info.version)} is ready</b><div class="s">${esc(info.notes || 'Restart to play the new version.')}</div></div><button class="act" id="upd-go">RESTART NOW</button><button class="mini" id="upd-x">LATER</button>`;
+  else el.innerHTML = `<div class="grow"><b>SEND IT ${esc(info.version)} is out</b><div class="s">This one needs a fresh download.</div></div><button class="act" id="upd-dl">GET IT</button><button class="mini" id="upd-x">LATER</button>`;
+  el.classList.remove('hidden');
+  const go = document.getElementById('upd-go'); if (go) go.onclick = () => { online.saveSoon(0); setTimeout(() => location.reload(), 400); };
+  const dl = document.getElementById('upd-dl'); if (dl) dl.onclick = () => window.open(SITE_URL + '/#download', '_blank');
+  document.getElementById('upd-x').onclick = () => el.classList.add('hidden');
+};
+document.getElementById('ver-line').textContent = 'Version ' + GAME_VERSION;
 function renderInvites() {
   const el = document.getElementById('invites'); if (!el) return;
   const list = online.invites.filter(i => i.code !== net.code).slice(0, 3);
