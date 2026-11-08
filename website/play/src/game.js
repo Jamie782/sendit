@@ -1067,11 +1067,11 @@ function mergeStatic() {
 
 // ───────────────────────── vehicles ─────────────────────────
 const VEH = {
-  bike: { label: 'BIKE', desc: 'Dirt-jump bike. Flips, whips and barspins. Best in the dirt.', top: 12.5, accel: 8, hop: 5.4, spin: 8.6, flip: 5.4, whip: 0.5, bar: 0.32, wb: 0.9, wbMax: 1.4, motor: false, tLabel: 'SUPERMAN', stats: [0.65, 0.95, 0.85] },
-  ebike: { label: 'E-BIKE', desc: 'Motor-assisted trail bike with suspension. Fast on the road, huge on the mega ramp.', top: 14.5, accel: 9, hop: 4.6, spin: 6.2, flip: 3.9, whip: 0.8, bar: 0.42, wb: 0.86, wbMax: 1.3, motor: true, tLabel: 'SUPERMAN', stats: [0.85, 0.6, 0.8] },
-  scooter: { label: 'SCOOTER', desc: 'Pro stunt scooter. Made for the skatepark — whips for days.', top: 11, accel: 6.5, hop: 5.0, spin: 10.5, flip: 5.9, whip: 0.34, bar: 0.26, wb: 0.42, wbMax: 0.75, motor: false, tLabel: 'NO-FOOTER', stats: [0.5, 1.0, 0.45] },
-  escooter: { label: 'E-SCOOTER', desc: 'Dual-suspension electric scooter. Top speed and long wheelies on the street.', top: 15, accel: 6.5, hop: 3.6, spin: 5.6, flip: 0, whip: 0.95, bar: 0.5, wb: 0.62, wbMax: 1.0, motor: true, tLabel: 'KICKOUT', stats: [0.9, 0.35, 1.0] },
-  skate: { label: 'SKATEBOARD', desc: 'Street deck. Kickflips, shove-its and boardslides. Made for stairs and rails.', top: 10.8, accel: 6.8, hop: 5.2, spin: 9.6, flip: 4.2, whip: 0.42, bar: 0.36, wb: 0.26, wbMax: 0.5, motor: false, tLabel: 'KICKFLIP', stats: [0.5, 1.0, 0.55], push: true },
+  bike: { label: 'BIKE', desc: 'Dirt-jump bike. Flips, whips and barspins. Best in the dirt.', top: 12.5, accel: 8, hop: 5.4, spin: 8.6, flip: 6.4, whip: 0.5, bar: 0.32, wb: 0.9, wbMax: 1.4, motor: false, tLabel: 'SUPERMAN', stats: [0.65, 0.95, 0.85] },
+  ebike: { label: 'E-BIKE', desc: 'Motor-assisted trail bike with suspension. Fast on the road, huge on the mega ramp.', top: 14.5, accel: 9, hop: 4.6, spin: 6.2, flip: 5.0, whip: 0.8, bar: 0.42, wb: 0.86, wbMax: 1.3, motor: true, tLabel: 'SUPERMAN', stats: [0.85, 0.6, 0.8] },
+  scooter: { label: 'SCOOTER', desc: 'Pro stunt scooter. Made for the skatepark — whips for days.', top: 11, accel: 6.5, hop: 5.0, spin: 10.5, flip: 6.8, whip: 0.34, bar: 0.26, wb: 0.42, wbMax: 0.75, motor: false, tLabel: 'NO-FOOTER', stats: [0.5, 1.0, 0.45] },
+  escooter: { label: 'E-SCOOTER', desc: 'Dual-suspension electric scooter. Top speed and long wheelies on the street.', top: 15, accel: 6.5, hop: 3.6, spin: 5.6, flip: 4.6, whip: 0.95, bar: 0.5, wb: 0.62, wbMax: 1.0, motor: true, tLabel: 'KICKOUT', stats: [0.9, 0.35, 1.0] },
+  skate: { label: 'SKATEBOARD', desc: 'Street deck. Kickflips, shove-its and boardslides. Made for stairs and rails.', top: 10.8, accel: 6.8, hop: 5.2, spin: 9.6, flip: 5.4, whip: 0.42, bar: 0.36, wb: 0.26, wbMax: 0.5, motor: false, tLabel: 'KICKFLIP', stats: [0.5, 1.0, 0.55], push: true },
 };
 const IS_KICK = k => k === 'scooter' || k === 'skate';   // rides you push with your foot
 const stanceYaw = k => k === 'skate' ? -Math.PI / 2 : 0;  // skaters stand sideways
@@ -1601,7 +1601,7 @@ function spawn(zoneKey) {
   clearTrafficNear(player.pos);
 }
 function resetTricks() {
-  Object.assign(player, { flip: 0, spin: 0, whip: 0, whipLeft: 0, bar: 0, barLeft: 0, autoTurn: 0, autoLeft: 0, airTime: 0, maxH: 0, vertAir: false });
+  Object.assign(player, { flip: 0, spin: 0, whip: 0, whipLeft: 0, flipLeft: 0, flipDir: 0, flipWasDown: false, bar: 0, barLeft: 0, autoTurn: 0, autoLeft: 0, airTime: 0, maxH: 0, vertAir: false });
   player.poses = {};
   airTricks = { counts: {}, poseTime: {} };
 }
@@ -2074,10 +2074,19 @@ function airStep(dt, P, C) {
     const s = Math.sign(P.autoLeft) * Math.min(Math.abs(P.autoLeft), Math.abs(P.autoTurn) * dt);
     P.yaw += s; P.autoLeft -= s;
   }
-  if (C.flip > 0) { P.flipRate = damp(P.flipRate || 0, flipIn * C.flip, 8, dt); P.flip += P.flipRate * dt; }
-  // landing assist: once you let go, carry the rotation round to the nearest clean landing
+  // flips: tap S (backflip) or W (frontflip) and the full flip happens; keep holding for a double
+  const tl0 = timeToLand(P);
+  if (C.flip > 0) {
+    const fk = flipIn < 0 ? -1 : flipIn > 0 ? 1 : 0;
+    if (P.flipLeft > 0) {
+      const st = Math.min(P.flipLeft, C.flip * dt); P.flipLeft -= st; P.flip += st * P.flipDir; P.flipRate = C.flip * P.flipDir;
+      if (P.flipLeft <= 1e-6) { P.flipLeft = 0; P.flipRate = 0; if (fk === P.flipDir && tl0 > Math.PI * 2 / C.flip * 0.55) { P.flipLeft = Math.PI * 2; sfx.whoosh(); } }
+    } else if (fk && !P.flipWasDown) { P.flipLeft = Math.PI * 2; P.flipDir = fk; sfx.whoosh(); }
+    P.flipWasDown = !!fk;
+  }
+  // landing assist: carry any leftover rotation round to the nearest clean landing
   const reach = E ? 2.3 : 1.7;
-  if (!flipIn && C.flip > 0) {
+  if (!(P.flipLeft > 0) && C.flip > 0) {
     const rem = -wrap(P.flip), dir = Math.sign(P.flip) || 1;
     if (Math.abs(P.flip) > 0.3 && Math.abs(rem) < reach && (Math.sign(rem) === dir || Math.abs(rem) < 0.8)) {
       const st = Math.sign(rem) * Math.min(Math.abs(rem), Math.max(E ? 4.5 : 3.5, Math.abs(P.flipRate)) * dt); P.flip += st; P.flipRate = 0;
@@ -2147,6 +2156,7 @@ function landingFault(P, yawErr, flipRem, impact) {
   return null;
 }
 function finishOpenRotations(P) {
+  if (P.flipLeft > 0) { if (P.flipLeft < (settings.easy ? 1.6 : 1.0)) { P.flip += P.flipLeft * P.flipDir; } P.flipLeft = 0; P.flipRate = 0; }
   if (P.whipLeft > 0) { if (P.whipLeft < (P.whipAmt || Math.PI * 2) * 0.4) airTricks.counts[P.whipName] = (airTricks.counts[P.whipName] || 0) + 1; P.whip += P.whipLeft * P.whipDir; P.whipLeft = 0; }
   if (P.barLeft > 0) { const n = P.barName || 'Barspin'; if (P.barLeft < (P.barAmt || Math.PI * 2) * 0.4) airTricks.counts[n] = (airTricks.counts[n] || 0) + 1; P.bar += P.barLeft * (P.barDir || 1); P.barLeft = 0; }
 }
@@ -2270,7 +2280,7 @@ function scoreAir(P, C, yawErr, flipErr) {
   if (P.airStart.x > -162 && P.airStart.x < -146 && Math.abs(P.airStart.z - 490) < 5 && P.pos.x > CY.mesaB) { parts.push('Canyon Gap'); pts += 1200; mult += 2; goal('canyon'); }
   if (P.airStart.x > -367 && P.airStart.x < -353 && P.airStart.z > -112 && P.airStart.z < -106 && P.pos.z > -101) { parts.push('El Toro'); pts += 700; mult += 1; goal('eltoro'); }
   if (P.airStart.x > -484 && P.airStart.x < -456 && P.airStart.z > 68 && P.airStart.z < 73 && P.pos.z < 64.5) { parts.push('Town Hall 12'); pts += 500; mult += 1; goal('townhall'); }
-  if (P.airStart.x > 200.3 && P.airStart.x < 205 && Math.abs(P.airStart.z - 57) < 4.6 && P.pos.x < 198.9) { parts.push('Plaza 7'); pts += 300; mult += 1; goal('plaza7'); }
+  if (P.airStart.x > 199.8 && P.airStart.x < 216 && Math.abs(P.airStart.z - 57) < 5.5 && P.pos.x < 199.4) { parts.push('Plaza 7'); pts += 300; mult += 1; goal('plaza7'); }
   if (parts.length === 0) return;
   if (P.airTime > 1.2) online.submit('air', +P.airTime.toFixed(2));
   pts += airPts;
@@ -4667,7 +4677,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.0.1';
+const GAME_VERSION = '2.0.2';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -4883,7 +4893,7 @@ function renderTrickBook() {
   const pts = t => t.t === 'whip' ? WHIP_PTS[t.n] : t.t === 'bar' ? BAR_PTS[t.n] : POSE_PTS[t.p];
   const kind = t => t.t === 'whip' ? (k === 'skate' ? 'board spin' : 'whip') : t.t === 'bar' ? (k === 'skate' ? 'board flip' : 'spin') : 'hold it';
   const rows = TRICK_KEYS.filter(x => TK[x]).map(x => `<div class="tb-row"><kbd>${KEY_LABEL[x]}</kbd><b>${TK[x].n}</b><span>${kind(TK[x])}</span><em>${pts(TK[x]) || ''}</em></div>`).join('');
-  const body = [['W / S', C.flip > 0 ? 'Frontflip / Backflip' : 'Lean (no flips on this ride)', 'hold in the air', C.flip > 0 ? 650 : ''], ['A / D', '180, 360, 540…', 'spin in the air', 135], ['SPACE', k === 'skate' ? 'Ollie' : 'Hop', 'on the ground', ''], ['SHIFT', IS_KICK(k) ? 'Manual' : 'Wheelie', 'on the ground (+S: ' + (IS_KICK(k) ? 'nose manual' : 'stoppie') + ')', '']];
+  const body = [['W / S', 'Frontflip / Backflip', 'tap in the air · hold for a double', 650], ['A / D', '180, 360, 540…', 'spin in the air', 135], ['SPACE', k === 'skate' ? 'Ollie' : 'Hop', 'on the ground', ''], ['SHIFT', IS_KICK(k) ? 'Manual' : 'Wheelie', 'on the ground (+S: ' + (IS_KICK(k) ? 'nose manual' : 'stoppie') + ')', '']];
   const gs = GRIND_STYLES[k];
   const combos = (k === 'skate' ? SKATE_COMBOS : C.flip > 0 ? COMBO_NAMES : COMBO_NAMES.filter(c => !/flip|Cork/i.test(c[1]))).map(c => `<div class="tb-row combo"><b>${c[0]}</b><span>${c[1]}</span></div>`).join('');
   document.getElementById('trick-book').innerHTML =

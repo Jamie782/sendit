@@ -1,7 +1,7 @@
 {
- "version": "2.0.1",
+ "version": "2.0.2",
  "minShell": "1.5.0",
- "notes": "Fixed the 'Air the plaza 7-stair' goal so it completes.",
+ "notes": "Flips are easier: tap S for a backflip or W for a frontflip (hold for a double). E-scooter can flip now. Plaza 7-stair goal fixed.",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "fe4a3dd5446773fc33d1cfb1158eb64b86babb2b1b289f1c387689289d308ea3"
+   "sha256": "ae3ad40d3d91641101a9489dc59e55c82a87b58df96b7dda48e3c2f02f31794e"
   },
   {
    "path": "src/game.js",
-   "sha256": "ee024e7aff87e26351656d4f23b08f75b32c0b6c14a615d04bb361dacc86d6a0"
+   "sha256": "a0193282b4e3e89732c9b810a26ce8f1e91acec4d8ca82741b695444146849e3"
   },
   {
    "path": "assets/logo-icon.png",
