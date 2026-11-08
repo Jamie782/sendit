@@ -27,6 +27,7 @@
     <div id="score">0</div>
     <div class="lbl small">BEST <span id="best">0</span></div>
     <div id="letters"><i>S</i><i>E</i><i>N</i><i>D</i><i>I</i><i>T</i></div>
+    <div class="lvl-chip hud-lvl"></div>
     <div id="cash-row"><span id="cash"><i class="coin"></i>0</span><span id="np"></span></div>
     <div id="feed"></div>
   </div>
@@ -54,7 +55,7 @@
     <b>W/S</b> ride · brake &nbsp; <b>A/D</b> steer &nbsp; <b>SPACE</b> hop &nbsp; <b>SHIFT</b> wheelie<br>
     <b>IN AIR:</b> <b>W/S</b> flips &nbsp; <b>A/D</b> spin &nbsp; <b>J K L I U O SHIFT</b> tricks (shown on screen)<br>
     <b>GRIND:</b> hop onto any rail or ledge &nbsp; <b>SHIFT+S</b> stoppie / nose manual<br>
-    <b>1-8</b> zones &nbsp; <b>N</b> radio &nbsp; <b>Q</b> vehicle &nbsp; <b>C</b> camera &nbsp; <b>R</b> reset &nbsp; <b>T</b> chat &nbsp; <b>H</b> hide &nbsp; <b>ESC</b> menu
+    <b>M</b> map &nbsp; <b>1-0</b> places &nbsp; <b>Q</b> ride &nbsp; <b>C</b> camera &nbsp; <b>V</b> replay &nbsp; <b>P</b> photo &nbsp; <b>R</b> reset &nbsp; <b>N</b> radio &nbsp; <b>T</b> chat &nbsp; <b>H</b> hide &nbsp; <b>ESC</b> menu
   </div>
   <button id="pause-btn" class="touch-only">II</button>
 </div>
@@ -83,9 +84,11 @@
       <button data-tab="garage">GARAGE</button>
       <button data-tab="online">ONLINE<i id="req-dot" class="hidden"></i></button>
       <button data-tab="ranks">RANKS</button>
+      <button data-tab="tricks">TRICKS</button>
       <button data-tab="settings">SETTINGS</button>
     </nav>
     <div class="tb-right">
+      <div class="lvl-chip" id="lvl-top"></div>
       <div class="coins" title="Coins: earn them with tricks, spend them in the garage"><i class="coin"></i><span id="tb-coins">0</span></div>
       <button class="me-chip" id="me-chip"><span class="av" id="me-av"></span><span class="me-name" id="me-name">SIGN IN</span></button>
     </div>
@@ -94,20 +97,22 @@
   <main class="panes">
     <!-- PLAY -->
     <section class="pane" data-pane="play">
-      <div class="panel">
-        <div class="p-head">CHOOSE YOUR RIDE</div>
-        <div id="vehicle-cards"></div>
-        <div class="p-head">WHERE</div>
-        <div class="chips" id="zone-seg"></div>
-        <div class="p-head">PAINT COLOUR</div>
+      <div class="panel play-panel">
+        <div class="p-head">YOUR RIDE</div>
+        <div id="ride-picker" class="ride-picker"></div>
+        <div id="ride-info" class="ride-info"></div>
+        <div class="p-head">WHERE <button class="link-btn" id="map-open-menu">WORLD MAP</button></div>
+        <button id="zone-card" class="zone-card"></button>
+        <div class="p-head">PAINT</div>
         <div class="swatches" id="swatches"></div>
         <div class="play-btns">
           <button id="ride-btn">RIDE</button>
           <button id="attack-btn" class="ghost-big" title="Score as much as you can in 2 minutes">TRICK ATTACK<small>2 MIN</small></button>
         </div>
         <div class="room-line hidden" id="room-line" onclick="event.target.closest('[data-copy]') && window.copyInvite()"></div>
-        <div class="controls-lbl" id="controls-lbl">W/S ride · A/D steer · SPACE hop · SHIFT wheelie · J K L I U O tricks in the air</div>
+        <div class="controls-lbl" id="controls-lbl">W/S ride · A/D steer · SPACE hop · SHIFT wheelie · J K L I U O tricks in the air · M map</div>
       </div>
+      <div class="side-col"><div id="daily" class="daily"></div></div>
     </section>
 
     <!-- GARAGE -->
@@ -164,6 +169,14 @@
       </div>
     </section>
 
+    <!-- TRICKS -->
+    <section class="pane hidden" data-pane="tricks">
+      <div class="panel wide">
+        <div class="seg" id="tb-rides"></div>
+        <div id="trick-book"></div>
+      </div>
+    </section>
+
     <!-- SETTINGS -->
     <section class="pane hidden" data-pane="settings">
       <div class="panel">
@@ -178,10 +191,12 @@
         <div class="keys">
           <div><b>W / S</b>ride · brake · flips</div><div><b>A / D</b>steer · spins</div>
           <div><b>SPACE</b>hop · hop off rails</div><div><b>SHIFT</b>wheelie · with S: stoppie</div>
-          <div><b>JKLIUO</b>air tricks</div><div><b>1–8</b>warp to a place</div>
+          <div><b>JKLIUO</b>air tricks</div><div><b>1–0</b>warp to a place</div>
           <div><b>Q</b>switch ride</div><div><b>C</b>camera</div>
           <div><b>R</b>reset</div><div><b>N</b>next radio station</div>
-          <div><b>T</b>chat on a server</div><div><b>ESC</b>menu</div>
+          <div><b>M</b>world map</div><div><b>V</b>instant replay</div>
+          <div><b>P</b>photo mode</div><div><b>T</b>chat on a server</div>
+          <div><b>H</b>hide the help</div><div><b>ESC</b>menu</div>
         </div>
         <div class="ver-line" id="ver-line"></div>
       </div>
@@ -189,6 +204,18 @@
   </main>
 </div>
 
+<div id="zone-picker" class="modal hidden">
+  <div class="zp-box">
+    <div class="zp-top"><div class="m-title">WHERE TO?</div><button class="x" id="zp-x">✕</button></div>
+    <div id="zp-grid" class="zp-grid"></div>
+  </div>
+</div>
+<div id="map" class="hidden">
+  <div class="map-top"><div class="m-title">WORLD MAP</div><span class="muted">Click a place to go there · M or ESC to close</span><button class="x" id="map-x">✕</button></div>
+  <div class="map-body"><div class="map-wrap"><canvas id="map-canvas"></canvas></div><div id="map-list" class="map-list"></div></div>
+</div>
+<div id="photo-ui" class="hidden"><b>PHOTO MODE</b> drag or A/D Q/E to move · W/S or scroll to zoom · <b>ENTER</b> save photo · <b>P</b> back</div>
+<div id="replay-ui" class="hidden"><div class="rp-tag">● REPLAY</div><div class="rp-track"><i id="replay-bar"></i></div><div class="rp-help">hold SHIFT for full speed · <b>V</b> back to riding</div></div>
 <div id="invites"></div>
 <div id="update-toast" class="hidden"></div>
 

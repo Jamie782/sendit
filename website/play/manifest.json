@@ -1,23 +1,23 @@
 {
- "version": "1.5.2",
+ "version": "2.0.0",
  "minShell": "1.5.0",
- "notes": "Smoother 808 FM radio (fixed a low rumble that built up over time).",
+ "notes": "SEND IT 2.0: skateboard, Big Air, Downtown, Canyon, Woods, new menu, world map, replays, photo mode, levels and daily challenges.",
  "files": [
   {
    "path": "index.html",
-   "sha256": "fdca48db84f1a5b9baeecd91ae5bebefe74882fd1bdc8605ddc51d91e4e38577"
+   "sha256": "883e8b73be4e1a7468045d232a525678c6d9512e0eb250774254f39c8e1de5b9"
   },
   {
    "path": "style.css",
-   "sha256": "26288102ca171800e2f5cb1589a95d722e5ea5a1a2b01ddb6147c151bdbe0d7d"
+   "sha256": "f47c7ce6f688a66e4d08e2cb7859ee3f7cc75bef8b0e45a8a05c8313468d666a"
   },
   {
    "path": "version.json",
-   "sha256": "a3b6cd6f3c5632e05f8f6a71627a42cf576fd2b2cab5ef3363b3fd548a73b2de"
+   "sha256": "706cd711498cdb5bce52e405a88e428ccf4fac9d4319e9dabdd5dc7834d06587"
   },
   {
    "path": "src/game.js",
-   "sha256": "3235e3258db19f7b4df09d261762de28ce70b4a47467957df66c288241a7601d"
+   "sha256": "96d40056c6f1670bece1b929aedd7a22d1794c1653c316fa0d46bf030a88ec2c"
   },
   {
    "path": "assets/logo-icon.png",
@@ -34,6 +34,66 @@
   {
    "path": "assets/logo-wordmark.svg",
    "sha256": "5673a372eae900ea0faee35516ef7955810db62268ac4f09f9bd9efc06759458"
+  },
+  {
+   "path": "assets/maps/airbag.jpg",
+   "sha256": "c147b70860fc1861d9d9f23d1f2894acbd2e4cd6b223f739b82fabc2f57c8c63"
+  },
+  {
+   "path": "assets/maps/beach.jpg",
+   "sha256": "18e64b80cd4f92016a11ea16b7a8c68644e01d7ccd6bf7961fbdd0c8018361c2"
+  },
+  {
+   "path": "assets/maps/bigair.jpg",
+   "sha256": "e9cea03facec26b1c2139278459a89f25d8271bbb86e87aa1119f240a43d317a"
+  },
+  {
+   "path": "assets/maps/canyon.jpg",
+   "sha256": "d7cf6f3756993d4af8b49aa9eb9faf32d14746cb8f5fd468079c8945589a51da"
+  },
+  {
+   "path": "assets/maps/desert.jpg",
+   "sha256": "fab94bba6a9a236c17bf135c36aeb48e8534cd66bb85d62ed8cf789646cd9c86"
+  },
+  {
+   "path": "assets/maps/dirt.jpg",
+   "sha256": "709e2293d65a1cb359a00ff5e4261207a8e4780d47756c580541446983ce7b87"
+  },
+  {
+   "path": "assets/maps/downtown.jpg",
+   "sha256": "090047d07f96f25c2465c3e58d6bb1063fc320a23952c8b08efd046393e216f5"
+  },
+  {
+   "path": "assets/maps/hill.jpg",
+   "sha256": "eb1f85dc26cf40834bf3d8a7f24bfec09d1bce644e20e5897ba85edae764ebc5"
+  },
+  {
+   "path": "assets/maps/mega.jpg",
+   "sha256": "f1ab5bbb54a349dead930d9f38eabea30f4cd5b277994f25c1e0de1eeac4185a"
+  },
+  {
+   "path": "assets/maps/park.jpg",
+   "sha256": "7db03c137a7721c161843dd06cdf4988fa94f6cf567308171942d8832a412ed6"
+  },
+  {
+   "path": "assets/maps/plaza.jpg",
+   "sha256": "7ca0f61ee00513ed3dbe4357a86d133fb7697203db2fd6326dd66a43c75d3451"
+  },
+  {
+   "path": "assets/maps/street.jpg",
+   "sha256": "a8eaa363ffede81042d934c291e248e04900e0ef032f80b893edb39c19c41be5"
+  },
+  {
+   "path": "assets/maps/vert.jpg",
+   "sha256": "ee970dce1ac8531bce4015b56d73ed86a65a0980e715848fc2eb3bf6626a3ec9"
+  },
+  {
+   "path": "assets/maps/woods.jpg",
+   "sha256": "7309b6cff593a1a73a73db68e755a88d2a0231726add76d4917f69f0f88427af"
+  },
+  {
+   "path": "assets/maps/yard.jpg",
+   "sha256": "80084bb1d6275df6e2bd8414f352cf935048c2d4acd233f26b9d850b9146bc39"
   },
   {
    "path": "vendor/peerjs/LICENSE",
