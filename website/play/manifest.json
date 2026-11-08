@@ -1,7 +1,7 @@
 {
- "version": "2.0.0",
+ "version": "2.0.1",
  "minShell": "1.5.0",
- "notes": "SEND IT 2.0: skateboard, Big Air, Downtown, Canyon, Woods, new menu, world map, replays, photo mode, levels and daily challenges.",
+ "notes": "Fixed the 'Air the plaza 7-stair' goal so it completes.",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "706cd711498cdb5bce52e405a88e428ccf4fac9d4319e9dabdd5dc7834d06587"
+   "sha256": "fe4a3dd5446773fc33d1cfb1158eb64b86babb2b1b289f1c387689289d308ea3"
   },
   {
    "path": "src/game.js",
-   "sha256": "96d40056c6f1670bece1b929aedd7a22d1794c1653c316fa0d46bf030a88ec2c"
+   "sha256": "ee024e7aff87e26351656d4f23b08f75b32c0b6c14a615d04bb361dacc86d6a0"
   },
   {
    "path": "assets/logo-icon.png",

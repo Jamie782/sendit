@@ -2270,6 +2270,7 @@ function scoreAir(P, C, yawErr, flipErr) {
   if (P.airStart.x > -162 && P.airStart.x < -146 && Math.abs(P.airStart.z - 490) < 5 && P.pos.x > CY.mesaB) { parts.push('Canyon Gap'); pts += 1200; mult += 2; goal('canyon'); }
   if (P.airStart.x > -367 && P.airStart.x < -353 && P.airStart.z > -112 && P.airStart.z < -106 && P.pos.z > -101) { parts.push('El Toro'); pts += 700; mult += 1; goal('eltoro'); }
   if (P.airStart.x > -484 && P.airStart.x < -456 && P.airStart.z > 68 && P.airStart.z < 73 && P.pos.z < 64.5) { parts.push('Town Hall 12'); pts += 500; mult += 1; goal('townhall'); }
+  if (P.airStart.x > 200.3 && P.airStart.x < 205 && Math.abs(P.airStart.z - 57) < 4.6 && P.pos.x < 198.9) { parts.push('Plaza 7'); pts += 300; mult += 1; goal('plaza7'); }
   if (parts.length === 0) return;
   if (P.airTime > 1.2) online.submit('air', +P.airTime.toFixed(2));
   pts += airPts;
@@ -4666,7 +4667,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.0.0';
+const GAME_VERSION = '2.0.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
