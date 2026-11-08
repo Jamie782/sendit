@@ -1,0 +1,86 @@
+# Builds the Windows and Mac downloads and publishes them as a GitHub Release
+# every time the game version (version.json) changes on main.
+# The website's download buttons point at releases/latest, so they always get the newest build.
+name: Release downloads
+
+on:
+  push:
+    branches: [main]
+    paths: [version.json, main.js, package.json, .github/workflows/release.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        shell: bash
+        run: npx electron-builder --win zip --x64 --publish never
+      - name: Rename
+        shell: bash
+        run: mkdir -p up && mv dist/*.zip up/SendIt-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win
+          path: up/SendIt-Windows.zip
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dir --x64 --arm64 --publish never
+      - name: Sign (ad-hoc) and zip
+        run: |
+          mkdir -p up
+          for pair in "mac-arm64:AppleSilicon" "mac:Intel"; do
+            d="${pair%%:*}"; n="${pair##*:}"
+            app="dist/$d/Send It.app"
+            codesign --force --deep --sign - "$app"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "up/SendIt-Mac-$n.zip"
+          done
+          ls -la up
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: up/*.zip
+
+  release:
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: up
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(jq -r .version version.json)
+          notes=$(jq -r '.notes // empty' website/play/manifest.json 2>/dev/null || true)
+          if ! gh release view "v$ver" >/dev/null 2>&1; then
+            gh release create "v$ver" --title "SEND IT $ver" --notes "${notes:-SEND IT $ver}" --latest
+          fi
+          gh release upload "v$ver" up/*.zip --clobber
