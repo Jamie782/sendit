@@ -1,0 +1,166 @@
+{
+ "launcher": "1.0.0",
+ "news": [
+  {
+   "v": "2.2.1",
+   "date": "November 2026",
+   "title": "The launcher",
+   "image": "media/hero-woodpark.jpg",
+   "items": [
+    "New: the SEND IT Launcher. It installs the game, updates it by itself and starts it with one click (get it from the website)",
+    "Sponsor signs don't cut their names off any more"
+   ]
+  },
+  {
+   "v": "2.2.0",
+   "date": "November 2026",
+   "title": "Unlocks, admins and the Big Bowl",
+   "image": "media/bigbowl.jpg",
+   "items": [
+    "Rides unlock as you level up: skateboard at level 2, e-scooter at 3, e-bike and surfboard at 4, skis at 6",
+    "New places unlock too: Wood Park (3), Islands (4), The Warehouse (5), Peak Run (6), The Big Bowl (7), Rooftop Park (8). Ride there yourself to unlock a place early",
+    "The Big Bowl: a massive 4.5 m deep concrete bowl with a deep end and a corner pocket",
+    "SEND IT is a desktop game now: it runs in the Windows and Mac app only",
+    "Admins: give or take coins, kick anyone from any server, and ban players for a set time",
+    "Hosts can kick players from their own server (Online tab)",
+    "Cleaner menus: leaderboards grouped down the side, goals on their own page, settings split into General, Sound, Controls and About",
+    "Quest card and your next unlock on the PLAY screen",
+    "Skins split into shop skins and quest rewards"
+   ]
+  },
+  {
+   "v": "2.1.0",
+   "date": "November 2026",
+   "title": "Get off and explore",
+   "image": "media/woodpark.jpg",
+   "items": [
+    "Get off your ride (F) and walk, run (Shift) and jump anywhere",
+    "Market Street: DcMonalds, Kurger Bings, Barstucks, Ocset and The Kickflip Arms, with people working inside",
+    "Buy food and drinks with coins, keep them in your bag (B) and eat them for a speed boost",
+    "7 quests: talk to people, find what they lost and bring it back for coins and a unique outfit (G for the quest log)",
+    "Dialogue that types out letter by letter, and people who talk out loud",
+    "Surfing: ride or walk into the sea and you get a surfboard. Catch waves, get air off them",
+    "5 islands out at sea, each with a treasure chest of coins (refills every day)",
+    "Snowy mountain: hire skis at the ski hut, take the chairlift and ski the Peak Run",
+    "Press S to ride backwards",
+    "All rides are faster",
+    "Punch people (J on foot). Some fight back, some run away, some just tell you off",
+    "Knocking people over looks real now: they fly, bounce, lie there and get back up (sometimes angry)",
+    "People walking their dogs (you can pet them), and drivers in the cars",
+    "17 new skins with hats and capes: Retro Hero, Pirate, Wizard, Knight, Robot, Astronaut, King and more",
+    "20 new goals and 5 new leaderboards: XP, treasure, longest surf, Peak Run and Woods downhill",
+    "Change any control in Settings",
+    "This update log!",
+    "Plaza 7-stair: grinding the handrail down it counts now too"
+   ]
+  },
+  {
+   "v": "2.0.2",
+   "date": "November 2026",
+   "title": "Flips",
+   "image": "media/bigair.jpg",
+   "items": [
+    "Tap W or S in the air to do a full flip (hold for a double)",
+    "Flips work on the e-scooter"
+   ]
+  },
+  {
+   "v": "2.0.1",
+   "date": "November 2026",
+   "title": "Fixes",
+   "image": "media/park.jpg",
+   "items": [
+    "Fixed the Plaza 7-stair goal"
+   ]
+  },
+  {
+   "v": "2.0.0",
+   "date": "November 2026",
+   "title": "The ultra update",
+   "image": "media/canyon.jpg",
+   "items": [
+    "Skateboard",
+    "Big Air, Downtown, Canyon, Woods, Vert ramp, Airbag and Desert line",
+    "New menu, ride picker and world map",
+    "Levels, XP and daily challenges",
+    "Photo mode and instant replay",
+    "Day/night cycle",
+    "Lots more tricks and named combos"
+   ]
+  },
+  {
+   "v": "1.5",
+   "date": "October 2026",
+   "title": "Online",
+   "image": "media/online.jpg",
+   "items": [
+    "Accounts, friends and servers",
+    "Leaderboards",
+    "Discord sign-in",
+    "Auto-updates"
+   ]
+  },
+  {
+   "v": "1.0",
+   "date": "October 2026",
+   "title": "First release",
+   "image": "media/intro.jpg",
+   "items": [
+    "Bike, e-bike, scooter and e-scooter",
+    "Skatepark, dirt jumps, mega ramp, plaza and the high street"
+   ]
+  }
+ ],
+ "places": [
+  {
+   "n": "Wood Park",
+   "img": "media/woodpark.jpg",
+   "lv": 3
+  },
+  {
+   "n": "The Big Bowl",
+   "img": "media/bigbowl.jpg",
+   "lv": 7
+  },
+  {
+   "n": "The Warehouse",
+   "img": "media/warehouse.jpg",
+   "lv": 5
+  },
+  {
+   "n": "Rooftop Park",
+   "img": "media/rooftop.jpg",
+   "lv": 8
+  },
+  {
+   "n": "Islands",
+   "img": "media/islands.jpg",
+   "lv": 4
+  },
+  {
+   "n": "Peak Run",
+   "img": "media/mountain.jpg",
+   "lv": 6
+  },
+  {
+   "n": "Market Street",
+   "img": "media/market.jpg",
+   "lv": 1
+  },
+  {
+   "n": "Big Air",
+   "img": "media/bigair.jpg",
+   "lv": 1
+  },
+  {
+   "n": "Canyon",
+   "img": "media/canyon.jpg",
+   "lv": 1
+  },
+  {
+   "n": "Downtown",
+   "img": "media/downtown.jpg",
+   "lv": 1
+  }
+ ]
+}

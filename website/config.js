@@ -7,6 +7,9 @@ window.SENDIT = {
     windows: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Windows.zip',
     macArm: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Mac-AppleSilicon.zip',
     macIntel: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Mac-Intel.zip',
+    launcherWin: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Launcher-Windows.zip',
+    launcherMacArm: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Launcher-Mac-AppleSilicon.zip',
+    launcherMacIntel: 'https://github.com/Jamie782/sendit/releases/latest/download/SendIt-Launcher-Mac-Intel.zip',
   },
   discord: '', // your Discord server invite, e.g. https://discord.gg/xxxx (leave empty to hide the button)
 };

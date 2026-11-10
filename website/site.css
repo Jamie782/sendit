@@ -100,3 +100,4 @@ footer img{height:26px}
 }
 @media (max-width:520px){.rides,.stats{grid-template-columns:1fr}.btn{font-size:19px}.code{font-size:56px;letter-spacing:8px}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.place img{transition:none}}
+.alt-dl{margin-top:10px}.alt-dl a{color:var(--accent2);cursor:pointer;text-decoration:underline}

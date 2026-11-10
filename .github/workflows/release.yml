@@ -6,7 +6,7 @@ name: Release downloads
 on:
   push:
     branches: [main]
-    paths: [version.json, main.js, package.json, .github/workflows/release.yml]
+    paths: [version.json, main.js, package.json, .github/workflows/release.yml, 'launcher/**']
   workflow_dispatch:
 
 permissions:
@@ -32,10 +32,14 @@ jobs:
       - name: Rename
         shell: bash
         run: mkdir -p up && mv dist/*.zip up/SendIt-Windows.zip
+      - name: Build the launcher
+        shell: bash
+        working-directory: launcher
+        run: npm ci && npx electron-builder --win zip --x64 --publish never && mv dist/*.zip ../up/SendIt-Launcher-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: win
-          path: up/SendIt-Windows.zip
+          path: up/*.zip
 
   mac:
     runs-on: macos-latest
@@ -60,6 +64,20 @@ jobs:
             ditto -c -k --sequesterRsrc --keepParent "$app" "up/SendIt-Mac-$n.zip"
           done
           ls -la up
+      - name: Build the launcher
+        working-directory: launcher
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm ci
+          npx electron-builder --mac dir --x64 --arm64 --publish never
+          for pair in "mac-arm64:AppleSilicon" "mac:Intel"; do
+            d="${pair%%:*}"; n="${pair##*:}"
+            app="dist/$d/SEND IT Launcher.app"
+            codesign --force --deep --sign - "$app"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "../up/SendIt-Launcher-Mac-$n.zip"
+          done
+          ls -la ../up
       - uses: actions/upload-artifact@v4
         with:
           name: mac

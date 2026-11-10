@@ -1,0 +1,25 @@
+{
+  "name": "send-it-launcher",
+  "productName": "SEND IT Launcher",
+  "version": "1.0.0",
+  "description": "Installs, updates and launches SEND IT",
+  "main": "main.js",
+  "author": "Jamie",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "build": {
+    "appId": "gift.jamie.sendit.launcher",
+    "productName": "SEND IT Launcher",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**/*"],
+    "win": { "target": [{ "target": "zip", "arch": ["x64"] }], "icon": "build/icon.png" },
+    "mac": { "target": [{ "target": "dir", "arch": ["x64", "arm64"] }], "icon": "build/icon.png", "category": "public.app-category.games", "identity": null }
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}

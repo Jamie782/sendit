@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://play-sendit.netlify.app; connect-src https://play-sendit.netlify.app; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'">
+<title>SEND IT Launcher</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="titlebar"><div class="drag"></div><div class="wc"><button data-w="min" title="Minimise"><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></button><button data-w="max" title="Maximise"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7"/></svg></button><button data-w="close" class="close" title="Close"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg></button></div></div>
+<aside id="side">
+  <img class="logo" src="img/logo-wordmark.svg" alt="SEND IT">
+  <nav>
+    <button data-p="home" class="sel"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button data-p="news"><svg viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg>What's new</button>
+    <button data-p="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+  </nav>
+  <div class="side-game">
+    <div class="sg-title">LIBRARY</div>
+    <button class="sg-item sel" data-p="home"><img src="img/logo-icon.png" alt=""><span><b>SEND IT</b><small id="sg-status">Not installed</small></span></button>
+  </div>
+  <div class="side-foot">
+    <button class="link" data-open="https://play-sendit.netlify.app/">Website</button>
+    <span id="lver"></span>
+  </div>
+</aside>
+
+<main>
+  <!-- HOME -->
+  <section class="page" data-page="home">
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-in">
+        <img class="hero-logo" src="img/logo-wordmark.svg" alt="SEND IT">
+        <p class="tag">Free stunt riding on bikes, scooters, skateboards, skis and surfboards. Ride a whole town with your mates.</p>
+        <div class="action">
+          <button id="go" class="go" disabled>…</button>
+          <div class="act-info">
+            <div id="status" class="status">Checking for updates…</div>
+            <div id="bar" class="bar hidden"><i></i></div>
+            <div id="sub" class="sub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="card latest" id="latest"></div>
+      <div class="card feats">
+        <div class="ch">IN THE GAME</div>
+        <ul>
+          <li><b>7</b> rides to unlock</li>
+          <li><b>20+</b> places to ride</li>
+          <li><b>Online</b> servers with friends</li>
+          <li><b>10</b> leaderboards</li>
+          <li><b>7</b> quests and 70+ goals</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ch big">PLACES</div>
+    <div class="places" id="places"></div>
+  </section>
+
+  <!-- NEWS -->
+  <section class="page hidden" data-page="news">
+    <h1>What's new</h1>
+    <div id="news"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="page hidden" data-page="settings">
+    <h1>Settings</h1>
+    <div class="set">
+      <div class="set-row"><div><b>Install location</b><small id="dir"></small></div><div class="btns"><button class="btn ghost" id="open-dir">OPEN FOLDER</button><button class="btn ghost" id="change-dir">CHANGE</button></div></div>
+      <div class="set-row"><div><b>When I press Play</b><small>What the launcher does while you're riding</small></div><div class="seg" id="on-launch"><button data-v="minimise">MINIMISE</button><button data-v="keep">STAY OPEN</button><button data-v="close">CLOSE</button></div></div>
+      <div class="set-row"><div><b>Update automatically</b><small>Download new versions as soon as they're out</small></div><div class="seg" id="auto"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
+      <div class="set-row"><div><b>Check for updates</b><small id="check-info"></small></div><div class="btns"><button class="btn ghost" id="check">CHECK NOW</button></div></div>
+      <div class="set-row"><div><b>Repair</b><small>Download the game again if something's broken. Your saves are kept.</small></div><div class="btns"><button class="btn ghost" id="repair">REPAIR</button></div></div>
+      <div class="set-row"><div><b>Uninstall SEND IT</b><small>Removes the game files. Your saves and account are kept.</small></div><div class="btns"><button class="btn red" id="uninstall">UNINSTALL</button></div></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="hidden"></div>
+<script src="news.js"></script>
+<script src="renderer.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
- "version": "2.2.0",
+ "version": "2.2.1",
  "minShell": "1.5.0",
- "notes": "2.2: rides and places unlock as you level up, The Big Bowl, admins (gold, kicks, timed bans), host kicks, cleaner menus, desktop app only",
+ "notes": "2.2.1: the new SEND IT Launcher, and sponsor signs fit their names",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "08e54369e1933bb33a38ea2515d75eeb22c4194d8183ab57a226702b89e240d9"
+   "sha256": "5f7dcc7d4d39fb4fad1f8c3c3de1d74c2bc15f2ee60a416c426f2f8da23e60c5"
   },
   {
    "path": "src/game.js",
-   "sha256": "4a1733973b9f5b1118be586d0abdacae82c2207048a0deac4075c3145df82a60"
+   "sha256": "3c97c25ffc086c415b6cc7c7027fb87645e4341291f3af31e13d7d787f9519f7"
   },
   {
    "path": "assets/logo-icon.png",

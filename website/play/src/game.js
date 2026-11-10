@@ -3579,7 +3579,7 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
       for (let x = 20; x < W; x += W / 4) { icon(x + H * 0.25, H / 2, H * 0.25); g.fillText(S.n, x + H * 0.6, H / 2 + 3); }
     } else {
       icon(H * 0.5, H * 0.5, H * 0.28);
-      g.fillStyle = S.fg; g.font = `900 ${S.n.length > 6 ? 78 : 104}px Impact, "Arial Black", sans-serif`; g.fillText(S.n, H * 0.95, H * 0.44);
+      g.fillStyle = S.fg; let fs = 104; do { g.font = `900 ${fs}px Impact, "Arial Black", sans-serif`; fs -= 4; } while (g.measureText(S.n).width > W - H * 0.95 - 18 && fs > 40); g.fillText(S.n, H * 0.95, H * 0.44);
       g.font = '700 30px Inter, Arial, sans-serif'; g.globalAlpha = 0.85; g.fillText(S.sub, H * 0.98, H * 0.78); g.globalAlpha = 1;
     }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO; if (strip) { t.wrapS = THREE.RepeatWrapping; }
@@ -5152,7 +5152,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.2.0';
+const GAME_VERSION = '2.2.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -6630,6 +6630,10 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.2.1', d: 'November 2026', t: 'The launcher', items: [
+    'New: the SEND IT Launcher. It installs the game, updates it by itself and starts it with one click (get it from the website)',
+    "Sponsor signs don't cut their names off any more",
+  ] },
   { v: '2.2.0', d: 'November 2026', t: 'Unlocks, admins and the Big Bowl', items: [
     'Rides unlock as you level up: skateboard at level 2, e-scooter at 3, e-bike and surfboard at 4, skis at 6',
     'New places unlock too: Wood Park (3), Islands (4), The Warehouse (5), Peak Run (6), The Big Bowl (7), Rooftop Park (8). Ride there yourself to unlock a place early',
