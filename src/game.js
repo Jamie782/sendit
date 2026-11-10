@@ -455,7 +455,7 @@ M.tLight = { red: new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0x
 
 // ───────────────────────── world: ground & zones ─────────────────────────
 const WORLD = 300;
-const BOUNDS = { x0: -620, x1: 620, z0: -340, z1: 640 };   // the whole riding area, new maps included
+const BOUNDS = { x0: -620, x1: 620, z0: -1000, z1: 1100 };   // the whole riding area, new maps included
 const ZONES = {
   street: { name: 'STREET', pos: v3(-150, 0, 0), yaw: Math.PI / 2 },
   park: { name: 'SKATEPARK', pos: v3(65, 0, 52), yaw: 0 },
@@ -888,6 +888,7 @@ const carBody = (() => {
   const g = new THREE.ExtrudeGeometry(s, { depth: 1.62, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.05, bevelSegments: 4, curveSegments: 18 });
   g.translate(0, 0, -0.81); g.rotateY(-Math.PI / 2); return g;
 })();
+const CAR_GLASS = new THREE.MeshPhysicalMaterial({ color: 0x1a2430, metalness: 0.1, roughness: 0.05, clearcoat: 1, transparent: true, opacity: 0.42, depthWrite: false });
 const carGlass = (() => {
   const s = new THREE.Shape();
   s.moveTo(-1.78, 0.98); s.quadraticCurveTo(-1.6, 1.36, -1.35, 1.42); s.lineTo(0.35, 1.44); s.quadraticCurveTo(0.65, 1.42, 1.25, 0.98);
@@ -905,7 +906,7 @@ function car(x, z, yaw, mat) {
 function makeCar(mat) {
   const g = new THREE.Group(); queueMicrotask(() => mergeGroup(g));
   const body = new THREE.Mesh(carBody, mat); body.castShadow = body.receiveShadow = true;
-  const glass = new THREE.Mesh(carGlass, M.glass); glass.castShadow = true;
+  const glass = new THREE.Mesh(carGlass, CAR_GLASS); glass.castShadow = false;
   const roof = box(1.42, 0.06, 1.55, mat, 0, 1.47, -0.5, g);
   for (const [px, pz, sx] of [[0.72, 0.92, 1], [-0.72, 0.92, -1]]) { const p = box(0.06, 0.55, 0.08, mat, px, 1.2, pz, g); p.rotation.x = 0.85; } // A-pillars
   for (const px of [-0.79, 0.79]) box(0.04, 0.46, 0.09, mat, px, 1.2, -0.25, g); // B-pillars
@@ -1067,15 +1068,17 @@ function mergeStatic() {
 
 // ───────────────────────── vehicles ─────────────────────────
 const VEH = {
-  bike: { label: 'BIKE', desc: 'Dirt-jump bike. Flips, whips and barspins. Best in the dirt.', top: 12.5, accel: 8, hop: 5.4, spin: 8.6, flip: 6.4, whip: 0.5, bar: 0.32, wb: 0.9, wbMax: 1.4, motor: false, tLabel: 'SUPERMAN', stats: [0.65, 0.95, 0.85] },
-  ebike: { label: 'E-BIKE', desc: 'Motor-assisted trail bike with suspension. Fast on the road, huge on the mega ramp.', top: 14.5, accel: 9, hop: 4.6, spin: 6.2, flip: 5.0, whip: 0.8, bar: 0.42, wb: 0.86, wbMax: 1.3, motor: true, tLabel: 'SUPERMAN', stats: [0.85, 0.6, 0.8] },
-  scooter: { label: 'SCOOTER', desc: 'Pro stunt scooter. Made for the skatepark — whips for days.', top: 11, accel: 6.5, hop: 5.0, spin: 10.5, flip: 6.8, whip: 0.34, bar: 0.26, wb: 0.42, wbMax: 0.75, motor: false, tLabel: 'NO-FOOTER', stats: [0.5, 1.0, 0.45] },
-  escooter: { label: 'E-SCOOTER', desc: 'Dual-suspension electric scooter. Top speed and long wheelies on the street.', top: 15, accel: 6.5, hop: 3.6, spin: 5.6, flip: 4.6, whip: 0.95, bar: 0.5, wb: 0.62, wbMax: 1.0, motor: true, tLabel: 'KICKOUT', stats: [0.9, 0.35, 1.0] },
-  skate: { label: 'SKATEBOARD', desc: 'Street deck. Kickflips, shove-its and boardslides. Made for stairs and rails.', top: 10.8, accel: 6.8, hop: 5.2, spin: 9.6, flip: 5.4, whip: 0.42, bar: 0.36, wb: 0.26, wbMax: 0.5, motor: false, tLabel: 'KICKFLIP', stats: [0.5, 1.0, 0.55], push: true },
+  bike: { label: 'BIKE', desc: 'Dirt-jump bike. Flips, whips and barspins. Best in the dirt.', top: 15.5, accel: 9.5, hop: 5.4, spin: 8.6, flip: 6.4, whip: 0.5, bar: 0.32, wb: 0.9, wbMax: 1.4, motor: false, tLabel: 'SUPERMAN', stats: [0.65, 0.95, 0.85] },
+  ebike: { label: 'E-BIKE', desc: 'Motor-assisted trail bike with suspension. Fast on the road, huge on the mega ramp.', top: 18, accel: 10.5, hop: 4.6, spin: 6.2, flip: 5.0, whip: 0.8, bar: 0.42, wb: 0.86, wbMax: 1.3, motor: true, tLabel: 'SUPERMAN', stats: [0.85, 0.6, 0.8] },
+  scooter: { label: 'SCOOTER', desc: 'Pro stunt scooter. Made for the skatepark — whips for days.', top: 13.5, accel: 7.5, hop: 5.0, spin: 10.5, flip: 6.8, whip: 0.34, bar: 0.26, wb: 0.42, wbMax: 0.75, motor: false, tLabel: 'NO-FOOTER', stats: [0.5, 1.0, 0.45] },
+  escooter: { label: 'E-SCOOTER', desc: 'Dual-suspension electric scooter. Top speed and long wheelies on the street.', top: 19, accel: 8, hop: 3.6, spin: 5.6, flip: 4.6, whip: 0.95, bar: 0.5, wb: 0.62, wbMax: 1.0, motor: true, tLabel: 'KICKOUT', stats: [0.9, 0.35, 1.0] },
+  skate: { label: 'SKATEBOARD', desc: 'Street deck. Kickflips, shove-its and boardslides. Made for stairs and rails.', top: 13.5, accel: 7.8, hop: 5.2, spin: 9.6, flip: 5.4, whip: 0.42, bar: 0.36, wb: 0.26, wbMax: 0.5, motor: false, tLabel: 'KICKFLIP', stats: [0.5, 1.0, 0.55], push: true },
+  surf: { label: 'SURFBOARD', desc: 'Ride into the sea to surf. On land you have to push it along.', top: 12, accel: 6, hop: 3.6, spin: 6.5, flip: 4.4, whip: 0.5, bar: 0.42, wb: 0.3, wbMax: 0.5, motor: false, tLabel: 'BOARD FLIP', stats: [0.5, 0.6, 0.2], hidden: true },
+  ski: { label: 'SKIS', desc: 'Only on the mountain. Hire them at the ski hut.', top: 24, accel: 3.2, hop: 4.8, spin: 7.5, flip: 4.8, whip: 0.6, bar: 0.5, wb: 0.3, wbMax: 0.5, motor: false, tLabel: 'MUTE GRAB', stats: [1.0, 0.7, 0.2], hidden: true },
 };
 const IS_KICK = k => k === 'scooter' || k === 'skate';   // rides you push with your foot
 const stanceYaw = k => k === 'skate' ? -Math.PI / 2 : 0;  // skaters stand sideways
-const VEH_KEYS = Object.keys(VEH);
+const VEH_KEYS = Object.keys(VEH).filter(k => !VEH[k].hidden);
 const COLORS = [0xff4d1f, 0x18a0ff, 0x2ee86c, 0xffc531, 0xb14dff, 0xf2f2f2, 0x1d1d20];
 let paintColor = store.get('color', 0);
 
@@ -1146,7 +1149,33 @@ function buildVehicle(kind, colorIdx = paintColor) {
   const paint = new THREE.MeshPhysicalMaterial({ color: COLORS[colorIdx % COLORS.length], metalness: 0.5, roughness: 0.26, clearcoat: 1, clearcoatRoughness: 0.05 });
   const model = new THREE.Group();
   const out = { model, wheels: [], kind, paint };
-  if (kind === 'skate') {
+  if (kind === 'surf') {
+    // a shortboard: rounded nose, squash tail, a stringer and three fins
+    const PIV = 0.06, deckTop = 0.075;
+    const whip = axisPivot(model, v3(0, PIV, 0), v3(0, 1, 0)), board = new THREE.Group(); whip.add(board);
+    const s2 = new THREE.Shape(), L = 0.95, Wd = 0.27;
+    s2.moveTo(0, L); s2.bezierCurveTo(Wd * 0.7, L * 0.8, Wd, L * 0.3, Wd * 0.95, -L * 0.2); s2.bezierCurveTo(Wd * 0.85, -L * 0.75, Wd * 0.5, -L, 0.12, -L); s2.lineTo(-0.12, -L);
+    s2.bezierCurveTo(-Wd * 0.5, -L, -Wd * 0.85, -L * 0.75, -Wd * 0.95, -L * 0.2); s2.bezierCurveTo(-Wd, L * 0.3, -Wd * 0.7, L * 0.8, 0, L);
+    const geo = new THREE.ExtrudeGeometry(s2, { depth: 0.045, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 3, curveSegments: 20 }); geo.rotateX(-Math.PI / 2);
+    const pa = geo.attributes.position; for (let i = 0; i < pa.count; i++) { const z = pa.getZ(i); if (z > 0.55) pa.setY(i, pa.getY(i) + (z - 0.55) ** 2 * 0.5); }
+    geo.computeVertexNormals();
+    const deck = new THREE.Mesh(geo, paint); deck.position.y = 0.01 - PIV; deck.castShadow = true; board.add(deck);
+    const str = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.003, 1.8), M.white); str.position.set(0, deckTop - PIV + 0.004, -0.02); board.add(str);
+    for (const [fx, fz, fr] of [[0, -0.85, 0], [-0.16, -0.72, 0.1], [0.16, -0.72, -0.1]]) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.1, 0.1), M.darkMetal); f.position.set(fx, -0.04 - PIV, fz); f.rotation.y = fr; board.add(f); }
+    const steer = new THREE.Group(); model.add(steer);
+    out.front = steer; out.steer = steer; out.whip = whip; out.board = board;
+    const g0 = new THREE.Object3D(), g1 = new THREE.Object3D(); model.add(g0, g1); out.grips = [g0, g1];
+    out.wbLen = 0.9; out.r = 0.05; out.deckTop = deckTop; out.skate = true; out.surf = true;
+    out.feet = [v3(0, deckTop, 0.25), v3(0, deckTop, -0.3)];
+    out.contactR = -0.7; out.contactF = 0.7;
+  } else if (kind === 'ski') {
+    // the skis live on the rider's boots (see syncSkis); the "vehicle" is just the frame they hang from
+    const steer = new THREE.Group(), whip = new THREE.Group(), board = new THREE.Group(); model.add(steer, whip); whip.add(board);
+    out.front = steer; out.steer = steer; out.whip = whip; out.board = board; out.ski = true;
+    const g0 = new THREE.Object3D(), g1 = new THREE.Object3D(); model.add(g0, g1); out.grips = [g0, g1];
+    out.wbLen = 0.9; out.r = 0.05; out.deckTop = 0.03; out.feet = [v3(-0.13, 0.03, 0), v3(0.13, 0.03, 0)];
+    out.contactR = -0.7; out.contactF = 0.7;
+  } else if (kind === 'skate') {
     // popsicle deck with kicked nose and tail, two trucks, four urethane wheels
     const r = 0.027, deckTop = 0.104, deckH = 0.013, L2 = 0.405, W2 = 0.105, kick = 0.29;
     const PIV = 0.07;
@@ -1448,7 +1477,7 @@ function buildRider(o = {}) {
     hair.scale.set(0.95, o.hat ? 1.15 : 1.05, 1.05); hair.position.y = 0.012; hair.rotation.x = -0.25; head.add(hair);
     const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), skinC(o.skin)); nose.position.set(0, -0.01, 0.105); head.add(nose);
     for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), skinC(o.skin)); ear.scale.set(0.5, 1, 0.8); ear.position.set(sx * 0.1, 0, 0); head.add(ear); }
-  } else if (o.gear && o.gear !== 'full') {
+  } else if (o.hatK || (o.gear && o.gear !== 'full')) {
     // avatar head: face, hair and an open helmet / cap / beanie
     const hm = helmetC(o.helmet != null ? o.helmet : 0xff4d1f), sk = skinC(o.skin != null ? o.skin : 0xe7b48f), hc = new THREE.MeshStandardMaterial({ color: o.hairCol != null ? o.hairCol : 0x4a2c1a, roughness: 0.9 });
     const skull = new THREE.Mesh(new THREE.SphereGeometry(0.11, 20, 16), sk); skull.scale.set(0.9, 1.08, 1.0); head.add(skull);
@@ -1457,7 +1486,7 @@ function buildRider(o = {}) {
       const ear = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), sk); ear.scale.set(0.5, 1, 0.8); ear.position.set(sx * 0.1, 0, 0); head.add(ear);
       const eye = new THREE.Mesh(new THREE.SphereGeometry(o.eyes === 'cool' ? 0.026 : 0.012, 8, 6), EYE_M); eye.position.set(sx * 0.036, 0.018, 0.094); if (o.eyes === 'cool') eye.scale.set(1.3, 0.7, 0.4); head.add(eye);
     }
-    const hairShown = o.gear === 'none' || o.gear === 'cap';
+    const hairShown = o.gear === 'none' || o.gear === 'cap' || (o.hatK && !['robot', 'astro', 'knight', 'goldhelm', 'banana'].includes(o.hatK));
     if (hairShown && o.hair !== 'bald') {
       const hair = new THREE.Mesh(new THREE.SphereGeometry(0.116, 20, 12, 0, Math.PI * 2, 0, Math.PI * (o.hair === 'buzz' ? 0.45 : 0.55)), hc);
       hair.scale.set(o.hair === 'curly' ? 1.08 : 0.96, o.hair === 'curly' ? 1.15 : 1.05, 1.06); hair.position.y = 0.012; hair.rotation.x = -0.25; head.add(hair);
@@ -1465,7 +1494,8 @@ function buildRider(o = {}) {
       if (o.hair === 'mohawk' && o.gear === 'none') { const mh = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.2), hc); mh.position.set(0, 0.12, -0.01); head.add(mh); }
       if (o.hair === 'bun' && o.gear === 'none') { const bn = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), hc); bn.position.set(0, 0.1, -0.08); head.add(bn); }
     }
-    if (o.gear === 'open') {
+    if (o.hatK) { }
+    else if (o.gear === 'open') {
       const shell = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.52), hm); shell.scale.set(0.95, 1, 1.08); shell.position.y = 0.02; shell.rotation.x = -0.18; head.add(shell);
       const strap = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.008, 6, 20, Math.PI), M.helmetTrim); strap.rotation.set(0, Math.PI / 2, Math.PI); strap.position.y = -0.0; strap.scale.set(1, 1.2, 1); head.add(strap);
     } else if (o.gear === 'cap') {
@@ -1487,6 +1517,8 @@ function buildRider(o = {}) {
     const strap = new THREE.Mesh(new THREE.CylinderGeometry(0.158, 0.158, 0.032, 28, 1, true), M.accent); strap.position.set(0, 0.03, 0); strap.scale.set(0.97, 1, 1.12);
     head.add(shell, face, chin, vent, peak, lens, strap);
   }
+  if (o.hatK) head.add(hatMesh(o.hatK, o));
+  if (o.cape != null) torsoG.add(capeMesh(o.cape));
   parts.head = head;
   for (const k of ['shoeL', 'shoeR', 'handL', 'handR', 'head', 'torso']) mergeGroup(parts[k]);
   for (const k in parts) { parts[k].traverse(m => { if (m.isMesh) m.castShadow = true; }); g.add(parts[k]); }
@@ -1580,7 +1612,7 @@ const me = makeAvatar();
 const root = me.root, slopeG = me.slopeG, airG = me.airG, wheelieG = me.wheelieG;
 let veh = null, rider = me.rider;
 function equip(kind) {
-  player.kind = kind; store.set('vehicle', kind);
+  player.kind = kind; if (!VEH[kind].hidden) store.set('vehicle', kind);
   setAvatarVehicle(me, kind, paintColor);
   veh = me.veh; veh.cfg = vehCfg(kind);
   applyPaint(veh.paint, paintId, COLORS[paintColor]);
@@ -1590,7 +1622,10 @@ function equip(kind) {
   if (typeof net !== 'undefined') net.announce();
 }
 function spawn(zoneKey) {
-  const z = ZONES[zoneKey];
+  const z = ZONES[zoneKey] || ZONES.street;
+  if (player.mode === 'walk') { player.mode = 'ride'; setVehicleShown(me, true); }
+  if (parked) { scene.remove(parked.g); parked = null; }
+  player.ko = false; player.hp = 100;
   player.pos.copy(z.pos); player.yaw = z.yaw; player.v = 0; player.vy = 0; player.air = false; player.vel.set(0, 0, 0); player.grind = null;
   player.pos.y = heightAt(z.pos.x, z.pos.z);
   resetTricks(); player.wheelie = 0; player.wheelieV = 0; player.stop = 0; player.inStop = false; player.bailed = false; player.crouch = 0;
@@ -1627,10 +1662,10 @@ let chatOpen = false;
 let padPrev = {};
 function readInput() {
   const k = c => !!keys[c];
-  let thr = k('KeyW') || k('ArrowUp') ? 1 : 0, brk = k('KeyS') || k('ArrowDown') ? 1 : 0;
-  let st = (k('KeyA') || k('ArrowLeft') ? 1 : 0) - (k('KeyD') || k('ArrowRight') ? 1 : 0);
-  let jump = pressed.has('Space'), wh = k('ShiftLeft') || k('ShiftRight');
-  let t1 = k('KeyJ'), t2 = k('KeyK'), t3 = k('KeyL'), t4 = k('KeyI'), t5 = k('KeyU'), t6 = k('KeyO');
+  let thr = keyDown('up') ? 1 : 0, brk = keyDown('down') ? 1 : 0;
+  let st = (keyDown('left') ? 1 : 0) - (keyDown('right') ? 1 : 0);
+  let jump = hit('jump'), wh = keyDown('wheelie');
+  let t1 = keyDown('t1'), t2 = keyDown('t2'), t3 = keyDown('t3'), t4 = keyDown('t4'), t5 = keyDown('t5'), t6 = keyDown('t6');
   // touch
   if (Math.abs(touch.x) > 0.15) st += -touch.x;
   if (touch.y < -0.25) thr = Math.max(thr, clamp(-touch.y * 1.3, 0, 1));
@@ -1652,7 +1687,7 @@ function readInput() {
     padPrev = {}; p.buttons.forEach((x, i) => padPrev[i] = x.pressed);
     break;
   }
-  if (chatOpen) { thr = brk = st = 0; jump = wh = t1 = t2 = t3 = t4 = t5 = t6 = false; }
+  if (chatOpen || (typeof dlg !== 'undefined' && uiOpen())) { thr = brk = st = 0; jump = wh = t1 = t2 = t3 = t4 = t5 = t6 = false; }
   Object.assign(input, { throttle: clamp(thr, 0, 1), brake: clamp(brk, 0, 1), steer: clamp(st, -1, 1), jump, wheelie: wh, tr: { J: t1, K: t2, L: t3, I: t4, U: t5, O: t6, SH: wh } });
 }
 
@@ -1759,6 +1794,8 @@ const sfx = (() => {
     thud() { burst(0.22, 500, 70, 0.3); tone(95, 0.16, 0.18); },
     ding() { tone(880, 0.25, 0.08); tone(1320, 0.35, 0.06, 0.08); },
     hop() { burst(0.1, 300, 1000, 0.06, 'bandpass'); },
+    bark() { tone(420, 0.07, 0.05); tone(300, 0.09, 0.05, 0.05); burst(0.06, 900, 500, 0.03, 'bandpass'); },
+    ctx: () => ctx,
     setVolume(v) { store.set('sfxVol', v); if (master) master.gain.setTargetAtTime(sfxLevel(), ctx.currentTime, 0.05); },
     toggleMute() { const m = !store.get('muted', false); store.set('muted', m); if (master) master.gain.value = sfxLevel(); return m; },
   };
@@ -1851,7 +1888,14 @@ function step(dt) {
   if (P.bailed) return;
   forward(P.yaw);
   const px = P.pos.x, pz = P.pos.z;
-  if (P.grind) grindStep(dt, P);
+  if (P.mode === 'walk') {
+    walkStep(dt, P);
+    const car = carHit(P.pos);
+    if (car && car.v > 2.5 && !P.ko) { hurt(40, 'HIT BY A CAR'); const dx = P.pos.x - car.x, dz = P.pos.z - car.z, d = Math.hypot(dx, dz) || 1; P.pos.x += dx / d * 1.5; P.pos.z += dz / d * 1.5; P.wvy = 3; }
+    return;
+  }
+  if (veh.kind === 'surf' && !P.air && !P.grind) { if (inWater(P.pos.x, P.pos.z)) surfStep(dt, P, C); else landSurfStep(dt, P, C); }
+  else if (P.grind) grindStep(dt, P);
   else if (!P.air) groundStep(dt, P, C);
   else airStep(dt, P, C);
   P.dist += Math.hypot(P.pos.x - px, P.pos.z - pz);
@@ -1869,7 +1913,7 @@ function step(dt) {
       const dx = P.pos.x - p.x, dz = P.pos.z - p.z, d = Math.hypot(dx, dz);
       if (d < 0.6 && P.pos.y - heightAt(p.x, p.z) < 1.5 && d > 0.001) {
         const sp = Math.abs(P.v);
-        if (sp > 2.2) { knockDown(p, Math.sin(P.yaw) * Math.sign(P.v || 1), Math.cos(P.yaw) * Math.sign(P.v || 1), sp); P.v *= 0.82; P.wobble = (P.wobble || 0) + (Math.random() - 0.5) * 0.25; }
+        if (sp > 2.2) { hitPed(p, Math.sin(P.yaw) * Math.sign(P.v || 1), Math.cos(P.yaw) * Math.sign(P.v || 1), 'ride', sp); P.v *= 0.82; P.wobble = (P.wobble || 0) + (Math.random() - 0.5) * 0.25; }
         else { P.pos.x = p.x + dx / d * 0.6; P.pos.z = p.z + dz / d * 0.6; P.v *= 0.5; }
       }
     }
@@ -1887,7 +1931,7 @@ function groundStep(dt, P, C) {
   if (gi.ramp && gi.ramp.surface === 'tramp') { launch(P, 9.5, Math.max(1, P.v), null, 0, true); sfx.hop(); return; }
   // longitudinal
   let a = 0;
-  const top = C.top * ((surf === 'grass' || surf === 'sand') && !gi.ramp ? 0.55 : 1);
+  const top = C.top * ((surf === 'grass' || surf === 'sand') && !gi.ramp ? 0.55 : 1) * rideBuff();
   const sp0 = Math.abs(P.v);
   if (IS_KICK(veh.kind)) {
     // real kick-pushes: speed comes in surges while the back foot is planted
@@ -1901,21 +1945,22 @@ function groundStep(dt, P, C) {
     const assist = kind === 'ebike' ? (P.v < 6.9 ? 1 : 0.5) : 1;
     a += input.throttle * C.accel * assist * clamp(1 - P.v / top, 0, 1);
   }
-  if (input.brake > 0) { if (P.v > 0.3) a -= input.brake * 11; else a -= input.brake * 3 * clamp(1 + P.v / 3, 0, 1); }
+  if (input.brake > 0) { if (P.v > 0.3) a -= input.brake * (kind === 'ski' ? 6 : 11); else if (kind !== 'ski') a -= input.brake * 3.2 * clamp(1 + P.v / 4.5, 0, 1); }
   // pumping transitions
   if (Math.abs(th) > 0.15 && input.throttle > 0 && P.v > 0 && th < 0) a += 3.5;
   a -= G * Math.sin(th);
-  const rr = onRampSurf === 'grass' ? 1.8 : onRampSurf === 'sand' ? 2.2 : onRampSurf === 'dirt' ? 0.22 : 0.12;
+  const rr = kind === 'ski' ? (onRampSurf === 'snow' ? 0.035 : 3) : onRampSurf === 'snow' ? 2.6 : onRampSurf === 'grass' ? 1.8 : onRampSurf === 'sand' ? 2.2 : onRampSurf === 'dirt' ? 0.22 : 0.12;
   a -= Math.sign(P.v) * (rr + 0.0045 * P.v * P.v);
   if (P.inWheelie && C.motor) a *= 1.0;
   const oldV = P.v; P.v += a * dt;
   if (oldV > 0 && P.v < 0 && input.brake === 0 && Math.abs(th) < 0.1) P.v = 0;
-  if (Math.abs(P.v) < 0.05 && input.throttle === 0 && Math.abs(th) < 0.05) P.v = 0;
+  if (Math.abs(P.v) < 0.05 && input.throttle === 0 && input.brake === 0 && Math.abs(th) < 0.05) P.v = 0;
+  if (P.v < -1) { P.revDist = (P.revDist || 0) - P.v * dt; if (P.revDist > 10) goal('reverse'); } else P.revDist = 0;
   // steering
   const sp = Math.abs(P.v);
   const maxSteer = lerp(0.55, 0.11, clamp(sp / 16, 0, 1)) * (P.inWheelie || P.inStop ? 0.55 : 1) * (1 + 0.06 * (C.grip || 0));
   P.steer = damp(P.steer, input.steer * maxSteer, 10, dt);
-  const yawRate = P.v * Math.tan(P.steer) / veh.wbLen * (veh.kind === 'scooter' ? 0.75 : veh.kind === 'skate' ? 0.62 : 1);
+  const yawRate = P.v * Math.tan(P.steer) / veh.wbLen * (veh.kind === 'scooter' ? 0.75 : veh.kind === 'skate' ? 0.62 : veh.kind === 'ski' ? 1.5 : 1);
   P.yaw += yawRate * dt;
   P.lean = damp(P.lean, clamp(-Math.atan(sp * yawRate / G) * 0.95, -0.75, 0.75), 6, dt); // lean angle for a balanced turn
   forward(P.yaw);
@@ -1941,9 +1986,9 @@ function groundStep(dt, P, C) {
     return;
   }
   P.pos.y = ng.h; P.vy = vyPrev;
-  if (P.pos.z < SEA_Z && ng.h <= 0.01) return splash(false);
+  if (P.pos.z < SEA_Z && ng.h <= 0.01) return enterSea(false);
   // wheelie / manual
-  if (updateWheelie(dt, P, C, sp)) return;
+  if (kind !== 'ski' && updateWheelie(dt, P, C, sp)) return;
   // hop
   if (input.jump && !P.inWheelieLoop) {
     const boost = C.hop * (1 + clamp(P.crouch * 1.2, 0, 0.3));
@@ -2180,7 +2225,7 @@ function landSoft(P, C, gh, surf) {
   }
 }
 function land(P, C, gh) {
-  if (P.pos.z < SEA_Z && gh <= 0.01) return splash(true);
+  if (P.pos.z < SEA_Z && gh <= 0.01) return veh.kind === 'surf' ? surfLand(P, C) : enterSea(true);
   { const gs = groundInfo(P.pos.x, P.pos.z).ramp; if (gs && (gs.surface === 'airbag' || gs.surface === 'tramp')) return landSoft(P, C, gh, gs.surface); }
   P.pos.y = gh;
   const hv = Math.hypot(P.vel.x, P.vel.z);
@@ -2248,6 +2293,7 @@ function scoreAir(P, C, yawErr, flipErr) {
   const b = CT.Barspin || 0;
   if (b > 0) { parts.push(word(b) + 'Barspin'); pts += geo(BAR_PTS.Barspin, b); mult += Math.min(b, 2); }
   if (b > 0 && (CT.Tailwhip || CT.Heelwhip)) goal('whipbar');
+  for (const nm of ['Board Flip', 'Board 360', 'Board 180']) { const w = CT[nm] || 0; if (!w) continue; parts.push(word(w) + nm); pts += geo((BAR_PTS[nm] || WHIP_PTS[nm]), w); mult += Math.min(w, 2); }
   // named combos
   const has = x => parts.indexOf(x), swap = (a, b, nm, bonus) => { const i = has(a), j = has(b); if (i < 0 || j < 0) return false; parts.splice(Math.max(i, j), 1); parts.splice(Math.min(i, j), 1, nm); pts += bonus; mult += 1; return true; };
   if (swap('Backflip', '180', 'Flair', 300)) goal('flair');
@@ -2294,7 +2340,7 @@ function scoreAir(P, C, yawErr, flipErr) {
 }
 
 // ── grinds ──
-function grindOffset(kind) { return kind === 'bike' ? 0.31 : kind === 'ebike' ? 0.34 : kind === 'scooter' ? 0.075 : kind === 'skate' ? 0.07 : 0.12; }
+function grindOffset(kind) { return kind === 'bike' ? 0.31 : kind === 'ebike' ? 0.34 : kind === 'scooter' ? 0.075 : kind === 'skate' ? 0.07 : kind === 'surf' ? 0.09 : kind === 'ski' ? 0.05 : 0.12; }
 function tryGrind(P, np) {
   const E = settings.easy, off = grindOffset(veh.kind), GR = E ? 0.6 : 0.42;
   for (const r of RAILS) {
@@ -2356,6 +2402,7 @@ function endGrind(P, ok) {
     dailyEvent('grind', g.time); if (g.style === 'Boardslide' && g.time >= 1) goal('boardslide');
     P.landWindow = 1.4;
     if (g.time >= 3) goal('grind3');
+    if (g.r.name === 'handrail' && g.r.a.x > 198 && g.r.b.x < 203 && Math.abs(g.r.a.z - 57) < 4 && g.dir < 0 && g.t <= 0.05) { addToCombo('Plaza 7 Rail', 450, 1); goal('plaza7'); }
   }
 }
 
@@ -2394,6 +2441,9 @@ function updateBail(dt) {
 }
 function respawnSafe() {
   const P = player;
+  if (P.mode === 'walk') { P.mode = 'ride'; setVehicleShown(me, true); }
+  if (parked) { scene.remove(parked.g); parked = null; }
+  P.ko = false; P.hp = 100;
   seatRider(me);
   root.rotation.set(0, 0, 0); root.visible = true;
   P.pos.copy(P.safe.pos); P.yaw = P.safe.yaw; P.v = 0; P.air = false; P.bailed = false; P.vel.set(0, 0, 0);
@@ -2412,6 +2462,12 @@ function updateVisual(dt) {
   const P = player;
   if (P.bailed) { updateBail(dt); VS.bailed = true; VS.x = root.position.x; VS.y = root.position.y; VS.z = root.position.z; return; }
   VS.bailed = false;
+  if (P.mode === 'walk') {
+    Object.assign(VS, { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: !!P.wair, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, grinding: false,
+      walk: 1, wph: P.wph || 0, ws: P.wspd || 0, pu: P.punchAt ? punchCurve(clock - P.punchAt) : 0, ps: P.punchSide || 0, ko: P.ko ? 1 : 0 });
+    applyAvatar(me, VS, dt); return;
+  }
+  VS.walk = 0; VS.ko = 0; VS.pu = 0;
   let targetPitch, yOff = 0, roll = P.lean;
   if (P.grind) {
     targetPitch = -P.slope; P.chatter = 0.002;
@@ -2457,6 +2513,16 @@ function updateVisual(dt) {
 }
 function applyAvatar(A, S, dt) {
   const V = A.veh;
+  if (!!S.walk !== !!A.walking) setVehicleShown(A, !S.walk);
+  if ((A.kind === 'ski') !== !!(A.rider && A.rider.skis)) syncSkis(A);
+  if (S.walk) {
+    A.root.position.set(S.x, S.y, S.z); A.root.rotation.set(0, S.yaw, 0);
+    A.slopeG.rotation.set(0, 0, 0); A.airG.rotation.set(0, 0, 0); A.wheelieG.rotation.set(0, 0, 0);
+    A.wheelieG.position.z = V.contactR; V.model.position.z = -V.contactR;
+    const g = A.rider.group; g.rotation.set(S.ko ? -1.45 : 0, 0, 0); g.position.set(0, S.ko ? 0.14 : 0, 0);
+    poseHuman(A.rider, S.wph || 0, S.ko ? 0 : S.ws || 0, S.pu || 0, S.ps | 0, S.air);
+    return;
+  }
   A.root.position.set(S.x, S.y, S.z); A.root.rotation.set(0, S.yaw, 0);
   A.slopeG.rotation.x = S.pitch; A.slopeG.rotation.z = S.roll;
   A.airG.rotation.x = S.flip; A.airG.rotation.z = S.table;
@@ -2524,6 +2590,7 @@ function poseSkater(dt, S, A) {
   R.parts.head.rotation.set(0.1, 0.95, 0);
 }
 function poseRider(dt, S, A) {
+  if (A.veh.ski) return poseSkier(dt, S, A);
   if (A.veh.skate) return poseSkater(dt, S, A);
   const R = A.rider, D = R.D, V = A.veh, kind = A.kind, sm = A.sm;
   const bike = kind === 'bike' || kind === 'ebike';
@@ -2596,7 +2663,7 @@ function menuViewOffset(dt, menu) {
 function updateCamera(dt, menu) {
   menuViewOffset(dt, menu);
   const P = player;
-  if (camFixed) { camera.position.copy(camFixed.p); camera.lookAt(root.position.x, root.position.y + 0.8, root.position.z); camera.fov = camFixed.fov; camera.updateProjectionMatrix(); return; }
+  if (camFixed) { camera.position.copy(camFixed.p); if (camFixed.l) camera.lookAt(camFixed.l); else camera.lookAt(root.position.x, root.position.y + 0.8, root.position.z); camera.fov = camFixed.fov; camera.updateProjectionMatrix(); return; }
   if (camOverride) { camera.position.copy(root.position).add(camOverride); camera.lookAt(root.position.x, root.position.y + 0.8, root.position.z); camera.fov = 50; camera.updateProjectionMatrix(); return; }
   if (menu) {
     const t = clock * 0.12 + 0.6;
@@ -2605,6 +2672,7 @@ function updateCamera(dt, menu) {
     camera.lookAt(c.x, c.y + 0.75, c.z);
     camera.fov = 45; camera.updateProjectionMatrix(); return;
   }
+  if (P.mode === 'walk' && camState.mode !== 3) { rider.parts.head.visible = true; return walkCam(dt); }
   if (camState.mode === 3) { rider.parts.head.visible = true; return tvCam(dt); }
   const hv = P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
   let targetYaw = P.yaw - P.spin * (P.air ? 1 : 0);
@@ -3077,6 +3145,14 @@ const seaMesh = (() => {
 concreteRamp({ x: -282, z: 0, yaw: -Math.PI / 2, width: 13, length: 3.4 * 0.965 + 2, type: 'qp', R: 3.4, profile: PROF.qp(3.4) }, { graffiti: true });
 for (const [x, h] of [[-230, 1.1], [-205, 0.6], [-125, 1.3], [-20, 1.0]]) { const r = new Ramp({ x, z: 0, yaw: Math.PI / 2, width: 2.0, length: 2.4, type: 'kicker', surface: 'wood', profile: PROF.kicker(2.4, h, 1.3) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 12 }); }
 const BA = { kickX: 418, landX: 448, bagKickX: 368, bagX: 378 }, CY = { mesaB: -128 }, WOODS_TRAIL = {};
+// ───────────────────────── v2.1: the sea (waves, islands, treasure) and the snowy mountain ─────────────────────────
+const SEA_Y = -0.3, ISLANDS = [], CHESTS = [], SKI = {}, WAREHOUSE = {}, ROOF = {};
+function waveH(x, z, t) {
+  const f = clamp((SEA_Z - 4 - z) / 30, 0, 1);   // flat by the beach, rolling further out
+  return (Math.sin(z * 0.11 + t * 1.3) * 0.34 + Math.sin(x * 0.06 + z * 0.045 - t * 0.8) * 0.22 + Math.sin(x * 0.17 - t * 1.7) * 0.06) * f;
+}
+function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
+
 // ───────────────────────── v2.0 maps: BIG AIR, DOWNTOWN, CANYON, WOODS ─────────────────────────
 // (spliced into game.js by tools/splice.py — uses the world helpers defined above it)
 {
@@ -3277,13 +3353,13 @@ const BA = { kickX: 418, landX: 448, bagKickX: 368, bagX: 378 }, CY = { mesaB: -
     const rockGeo = new THREE.DodecahedronGeometry(1, 0);
     for (let i = 0; i < 46; i++) {
       const rx = -295 + srand() * 380, rz = 322 + srand() * 312;
-      if (heightAt(rx, rz) > 0.01 || Math.abs(rz - 610) < 9 || (rx > -225 && rx < -200 && rz < 390)) continue;
+      if (heightAt(rx, rz) > 0.01 || Math.abs(rz - 610) < 9 || (rx > -225 && rx < -200 && rz < 390) || Math.abs(rx) < 14) continue;
       const s = 1 + srand() * 3.5, m = new THREE.Mesh(rockGeo, M.redRock); m.scale.set(s * (0.8 + srand() * 0.6), s * (0.6 + srand() * 0.5), s); m.position.set(rx, s * 0.35, rz); m.rotation.set(srand(), srand() * 6, srand()); m.castShadow = m.receiveShadow = true; scene.add(m); collide(rx, rz, s * 0.75, s * 0.75, s);
     }
     for (const [sx, sz, sh] of [[-290, 330, 34], [80, 330, 28], [-290, 630, 40], [80, 630, 30], [-30, 345, 22]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(sh * 0.12, sh * 0.3, sh, 7), M.redRock); m.position.set(sx, sh / 2, sz); m.castShadow = true; scene.add(m); collide(sx, sz, sh * 0.22, sh * 0.22); }
     for (let i = 0; i < 40; i++) {
       const cx = -290 + srand() * 370, cz = 325 + srand() * 310;
-      if (heightAt(cx, cz) > 0.01 || Math.abs(cz - 610) < 9 || (cx > -225 && cx < -200 && cz < 390)) continue;
+      if (heightAt(cx, cz) > 0.01 || Math.abs(cz - 610) < 9 || (cx > -225 && cx < -200 && cz < 390) || Math.abs(cx) < 14) continue;
       const h = 1.6 + srand() * 2.2, g = new THREE.Group(); g.position.set(cx, 0, cz); scene.add(g);
       cyl(0.22, 0.26, h, M.cactus, 0, h / 2, 0, g, 10);
       for (const sd of [-1, 1]) if (srand() < 0.7) { const ay = h * (0.4 + srand() * 0.3); tube(v3(0, ay, 0), v3(sd * 0.55, ay, 0), 0.14, M.cactus, g); cyl(0.13, 0.14, 0.8, M.cactus, sd * 0.55, ay + 0.4, 0, g, 8); }
@@ -3332,6 +3408,363 @@ const BA = { kickX: 418, landX: 448, bagKickX: 368, bagX: 378 }, CY = { mesaB: -
       treeSpots.push([tx, tz, 0.8 + srand() * 0.7, srand() * 6.28, srand() < 0.6 ? 2 : Math.floor(srand() * 2)]); collide(tx, tz, 0.35, 0.35); n++;
     }
   }
+  // ════════ v2.1: SEA ISLANDS and the SNOWY MOUNTAIN ════════
+{
+  M.palm = new THREE.MeshStandardMaterial({ color: 0x7a5a38, roughness: 0.9 });
+  M.palmLeaf = new THREE.MeshStandardMaterial({ color: 0x3f8f3a, roughness: 0.7, side: THREE.DoubleSide });
+  M.chestWood = new THREE.MeshStandardMaterial({ color: 0x6b3f1d, roughness: 0.75 });
+  M.gold = new THREE.MeshStandardMaterial({ color: 0xffc531, roughness: 0.3, metalness: 0.8, emissive: 0x3a2500, emissiveIntensity: 0.4 });
+  M.snow = new THREE.MeshStandardMaterial({ color: 0xf4f8ff, roughness: 0.85 });
+  M.snowSide = new THREE.MeshStandardMaterial({ color: 0xdfe8f2, roughness: 0.9 });
+  M.chalet = new THREE.MeshStandardMaterial({ map: T.woodPlank || null, color: 0x8a5a33, roughness: 0.8 });
+  M.roofRed = new THREE.MeshStandardMaterial({ color: 0x9c2b22, roughness: 0.7 });
+  const palm = (x, z, y, s = 1) => {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.random() * 6.28; scene.add(g);
+    const lean = 0.25 + Math.random() * 0.25, pts = [];
+    for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push(v3(Math.sin(lean) * t * t * 2.2 * s, t * 6.5 * s, 0)); }
+    const trunk = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.16 * s, 7), M.palm); trunk.castShadow = true; g.add(trunk);
+    const top = pts[8];
+    for (let k = 0; k < 7; k++) {
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.42 * s, 3.2 * s, 4, 1, true).rotateX(Math.PI / 2).translate(0, 0, 1.6 * s), M.palmLeaf);
+      leaf.scale.y = 0.18; leaf.position.copy(top); leaf.rotation.set(0.35, k / 7 * Math.PI * 2, 0, 'YXZ'); leaf.castShadow = true; g.add(leaf);
+    }
+    collide(x, z, 0.3, 0.3, y + 6);
+  };
+  const chest = (id, x, z, name) => {
+    const y = heightAt(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.random() * 6.28; g.userData.noMerge = true; scene.add(g);
+    box(0.9, 0.5, 0.6, M.chestWood, 0, 0.25, 0, g);
+    for (const sx of [-0.33, 0.33]) box(0.06, 0.52, 0.62, M.gold, sx, 0.26, 0, g);
+    const lidP = new THREE.Group(); lidP.position.set(0, 0.5, -0.3); g.add(lidP);
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 14, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2), M.chestWood); lid.position.set(0, 0, 0.3); lidP.add(lid);
+    const lock = box(0.12, 0.14, 0.04, M.gold, 0, 0.42, 0.31, g);
+    const glow = new THREE.PointLight(0xffc531, 0, 6, 2); glow.position.set(0, 0.9, 0); g.add(glow);
+    const c = { id, x, z, y, g, lidP, glow, name, open: 0 };
+    CHESTS.push(c); collide(x, z, 0.5, 0.5, y + 0.55);
+    return c;
+  };
+  // islands: sandy mounds out at sea, each with palms and a treasure chest
+  for (const I of [
+    { id: 'palm', name: 'Palm Island', x: -150, z: -480, R: 42, H: 5 }, { id: 'skull', name: 'Skull Rock', x: 240, z: -600, R: 30, H: 7 },
+    { id: 'far', name: 'Far Isle', x: -420, z: -860, R: 56, H: 6 }, { id: 'tiny', name: 'Tiny Cay', x: 120, z: -820, R: 17, H: 2.6 },
+    { id: 'sandbar', name: 'Sandbar', x: 440, z: -430, R: 22, H: 2.2 },
+  ]) {
+    const fn = (dx, dz) => { const d = Math.hypot(dx, dz) / I.R; return d >= 1 ? -1 : I.H * Math.pow(1 - d * d, 1.4) - 0.45; };
+    const r = fieldRamp({ cx: I.x, cz: I.z, w: I.R * 2, d: I.R * 2, fn, surface: 'sand', type: 'island' });
+    const geo = new THREE.PlaneGeometry(I.R * 2, I.R * 2, 48, 48).rotateX(-Math.PI / 2), pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) pa.setY(i, Math.max(-0.9, fn(pa.getX(i), pa.getZ(i))) + 0.02);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, M.sand); m.position.set(I.x, 0, I.z); m.receiveShadow = true; scene.add(m); r.mesh = m;
+    seed = I.x * 7 + I.z;
+    const n = Math.round(I.R / 6);
+    for (let k = 0; k < n; k++) { const a = srand() * 6.28, d = (0.15 + srand() * 0.55) * I.R; const px = I.x + Math.cos(a) * d, pz = I.z + Math.sin(a) * d; palm(px, pz, heightAt(px, pz) - 0.1, 0.8 + srand() * 0.4); }
+    if (I.id === 'skull') for (let k = 0; k < 5; k++) { const a = k * 1.3, s = 2 + k * 0.6, rk = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), M.rock || M.granite); rk.position.set(I.x + Math.cos(a) * I.R * 0.45, I.H * 0.6, I.z + Math.sin(a) * I.R * 0.45); rk.castShadow = true; scene.add(rk); collide(rk.position.x, rk.position.z, s * 0.7, s * 0.7, 99); }
+    I.chest = chest(I.id, I.x + 3, I.z - 2, I.name);
+    ISLANDS.push(I);
+    NEW_ZONES['isle_' + I.id] = { name: I.name.toUpperCase(), pos: v3(I.x - 6, 0, I.z + 6), yaw: 0 };
+  }
+  NEW_ZONES.islands = NEW_ZONES.isle_palm;
+
+  // ════════ SNOWY MOUNTAINS: a ski run with jumps, moguls, rails and a chairlift ════════
+  flat(-340, 340, 652, 1098, M.snow, 0.045, 10, 'snow');
+  road(-7, 7, 330, 652, false);
+  const MT = { x: 0, z: 1078, L: 370, W: 96, H: 84 };
+  const top = 12, end = MT.L - 18;
+  const base = u => u <= top ? MT.H : u >= end ? 0 : MT.H * (1 - smooth(clamp((u - top) / (end - top), 0, 1)));
+  const kick = [86, 158, 232, 300];
+  const prof = (u, w = 0) => {
+    let h = base(u);
+    for (const j of kick) if (u > j - 9 && u <= j && Math.abs(w) < 14) h += 2.6 * Math.pow((u - (j - 9)) / 9, 1.6);
+    if (u > 110 && u < 140 && w > 16) h += Math.max(0, Math.sin(u * 1.1) * Math.sin(w * 0.9)) * 0.55;   // moguls on the right
+    return h;
+  };
+  const FL = 60, flank = (u, aw) => Math.max(0, base(u) * (1 - (aw - MT.W / 2) / FL) - 0.4);
+  const r = new Ramp({ x: MT.x, z: MT.z, yaw: Math.PI, width: MT.W + FL * 2, length: MT.L, type: 'hill', surface: 'snow', profile: u => prof(u) });
+  // jumps down the middle, moguls down one side and sloped flanks: a proper 2D height
+  r.heightAt = (x, z) => { const u = MT.z - z, w = x - MT.x, aw = Math.abs(w); if (u < 0 || u > MT.L || aw > MT.W / 2 + FL) return -Infinity; return aw <= MT.W / 2 ? prof(u, w) : flank(u, aw); };
+  {
+    const nu = 300, nw = 40, geo = new THREE.PlaneGeometry(MT.W, MT.L, nw, nu).rotateX(-Math.PI / 2), pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) pa.setY(i, prof(MT.L / 2 - pa.getZ(i), pa.getX(i)) + 0.03);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, M.snow); m.position.set(MT.x, 0, MT.z - MT.L / 2); m.receiveShadow = true; scene.add(m);
+    // sloped flanks so it reads as a mountain
+    for (const sd of [-1, 1]) {
+      const fg = new THREE.PlaneGeometry(FL, MT.L, 10, 80).rotateX(-Math.PI / 2), fa = fg.attributes.position;
+      for (let i = 0; i < fa.count; i++) { const aw = MT.W / 2 + (sd > 0 ? fa.getX(i) + FL / 2 : FL / 2 - fa.getX(i)); fa.setY(i, flank(MT.L / 2 - fa.getZ(i), aw) + 0.02); }
+      fg.computeVertexNormals();
+      const f = new THREE.Mesh(fg, M.snowSide); f.position.set(MT.x + sd * (MT.W / 2 + FL / 2), 0, MT.z - MT.L / 2); f.receiveShadow = true; scene.add(f);
+    }
+  }
+  // pines down both sides
+  seed = 1111;
+  for (let k = 0; k < 160; k++) { const u = 10 + srand() * (MT.L - 30), sd = srand() < 0.5 ? -1 : 1, w = sd * (MT.W / 2 + 4 + srand() * 44); const x = MT.x + w, z = MT.z - u; treeSpots.push([x, z, 0.9 + srand() * 0.5, srand() * 6, 2, flank(u, Math.abs(w)) + 0.001]); collide(x, z, 0.35, 0.35); }
+  for (let k = 0; k < 50; k++) { const x = -330 + srand() * 660, z = 660 + srand() * 420; if (Math.abs(x) < MT.W / 2 + FL + 6 && z > MT.z - MT.L - 20) continue; if (Math.abs(x) < 12 || (Math.abs(x - 40) < 12 && z < 705)) continue; treeSpots.push([x, z, 0.9 + srand() * 0.5, srand() * 6, 2, 0.001]); collide(x, z, 0.35, 0.35); }
+  // rails down the run
+  for (const [u0, u1, w] of [[40, 64, -24], [190, 214, 22], [260, 280, -20]]) {
+    const a = v3(MT.x + w, prof(u0) + 0.55, MT.z - u0), b = v3(MT.x + w, prof(u1) + 0.55, MT.z - u1);
+    addRail(a, b, 'rail', { name: 'ski rail', mat: M.railMetal, r: 0.05 });
+  }
+  // start hut and banner at the top
+  { const g = new THREE.Group(); g.position.set(MT.x, MT.H, MT.z - 3); scene.add(g); for (const sd of [-1, 1]) box(0.3, 4, 0.3, M.woodSide, sd * 9, 2, 0, g); box(18.6, 0.5, 0.4, M.wood, 0, 4, 0, g);
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(17, 1.4), new THREE.MeshStandardMaterial({ map: billboardTex('PEAK RUN'), roughness: 0.6, side: THREE.DoubleSide })); s.position.set(0, 4, 0.25); g.add(s); lampSpots.push(v3(MT.x, MT.H + 5, MT.z - 3)); }
+  // ski hut at the bottom (put skis on here) and the chairlift
+  {
+    const hx = 40, hz = 690;
+    block(hx - 7, hx + 7, hz - 5, hz + 5, 4.2, M.chalet, M.chalet, 'concrete', 4);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 9.5, 3.2, 4, 1).rotateY(Math.PI / 4), M.roofRed); roof.scale.set(1, 1, 0.75); roof.position.set(hx, 4.2 + 1.6, hz); roof.castShadow = true; scene.add(roof);
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.2), new THREE.MeshStandardMaterial({ map: billboardTex('SKI HIRE'), roughness: 0.6 })); s.position.set(hx, 3.3, hz - 5.05); s.rotation.y = Math.PI; scene.add(s);
+    SKI.hut = v3(hx, 0, hz - 6.2);
+    // chairlift: bottom station, towers up the side of the run, top station
+    const lx = MT.x + MT.W / 2 + FL + 10;
+    SKI.lift = v3(lx, 0, 700); SKI.top = v3(MT.x, MT.H, MT.z - 8);
+    box(6, 3.4, 6, M.concrete2, lx, 1.7, 698); collide(lx, 698, 3, 3, 3.4);
+    const tw = [];
+    for (let u = 20; u < MT.L; u += 45) { const z = MT.z - u, h = base(u) * 0.5 + 10; cyl(0.3, 0.4, h, M.steel, lx, h / 2, z, scene, 8); box(4, 0.4, 0.4, M.steel, lx, h, z); collide(lx, z, 0.4, 0.4); tw.push(v3(lx - 1.8, h, z)); }
+    tw.unshift(v3(lx - 1.8, 9, 698));
+    const cab = new THREE.Line(new THREE.BufferGeometry().setFromPoints(tw), new THREE.LineBasicMaterial({ color: 0x222222 })); cab.userData.noMerge = true; scene.add(cab);
+    lampSpots.push(v3(hx, 5, hz - 6), v3(lx, 5, 700));
+  }
+  NEW_ZONES.mountain = { name: 'PEAK RUN', pos: v3(MT.x, 0, MT.z - 6), yaw: Math.PI };
+  NEW_ZONES.skihut = { name: 'SKI HUT', pos: v3(40, 0, 678), yaw: 0 };
+  Object.assign(SKI, MT, { prof, region: { x0: -340, x1: 340, z0: 650, z1: 1100 } });
+}
+
+  // ════════ v2.1 PARKS: Wood Park (with a pool), an indoor warehouse park, a rooftop park, and a dressed-up skatepark ════════
+  // made-up sponsors for the banners and deck signs
+  const SPONSORS = [
+    { n: 'VOLT', sub: 'ENERGY', bg: '#111214', fg: '#7dff3a', icon: 'bolt' },
+    { n: 'KRANK', sub: 'BIKE CO', bg: '#d61f1f', fg: '#ffffff', icon: 'gear' },
+    { n: 'NOVA', sub: 'WHEELS', bg: '#14224a', fg: '#ffd84a', icon: 'star' },
+    { n: 'GRIPZ', sub: 'GRIP TAPE', bg: '#ffd84a', fg: '#111111', icon: 'stripes' },
+    { n: 'SEND IT', sub: 'FULL SEND', bg: '#ff4d1f', fg: '#ffffff', icon: 'arrow' },
+    { n: 'RAD FM', sub: 'ON AIR', bg: '#5b2bd6', fg: '#ffffff', icon: 'waves' },
+    { n: 'TIDAL', sub: 'SURF + SKATE', bg: '#0f8b8d', fg: '#ffffff', icon: 'wave' },
+    { n: 'DOGHOUSE', sub: 'HOT DOGS', bg: '#ffb703', fg: '#8a1c1c', icon: 'circle' },
+  ];
+  const SP_TEX = {};
+  const sponsorTex = (i, strip) => {
+    const key = i + (strip ? 's' : ''); if (SP_TEX[key]) return SP_TEX[key];
+    const S = SPONSORS[i % SPONSORS.length], W = strip ? 1024 : 512, H = strip ? 128 : 256, c = makeCanvas(W, H), g = c.getContext('2d');
+    g.fillStyle = S.bg; g.fillRect(0, 0, W, H);
+    const icon = (x, y, s) => {
+      g.fillStyle = S.fg; g.strokeStyle = S.fg; g.lineWidth = s * 0.14; g.lineCap = 'round';
+      if (S.icon === 'bolt') { g.beginPath(); g.moveTo(x + s * 0.15, y - s); g.lineTo(x - s * 0.5, y + s * 0.1); g.lineTo(x, y + s * 0.1); g.lineTo(x - s * 0.15, y + s); g.lineTo(x + s * 0.5, y - s * 0.1); g.lineTo(x, y - s * 0.1); g.closePath(); g.fill(); }
+      else if (S.icon === 'gear') { g.beginPath(); g.arc(x, y, s * 0.7, 0, 7); g.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; g.fillRect(x + Math.cos(a) * s * 0.85 - s * 0.1, y + Math.sin(a) * s * 0.85 - s * 0.1, s * 0.2, s * 0.2); } }
+      else if (S.icon === 'star') { g.beginPath(); for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 - Math.PI / 2, r = k % 2 ? s * 0.4 : s; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); }
+      else if (S.icon === 'stripes') { for (let k = -2; k <= 2; k++) { g.save(); g.translate(x + k * s * 0.35, y); g.rotate(0.5); g.fillRect(-s * 0.08, -s, s * 0.16, s * 2); g.restore(); } }
+      else if (S.icon === 'arrow') { g.beginPath(); g.moveTo(x - s, y + s * 0.6); g.lineTo(x + s * 0.4, y - s * 0.6); g.lineTo(x + s * 0.4, y - s * 0.1); g.lineTo(x + s, y - s * 0.9); g.lineTo(x + s * 0.1, y - s * 0.9); g.lineTo(x + s * 0.5, y - s * 0.6); g.lineTo(x - s * 0.8, y + s * 0.8); g.closePath(); g.fill(); }
+      else if (S.icon === 'waves') { for (let k = 1; k <= 3; k++) { g.beginPath(); g.arc(x - s * 0.6, y, s * 0.4 * k, -0.7, 0.7); g.stroke(); } g.beginPath(); g.arc(x - s * 0.6, y, s * 0.15, 0, 7); g.fill(); }
+      else if (S.icon === 'wave') { g.beginPath(); g.moveTo(x - s, y + s * 0.6); g.quadraticCurveTo(x - s * 0.3, y - s * 1.3, x + s, y - s * 0.2); g.quadraticCurveTo(x + s * 0.1, y - s * 0.5, x + s * 0.2, y + s * 0.6); g.closePath(); g.fill(); }
+      else { g.beginPath(); g.arc(x, y, s * 0.8, 0, 7); g.fill(); g.fillStyle = S.bg; g.beginPath(); g.arc(x, y, s * 0.45, 0, 7); g.fill(); }
+    };
+    g.textBaseline = 'middle';
+    if (strip) {
+      // a strip of small repeated logos, like the banners along the top of a deck
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, 0, W, 10); g.fillRect(0, H - 10, W, 10);
+      g.font = `900 ${H * 0.5}px Impact, "Arial Black", sans-serif`; g.fillStyle = S.fg;
+      for (let x = 20; x < W; x += W / 4) { icon(x + H * 0.25, H / 2, H * 0.25); g.fillText(S.n, x + H * 0.6, H / 2 + 3); }
+    } else {
+      icon(H * 0.5, H * 0.5, H * 0.28);
+      g.fillStyle = S.fg; g.font = `900 ${S.n.length > 6 ? 78 : 104}px Impact, "Arial Black", sans-serif`; g.fillText(S.n, H * 0.95, H * 0.44);
+      g.font = '700 30px Inter, Arial, sans-serif'; g.globalAlpha = 0.85; g.fillText(S.sub, H * 0.98, H * 0.78); g.globalAlpha = 1;
+    }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO; if (strip) { t.wrapS = THREE.RepeatWrapping; }
+    return SP_TEX[key] = t;
+  };
+  const sponsorMat = (i, strip) => new THREE.MeshStandardMaterial({ map: sponsorTex(i, strip), roughness: 0.5, emissive: 0xffffff, emissiveMap: sponsorTex(i, strip), emissiveIntensity: 0.12 });
+  let spI = 0;
+  const qh = R => R * (1 - Math.sqrt(1 - 0.965 ** 2));
+  // a sign board standing at the back of a deck (like the big logo boxes in a comp park)
+  const deckSign = (x, y, z, yaw, w = 4, h = 2.2) => {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw; scene.add(g);
+    const bx = box(w, h, 0.5, M.darkMetal, 0, h / 2, 0, g);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.9, w * 0.45 > h * 0.8 ? h * 0.8 : w * 0.45), sponsorMat(spI++)); face.position.set(0, h * 0.55, 0.26); g.add(face);
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.32), sponsorMat(spI, true)); strip.material.map.repeat.set(w / 6, 1); strip.position.set(0, 0.18, 0.26); g.add(strip);
+    const c = Math.cos(yaw), s = Math.sin(yaw); collide(x, z, Math.abs(c) * w / 2 + Math.abs(s) * 0.3, Math.abs(s) * w / 2 + Math.abs(c) * 0.3, y + h);
+    return g;
+  };
+  // a long banner strip on a fence or wall
+  const bannerStrip = (x, y, z, yaw, w, h = 0.6) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), sponsorMat(spI++ % SPONSORS.length, true)); m.material.map = m.material.map.clone(); m.material.map.needsUpdate = true; m.material.map.repeat.set(w / (h * 8), 1); m.material.emissiveMap = m.material.map; m.position.set(x, y, z); m.rotation.y = yaw; m.userData.noMerge = true; scene.add(m); return m; };
+  // wooden quarter with a deck (and a sponsor on the side), any height, on the ground or on a roof
+  const woodQP = (x, z, yaw, width, R, deck = 2.2, base = 0, surface = 'wood', top = M.wood, side = M.woodSide) => {
+    const r = new Ramp({ x, z, yaw, width, length: R * 0.965 + deck, type: 'qp', R, surface, base, profile: PROF.qp(R) });
+    buildRampMesh(r, top, side, { nu: 36, sideMap: spI % 2 ? sponsorTex(spI++ % SPONSORS.length) : null });
+    addCoping(r, R * 0.965);
+    const h = R - Math.sqrt(R * R - (R * 0.965) ** 2);
+    // grind the coping
+    const s = Math.sin(yaw), c = Math.cos(yaw), u = R * 0.965;
+    addRail(v3(x + s * u - c * (width / 2 - 0.3), base + h + 0.04, z + c * u + s * (width / 2 - 0.3)), v3(x + s * u + c * (width / 2 - 0.3), base + h + 0.04, z + c * u - s * (width / 2 - 0.3)), 'ledge', { visual: false, name: 'coping' });
+    return { r, h, u };
+  };
+  const woodBox = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'box', surface: 'wood', base, profile: PROF.box(H) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 1, uvS: 4 }); return r; };
+  const woodKick = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'kicker', surface: 'wood', base, profile: PROF.kicker(L, H, 1.5) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 14 }); return r; };
+  const woodBank = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'kicker', surface: 'wood', base, profile: PROF.kicker(L, H, 1) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 4 }); return r; };
+  // a smooth pool: any shape from a signed distance function, raised on a deck, with round coping and a tile line
+  const POOL_MAT = new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.5, vertexColors: true });
+  const pool = (cx, cz, w, d, BH, sdf, inner = [0, 0]) => {
+    const Rt = BH / 0.738;
+    const fn = (lx, lz) => { const sd = sdf(lx, lz); if (sd >= 0) return BH; const xx = Rt * 0.965 + sd; return xx <= 0 ? 0 : Rt - Math.sqrt(Math.max(0, Rt * Rt - xx * xx)); };
+    const r = fieldRamp({ cx, cz, w, d, H: BH, fn });
+    const nx = Math.ceil(w / 0.25), nz = Math.ceil(d / 0.25), geo = new THREE.PlaneGeometry(w, d, nx, nz).rotateX(-Math.PI / 2), pa = geo.attributes.position, col = [];
+    for (let i = 0; i < pa.count; i++) {
+      const lx = pa.getX(i), lz = pa.getZ(i), h = fn(lx, lz); pa.setY(i, h + 0.02);
+      const deck = h > BH - 0.01, tile = !deck && h > BH - 0.42;
+      if (deck) col.push(0.93, 0.9, 0.84); else if (tile) { const chk = (Math.floor(lx * 6) + Math.floor(h * 6)) % 2; col.push(chk ? 0.14 : 0.2, chk ? 0.36 : 0.45, chk ? 0.78 : 0.86); } else col.push(0.82, 0.84, 0.86);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 4, uv.getY(i) * d / 4);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, POOL_MAT); m.position.set(cx, 0, cz); m.receiveShadow = m.castShadow = true; scene.add(m);
+    const wall = (ww, x, z, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(ww, BH), M.rampSide); p.position.set(x, BH / 2, z); p.rotation.y = ry; p.castShadow = p.receiveShadow = true; scene.add(p); };
+    wall(w, cx, cz + d / 2, 0); wall(w, cx, cz - d / 2, Math.PI); wall(d, cx + w / 2, cz, Math.PI / 2); wall(d, cx - w / 2, cz, -Math.PI / 2);
+    // coping all the way round: march out from the middle until we hit the edge
+    const pts = [];
+    for (let i = 0; i < 96; i++) {
+      const a = i / 96 * Math.PI * 2, dx = Math.cos(a), dz = Math.sin(a); let lo = 0, hi = Math.hypot(w, d);
+      for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (sdf(inner[0] + dx * mid, inner[1] + dz * mid) < 0) lo = mid; else hi = mid; }
+      pts.push(v3(cx + inner[0] + dx * lo, BH + 0.02, cz + inner[1] + dz * lo));
+    }
+    const cp = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 192, 0.06, 8, true), M.coping); cp.castShadow = true; scene.add(cp);
+    for (let i = 0; i < 96; i += 3) addRail(pts[i], pts[(i + 3) % 96], 'ledge', { visual: false, name: 'pool coping' });
+    return r;
+  };
+  const circ = (x, z, cx, cz, r) => Math.hypot(x - cx, z - cz) - r;
+  const smin = (a, b, k) => { const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return lerp(b, a, h) - k * h * (1 - h); };
+
+  // ── WOOD PARK: wooden comp park in the trees with a kidney pool ──
+  {
+    const X = -455, Z = 475;
+    flat(X - 45, X + 45, Z - 45, Z + 45, M.rampTop, 0.02, 6, 'park');
+    // the big quarters at each end, with sign boxes on the decks
+    const R = 3.2;
+    woodQP(X, Z + 20, 0, 30, R, 3);  deckSign(X - 9, qh(R), Z + 20 + R * 0.965 + 2.4, Math.PI, 5, 2.6); deckSign(X + 9, qh(R), Z + 20 + R * 0.965 + 2.4, Math.PI, 5, 2.6);
+    woodQP(X, Z - 20, Math.PI, 30, R, 3); deckSign(X, qh(R), Z - 20 - R * 0.965 - 2.4, 0, 6, 2.8);
+    // a spine down the middle
+    const RS = 2.4, us = RS * 0.965 + 0.15;
+    woodQP(X - 7, Z - 2 * us, 0, 10, RS, 0.15); woodQP(X - 7, Z + 2 * us, Math.PI, 10, RS, 0.15);
+    // a hip on the east side: two quarters meeting at an angle
+    woodQP(X + 18, Z - 5.5, Math.PI / 2 - 0.5, 10, 2.6, 2); woodQP(X + 18, Z + 5.5, Math.PI / 2 + 0.5, 10, 2.6, 2);
+    deckSign(X + 25, 0, Z, -Math.PI / 2, 5, 3.8);
+    // west side: a mini ramp (two quarters facing each other)
+    woodQP(X - 22, Z - 4, Math.PI, 9, 2.2, 1.6); woodQP(X - 22, Z + 4, 0, 9, 2.2, 1.6);
+    // funbox with a hubba ledge and a rail in the middle of the flat
+    woodKick(X + 1, Z - 2.5, Math.PI / 2, 6, 3, 1.2); woodBox(X + 4, Z - 2.5, Math.PI / 2, 6, 5, 1.2); woodKick(X + 12, Z - 2.5, -Math.PI / 2, 6, 3, 1.2);
+    addRail(v3(X + 1, 0.55, Z + 6), v3(X + 13, 0.55, Z + 6), 'rail', { name: 'flat bar' });
+    ledge(X + 7, Z - 8, 8, 0.6, 0.45, Math.PI / 2, M.wood);
+    // the pool: two circles blended into a kidney, on a raised deck you get up to on a bank
+    const PX = X, PZ = Z + 36, BH = 2.6;
+    pool(PX, PZ, 30, 16, BH, (lx, lz) => smin(circ(lx, lz, -5.5, 0.5, 6), circ(lx, lz, 6, -0.5, 4.8), 2.5) );
+    woodBank(PX + 15 + 7, PZ, -Math.PI / 2, 8, 7, BH);
+    bannerStrip(PX - 15.01, BH * 0.5, PZ, -Math.PI / 2, 16, 0.7);
+    bannerStrip(PX, BH * 0.5, PZ - 8.01, Math.PI, 30, 0.7);
+    // fence with banners all round, and lights
+    for (const [x0, z0, x1, z1] of [[X - 44, Z - 44, X + 44, Z - 44], [X + 44, Z - 44, X + 44, Z + 44], [X + 44, Z + 44, X - 44, Z + 44], [X - 44, Z + 44, X - 44, Z - 44]]) {
+      const L = Math.hypot(x1 - x0, z1 - z0), yaw = Math.atan2(x1 - x0, z1 - z0) - Math.PI / 2;
+      for (let t = 0; t <= L; t += 4) cyl(0.06, 0.06, 1.2, M.woodSide, x0 + (x1 - x0) * t / L, 0.6, z0 + (z1 - z0) * t / L, scene, 6);
+      const rail = box(L, 0.08, 0.08, M.wood, (x0 + x1) / 2, 1.1, (z0 + z1) / 2); rail.rotation.y = yaw;
+      bannerStrip((x0 + x1) / 2, 0.65, (z0 + z1) / 2, yaw + Math.PI, L - 12, 0.7);
+      collide((x0 + x1) / 2, (z0 + z1) / 2, Math.abs(x1 - x0) / 2 + 0.2, Math.abs(z1 - z0) / 2 + 0.2, 1.2);
+    }
+    // gaps in the fence to ride in (south side, the way in from the road)
+    for (let i = colliders.length - 4, n = colliders.length; i < n; i++) { const c = colliders[i]; if (c.z1 - c.z0 < 1 && c.z0 < Z) { colliders.push({ x0: c.x0, x1: X - 6, z0: c.z0, z1: c.z1, h: c.h }); c.x0 = X + 6; } }
+    for (const [lx, lz] of [[X - 40, Z - 40], [X + 40, Z - 40], [X - 40, Z + 40], [X + 40, Z + 40]]) { cyl(0.12, 0.16, 10, M.pole, lx, 5, lz, scene, 8); box(1.6, 0.3, 0.8, M.darkMetal, lx, 10, lz); lampSpots.push(v3(lx, 9.8, lz)); collide(lx, lz, 0.2, 0.2); }
+    // the trees
+    seed = 7070;
+    for (let n = 0; n < 160; n++) {
+      const a = srand() * Math.PI * 2, d = 50 + srand() * 40, tx = X + Math.cos(a) * d, tz = Z + Math.sin(a) * d;
+      if (Math.abs(tz - (Z - 45)) < 14 && Math.abs(tx - X) < 10) continue;   // keep the way in clear
+      treeSpots.push([tx, tz, 0.9 + srand() * 0.6, srand() * 6.28, srand() < 0.7 ? 2 : Math.floor(srand() * 2)]); collide(tx, tz, 0.35, 0.35);
+    }
+    road(X - 4, X + 4, Z - 90, Z - 45, false);
+    NEW_ZONES.woodpark = { name: 'WOOD PARK', pos: v3(X, 0, Z - 40), yaw: 0 };
+  }
+
+  // ── WAREHOUSE: an indoor park with a flow bowl, quarters, a box and banners on the walls ──
+  {
+    const X = -355, Z = 295, W = 64, D = 46, H = 13;
+    flat(X - W / 2, X + W / 2, Z - D / 2, Z + D / 2, M.rampTop, 0.02, 5, 'park');
+    const shell = new THREE.Group(); scene.add(shell); shell.userData.noMerge = true;
+    const inner = new THREE.Group(); scene.add(inner);
+    const wallM = new THREE.MeshStandardMaterial({ color: 0x8b8f94, roughness: 0.85, metalness: 0.2, });
+    const inM = new THREE.MeshStandardMaterial({ color: 0xd9d2c3, roughness: 0.9 });
+    const door = 10;
+    // outside skin (hidden when you're inside so the camera can see you) and the inside faces
+    const panel = (w, h, x, y, z, ry, mat, grp) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); p.position.set(x, y, z); p.rotation.y = ry; p.castShadow = grp === shell; p.receiveShadow = true; p.userData.noMerge = grp === shell; grp.add(p); return p; };
+    const sideW = (D - door) / 2;
+    for (const [w, x, z, ry] of [[W, X, Z + D / 2, 0], [D, X + W / 2, Z, Math.PI / 2], [D, X - W / 2, Z, -Math.PI / 2]]) { panel(w, H, x, H / 2, z, ry, wallM, shell); panel(w, H, x - Math.sin(ry) * 0.05, H / 2, z - Math.cos(ry) * 0.05, ry + Math.PI, inM, inner); }
+    // the front wall has a big roller door opening
+    for (const sd of [-1, 1]) { const x = X + sd * (W / 4 + door / 4); panel(W / 2 - door / 2, H, x, H / 2, Z - D / 2, Math.PI, wallM, shell); panel(W / 2 - door / 2, H, x, H / 2, Z - D / 2 + 0.05, 0, inM, inner); }
+    panel(door, H - 6, X, 6 + (H - 6) / 2, Z - D / 2, Math.PI, wallM, shell); panel(door, H - 6, X, 6 + (H - 6) / 2, Z - D / 2 + 0.05, 0, inM, inner);
+    const roof = new THREE.Mesh(new THREE.PlaneGeometry(W + 1, D + 1).rotateX(-Math.PI / 2), roofMat); roof.position.set(X, H, Z); roof.userData.noMerge = true; roof.castShadow = true; shell.add(roof);
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.9 })); ceil.position.set(X, H - 0.05, Z); inner.add(ceil);
+    // roof trusses and skylight panels (lights)
+    for (let x = X - W / 2 + 4; x < X + W / 2; x += 8) {
+      const b = box(0.35, 0.6, D, M.darkMetal, x, H - 0.6, Z, inner, false);
+      for (let z = Z - D / 2 + 5; z < Z + D / 2 - 2; z += 9) { const l = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.2).rotateX(Math.PI / 2), M.lamp); l.position.set(x + 4, H - 0.12, z); inner.add(l); }
+    }
+    for (let z = Z - D / 2 + 6; z < Z + D / 2; z += 11) box(W, 0.3, 0.25, M.darkMetal, X, H - 1.0, z, inner, false);
+    // walls stop you
+    collide(X, Z + D / 2, W / 2, 0.3); collide(X + W / 2, Z, 0.3, D / 2); collide(X - W / 2, Z, 0.3, D / 2);
+    collide(X - W / 4 - door / 4, Z - D / 2, W / 4 - door / 4, 0.3); collide(X + W / 4 + door / 4, Z - D / 2, W / 4 - door / 4, 0.3);
+    // banners round the walls
+    for (let i = 0; i < 4; i++) { const bx = X - W / 2 + 10 + i * 15; bannerStrip(bx, 5.5, Z + D / 2 - 0.12, Math.PI, 12, 2.2); }
+    for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) bannerStrip(X + sd * (W / 2 - 0.12), 5.5, Z - 8 + i * 16, -sd * Math.PI / 2, 12, 2.2);
+    // concrete flow bowl at the back: a big rounded room with a pocket
+    const BH = 2.4;
+    pool(X - 10, Z + 11, 36, 18, BH, (lx, lz) => smin(sdRoundRect(lx + 4, lz, 11, 6.5, 4), sdRoundRect(lx - 11, lz + 1, 5.5, 5, 3), 2), [-4, 0]);
+    woodBank(X - 10, Z + 2 - 7, 0, 12, 7, BH);
+    // quarters and a spine at the front, a box in the middle
+    woodQP(X + 22, Z + 6, 0, 14, 3.0, 2.4, 0, 'concrete', M.rampTop, M.rampSide); deckSign(X + 22, qh(3.0), Z + 6 + 3.0 * 0.965 + 1.8, Math.PI, 6, 2.6);
+    woodQP(X + 22, Z - 12, Math.PI, 14, 3.0, 2.0, 0, 'concrete', M.rampTop, M.rampSide);
+    woodKick(X + 1, Z - 6, Math.PI / 2, 5, 3, 1.1); woodBox(X + 4, Z - 6, Math.PI / 2, 5, 6, 1.1); woodKick(X + 13, Z - 6, -Math.PI / 2, 5, 3, 1.1);
+    ledge(X + 7, Z - 1.8, 6, 0.5, 0.5, Math.PI / 2, M.granite);
+    addRail(v3(X - 14, 0.5, Z - 10), v3(X - 2, 0.5, Z - 10), 'rail', { name: 'flat bar' });
+    lampSpots.push(v3(X - 16, H - 1, Z), v3(X + 16, H - 1, Z));
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(16, 3), new THREE.MeshStandardMaterial({ map: billboardTex('THE WAREHOUSE'), roughness: 0.5, emissive: 0xffffff, emissiveMap: billboardTex('THE WAREHOUSE'), emissiveIntensity: 0.3 })); sign.position.set(X, H - 2.5, Z - D / 2 - 0.1); sign.rotation.y = Math.PI; scene.add(sign);
+    WAREHOUSE.x0 = X - W / 2; WAREHOUSE.x1 = X + W / 2; WAREHOUSE.z0 = Z - D / 2; WAREHOUSE.z1 = Z + D / 2; WAREHOUSE.shell = shell;
+    road(X - 4, X + 4, Z - D / 2 - 40, Z - D / 2, false);
+    NEW_ZONES.warehouse = { name: 'THE WAREHOUSE', pos: v3(X + 8, 0, Z - D / 2 + 4), yaw: 0 };
+  }
+
+  // ── ROOFTOP: a park on top of a tower downtown, skyscrapers all round ──
+  {
+    const X = -495, Z = 175, W = 44, D = 44, H = 18;
+    const r = new Ramp({ x: X, z: Z - D / 2, yaw: 0, width: W, length: D, type: 'box', surface: 'concrete', profile: PROF.box(H) });
+    const geo = new THREE.BoxGeometry(W, H, D), uv = geo.attributes.uv, spans = [[D, H], [D, H], [W, D], [W, D], [W, H], [W, H]];
+    for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * spans[f][0] / 14, uv.getY(i) * spans[f][1] / 14); }
+    const fm = FACADES[3];
+    const tower = new THREE.Mesh(geo, [fm, fm, M.rampTop, roofMat, fm, fm]); tower.position.set(X, H / 2, Z); tower.castShadow = tower.receiveShadow = true; scene.add(tower);
+    collide(X, Z, W / 2, D / 2, H - 0.5);
+    // parapet with hazard tape so you can't ride off
+    for (const [w, d, x, z] of [[W, 0.4, X, Z - D / 2 + 0.2], [W, 0.4, X, Z + D / 2 - 0.2], [0.4, D, X - W / 2 + 0.2, Z], [0.4, D, X + W / 2 - 0.2, Z]]) { box(w, 1.0, d, M.kerb, x, H + 0.5, z); collide(x, z, w / 2, d / 2, H + 1.1); }
+    for (const [x, z, ry, w] of [[X, Z - D / 2 + 0.42, 0, W], [X, Z + D / 2 - 0.42, Math.PI, W], [X - W / 2 + 0.42, Z, Math.PI / 2, D], [X + W / 2 - 0.42, Z, -Math.PI / 2, D]]) bannerStrip(x, H + 0.6, z, ry, w - 2, 0.5);
+    // the park up top
+    const Rb = 3.0;
+    const q1 = woodQP(X, Z + 10, 0, 30, Rb, 2.2, H, 'concrete', M.rampTop, new THREE.MeshStandardMaterial({ color: 0x1f4fd6, roughness: 0.6 }));
+    deckSign(X + 8, H + qh(Rb), Z + 10 + Rb * 0.965 + 1.6, Math.PI, 6, 2.6);
+    woodQP(X, Z - 12, Math.PI, 30, 2.6, 2.0, H, 'concrete', M.rampTop, M.rampSide);
+    woodKick(X - 10, Z - 2, Math.PI / 2, 4, 3, 1.1, H); woodBox(X - 7, Z - 2, Math.PI / 2, 4, 5, 1.1, H); woodKick(X + 1, Z - 2, -Math.PI / 2, 4, 3, 1.1, H);
+    ledge(X + 10, Z - 2, 10, 0.6, H + 0.45, Math.PI / 2, M.granite);
+    addRail(v3(X - 12, H + 0.45, Z + 4), v3(X + 2, H + 0.45, Z + 4), 'rail', { name: 'flat bar' });
+    // lift shed on the roof and at the bottom
+    box(3, 3, 3, M.darkMetal, X - W / 2 + 3, H + 1.5, Z - D / 2 + 3); collide(X - W / 2 + 3, Z - D / 2 + 3, 1.5, 1.5, H + 3);
+    ROOF.x = X; ROOF.z = Z; ROOF.H = H; ROOF.lift = v3(X - W / 2 + 6, H, Z - D / 2 + 3); ROOF.ground = v3(X - W / 2 - 3, 0, Z - D / 2 + 3);
+    box(2.2, 3, 0.3, M.glass, X - W / 2 - 0.1, 1.5, Z - D / 2 + 3).rotation.y = Math.PI / 2;
+    // skyscrapers all round
+    seed = 6060;
+    for (const [bx, bz, bw, bd] of [[X - 38, Z - 36, 18, 18], [X + 38, Z - 36, 16, 18], [X - 40, Z + 4, 16, 22], [X + 40, Z + 6, 16, 22], [X - 36, Z + 38, 18, 16], [X + 2, Z + 40, 22, 14], [X + 38, Z + 38, 16, 16]]) {
+      if (bx < BOUNDS.x0 + 12 || bx > -380) continue;
+      building(bx, bz, bw, bd, 55 + srand() * 70, 0);
+    }
+    NEW_ZONES.rooftop = { name: 'ROOFTOP PARK', pos: v3(X, 0, Z - 8), yaw: 0 };
+  }
+
+  // ── the old skatepark gets deck signs and banners ──
+  {
+    deckSign(57, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4); deckSign(73, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4);
+    deckSign(65, qh(3.6), 30 - 3.6 * 0.965 - 2.4, 0, 6, 2.4);
+    deckSign(104 + 2.8 * 0.965 + 1.9, qh(2.8), 56, -Math.PI / 2, 5, 2.2); deckSign(26 - 2.8 * 0.965 - 1.9, qh(2.8), 56, Math.PI / 2, 5, 2.2);
+  }
+
 }
 
 Object.assign(ZONES, NEW_ZONES);
@@ -3423,6 +3856,7 @@ function spawnTraffic(n) {
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     scene.add(g);
     const car = { g, lane, s: lane.axis === 'x' ? -270 + srand() * 540 : -180 + srand() * 360, v: 14 + srand() * 4, vmax: 15 + srand() * 6, brake: 0 };
+    queueMicrotask(() => seatDriver(car));
     if (lane.axis === 'x' && car.s > -20) car.s = -280 + srand() * 250; // keep most cars in town
     TRAFFIC.push(car);
   }
@@ -3485,6 +3919,8 @@ const CLOTHES = [0x2b3a55, 0x7a1f2b, 0x2f5d3a, 0xc9b28a, 0x3b3b40, 0xe6e2d8, 0x5
 function spawnPeds(n) {
   for (const p of PEDS) scene.remove(p.g);
   PEDS.length = 0;
+  for (const d of DOGS) { scene.remove(d.g); scene.remove(d.leash); } DOGS.length = 0;
+  for (let i = INTERACT.length - 1; i >= 0; i--) if (INTERACT[i].at) INTERACT.splice(i, 1);
   seed = 909;
   for (let i = 0; i < n; i++) {
     const R = buildRider({ ped: true, top: CLOTHES[Math.floor(srand() * CLOTHES.length)], pants: CLOTHES[Math.floor(srand() * CLOTHES.length)], skin: SKIN[Math.floor(srand() * SKIN.length)], hair: [0x1a1410, 0x3b2a1a, 0x8a6a3a, 0xbcbcbc, 0x111111][Math.floor(srand() * 5)], hat: srand() < 0.3 });
@@ -3506,42 +3942,21 @@ function spawnPeds(n) {
       ped = { mode: 'watch', x: sp[0] + rand(-3, 3), z: sp[1] + rand(-2, 2) };
     }
     Object.assign(ped, { g, R, speed: 1.05 + srand() * 0.45, phase: srand() * 6, dodge: 0, dodgeV: 0, yaw: 0, scale });
+    const tr = srand(); ped.temper = tr < 0.3 ? 'fighter' : tr < 0.62 ? 'runner' : 'talker';
+    ped.pitch = 0.8 + srand() * 0.5; ped.rate = 0.95 + srand() * 0.2; ped.voiceIdx = Math.floor(srand() * 8);
     PEDS.push(ped);
+    if (ped.mode !== 'watch' && srand() < 0.3) giveDog(ped);
   }
 }
 const PL = { hip: v3(), chest: v3(), sh: [v3(), v3()], hp: [v3(), v3()], knee: [v3(), v3()], foot: [v3(), v3()], elbow: [v3(), v3()], hand: [v3(), v3()], ft: [v3(), v3()], ht: [v3(), v3()] };
-// riding into someone knocks them flat; they lie there a moment, then get back up and carry on
-function knockDown(p, dx, dz, speed) {
-  const l = Math.hypot(dx, dz) || 1;
-  p.down = { t: 0, vx: dx / l * Math.min(5, 1.2 + speed * 0.35), vz: dz / l * Math.min(5, 1.2 + speed * 0.35), dur: 3 + Math.random() * 1.5, back: Math.random() < 0.5 };
-  p.yaw = Math.atan2(dx, dz) + (p.down.back ? Math.PI : 0);
-  sfx.thud(); emitDust(v3(p.x, 0.3, p.z), 8, surfaceAt(p.x, p.z), 0.8);
-}
-function updateDownPed(p, dt) {
-  const D = p.down; D.t += dt;
-  const slide = Math.exp(-4 * D.t);
-  p.x += D.vx * slide * dt; p.z += D.vz * slide * dt;
-  const fall = 0.32, upAt = D.dur, up = 0.7;
-  let a;
-  if (D.t < fall) a = (D.t / fall) ** 2;                       // tipping over
-  else if (D.t < upAt) a = 1 + Math.sin(D.t * 9) * 0.015 * Math.max(0, 1 - (D.t - fall) * 2); // little bounce, then still
-  else a = 1 - smooth(clamp((D.t - upAt) / up, 0, 1));          // getting up
-  const ang = a * Math.PI / 2 * (D.back ? -1 : 1);
-  p.g.rotation.set(0, 0, 0); p.g.rotation.order = 'YXZ';
-  p.g.rotation.y = p.yaw; p.g.rotation.x = ang;
-  const y = heightAt(p.x, p.z) > 0.5 ? 0 : heightAt(p.x, p.z);
-  p.g.position.set(p.x, y + a * 0.13, p.z);
-  if (D.t > upAt + up) {
-    p.down = null; p.g.rotation.x = 0;
-    if (p.mode === 'line') { p.s = clamp(p.x, p.lo, p.hi); p.dodge = clamp(p.z - p.lat, -1.5, 1.5); p.dodgeV = 0; }
-  }
-}
 function updatePeds(dt) {
   const P = player, cam = camera.position;
   for (const p of PEDS) {
     let moving = 0;
-    if (p.down) { updateDownPed(p, dt); const dc = Math.hypot(cam.x - p.x, cam.z - p.z); p.g.visible = dc < 160; if (dc < 90) { p.phase += dt * 0.5; poseWalker(p, 0); } continue; }
-    if (p.mode === 'line') {
+    if (p.down) { updateDownPed(p, dt); if (p.reactAt != null) p.reactT += dt; const dc = Math.hypot(cam.x - p.x, cam.z - p.z); p.g.visible = dc < 160; if (dc < 90 && p.down) { p.phase += dt * 0.5; posePedDown(p); } continue; }
+    p.runAnim = 0;
+    if (updateMoodyPed(p, dt)) { moving = p.runAnim ? 4.2 : 0; }
+    else if (p.mode === 'line') {
       // step aside when a rider comes at them
       const px = p.s, pz = p.lat + p.dodge;
       const dx = P.pos.x - px, dz = P.pos.z - pz, d = Math.hypot(dx, dz);
@@ -3570,8 +3985,11 @@ function updatePeds(dt) {
     const dcam = Math.hypot(cam.x - p.x, cam.z - p.z);
     p.g.visible = dcam < 160;
     if (dcam > 90) continue;
-    p.phase += dt * (moving ? p.speed * 5.2 : 1.2);
-    poseWalker(p, moving);
+    const spd = moving > 1 ? moving : moving ? p.speed : 0;
+    p.phase += dt * (spd ? spd * 2.6 + 1 : 1.2);
+    const pk = p.punchAt ? punchCurve(clock - p.punchAt) : 0;
+    if (pk > 0 || spd > 2 || p.dog || p.angry > 0) poseHuman(p.R, p.phase, spd, pk, 1, false, { leash: !!p.dog, guard: p.angry > 0 && !spd });
+    else poseWalker(p, moving);
   }
 }
 function poseWalker(p, moving) {
@@ -3849,6 +4267,7 @@ const net = (() => {
     else if (m.t === 'trick') { const r = remotes.get(id); if (r) addFeed(`<b>${esc(r.name)}</b> ${esc(m.name)} <b>+${(+m.pts).toLocaleString()}</b>`); }
     else if (m.t === 'chat') { const r = remotes.get(id); addFeed(`<b>${esc(r ? r.name : '?')}:</b> ${esc(m.text)}`); }
     else if (m.t === 'bail') { const r = remotes.get(id); if (r) r.bailT = 2.0; }
+    else if (m.t === 'punch') { if (m.to === myId) { const r = remotes.get(id); addFeed(`<b>${esc(r ? r.name : '?')}</b> punched you`); gotPunched(m); } }
     else if (m.t === 'bye') drop(id);
     renderRoom();
   }
@@ -3888,6 +4307,7 @@ const net = (() => {
   const ANG = ['yaw'];
   function pack() {
     const s = {}; for (const k of LERP) s[k] = +VS[k].toFixed(3); s.yaw = +VS.yaw.toFixed(3); s.kickPhase = +VS.kickPhase.toFixed(3);
+    if (VS.walk) { s.wk = 1; s.wph = +(VS.wph || 0).toFixed(2); s.ws = +(VS.ws || 0).toFixed(2); s.pu = +(VS.pu || 0).toFixed(2); s.ps = VS.ps | 0; s.ko = VS.ko | 0; }
     s.air = VS.air ? 1 : 0; s.wh = VS.whipping ? 1 : 0; s.br = VS.barring ? 1 : 0; s.bk = VS.braking ? 1 : 0; s.gr = VS.grinding ? 1 : 0; s.bl = VS.bailed ? 1 : 0;
     const p = {}; for (const k in VS.poses) if (VS.poses[k] > 0.02) p[k] = +VS.poses[k].toFixed(2); s.p = p; s.sc = score; return s;
   }
@@ -3906,6 +4326,7 @@ const net = (() => {
       S.yaw = a.s.yaw + wrap(b.s.yaw - a.s.yaw) * f;
       S.kickPhase = b.s.kickPhase; S.air = !!b.s.air; S.whipping = !!b.s.wh; S.barring = !!b.s.br; S.braking = !!b.s.bk; S.grinding = !!b.s.gr;
       S.poses = b.s.p || {};
+      S.walk = b.s.wk | 0; S.wph = b.s.wph || 0; S.ws = b.s.ws || 0; S.pu = b.s.pu || 0; S.ps = b.s.ps | 0; S.ko = b.s.ko | 0;
       // whip and bar angles wrap, so don't interpolate across a reset
       if (Math.abs(b.s.whip - a.s.whip) > 3) S.whip = b.s.whip; if (Math.abs(b.s.bar - a.s.bar) > 3) S.bar = b.s.bar;
       applyAvatar(r.A, S, dt);
@@ -3926,6 +4347,8 @@ const net = (() => {
     get code() { return peer && (isHost || conns.size > 0) ? code : null; },
     announce() { send(hello()); },
     trick(name, pts) { send({ t: 'trick', name, pts }); },
+    punch(to, dx, dz) { send({ t: 'punch', to, dx: +dx.toFixed(2), dz: +dz.toFixed(2) }); },
+    get myId() { return myId; },
     chat(text) { send({ t: 'chat', text }); addFeed(`<b>You:</b> ${esc(text)}`); },
     renderRoom,
   };
@@ -4179,7 +4602,7 @@ function applyPaint(mat, id, hex) {
 function outfit(id) { return OUTFITS.find(o => o.id === id) || OUTFITS[0]; }
 function riderOpts(id, av) {
   const o = outfit(id); av = av || {};
-  return { top: o.top, pants: o.pants, helmet: o.helmet, gear: av.gear || 'full', skin: AV_SKIN[(av.skin ?? 1) % AV_SKIN.length], hair: av.hair || 'short', hairCol: AV_HAIRC[(av.hairCol ?? 1) % AV_HAIRC.length], eyes: av.eyes };
+  return { top: o.top, pants: o.pants, helmet: o.helmet, hatK: o.hatK, cape: o.cape, gear: av.gear || 'full', skin: AV_SKIN[(av.skin ?? 1) % AV_SKIN.length], hair: av.hair || 'short', hairCol: AV_HAIRC[(av.hairCol ?? 1) % AV_HAIRC.length], eyes: av.eyes };
 }
 function applyOutfitTo(A, id, av) {
   // rebuild the rider with the outfit's colours and the avatar's head
@@ -4216,7 +4639,7 @@ function renderGarage() {
   } else if (gTab === 'avatar') { renderAvatarEditor(el); } else {
     el.innerHTML = `<div class="g-grid">` + OUTFITS.map(o => {
       const own = owned.includes('o:' + o.id), on = outfitId === o.id, h = x => '#' + x.toString(16).padStart(6, '0');
-      return `<div class="g-card ${on ? 'on' : ''}"><div class="fit"><i style="background:${h(o.helmet)}"></i><i style="background:${h(o.top)}"></i><i style="background:${h(o.pants)}"></i></div><b>${o.n}</b>` + (own ? `<button data-eq="o:${o.id}">${on ? 'WEARING' : 'WEAR'}</button>` : `<button data-buy="o:${o.id}" ${cash < o.price ? 'class="poor"' : ''}>${coinHTML(o.price)}</button>`) + `</div>`;
+      return `<div class="g-card ${on ? 'on' : ''}${o.quest ? ' quest' : ''}"><div class="fit"><i style="background:${h(o.helmet)}"></i><i style="background:${h(o.top)}"></i><i style="background:${h(o.pants)}"></i></div><b>${o.n}</b>${o.hatK ? '<small>' + (o.cape != null ? 'hat + cape' : 'hat') + '</small>' : ''}` + (own ? `<button data-eq="o:${o.id}">${on ? 'WEARING' : 'WEAR'}</button>` : o.quest ? `<button disabled title="Finish the quest to unlock">QUEST REWARD</button>` : `<button data-buy="o:${o.id}" ${cash < o.price ? 'class="poor"' : ''}>${coinHTML(o.price)}</button>`) + `</div>`;
     }).join('') + `</div>`;
   }
 }
@@ -4372,7 +4795,7 @@ const online = (() => {
   }
   const emit = () => listeners.forEach(f => { try { f(); } catch (e) { console.warn(e); } });
   // what we keep in the cloud
-  function snapshot() { return { v: 1, cash, upg, owned, paint: paintId, outfit: outfitId, color: paintColor, goals: [...goalsDone], best, hillBest: race.best, attackBest: attack.best, xp }; }
+  function snapshot() { return { v: 1, cash, upg, owned, paint: paintId, outfit: outfitId, color: paintColor, goals: [...goalsDone], best, hillBest: race.best, attackBest: attack.best, xp, inv, quests: questState, treasures: store.get('treasures', 0) }; }
   function adopt(save) {
     if (!save || !save.v) return false;
     cash = save.cash | 0; store.set('cash', cash);
@@ -4385,6 +4808,9 @@ const online = (() => {
     if (save.hillBest && (!race.best || save.hillBest < race.best)) { race.best = save.hillBest; store.set('hillBest', race.best); }
     if (save.attackBest > attack.best) { attack.best = save.attackBest; store.set('attackBest', attack.best); }
     if (save.xp > xp) { xp = save.xp; store.set('xp', xp); renderLevel(); }
+    if (save.inv && typeof save.inv === 'object') { inv = Object.assign({}, save.inv); store.set('inv', inv); }
+    if (save.quests && typeof save.quests === 'object') { for (const k in save.quests) if (questState[k] !== 'done') questState[k] = save.quests[k]; store.set('quests', questState); }
+    if (save.treasures > store.get('treasures', 0)) store.set('treasures', save.treasures | 0);
     veh.cfg = vehCfg(player.kind); equipLook(); renderLetters && renderLetters();
     return true;
   }
@@ -4434,7 +4860,7 @@ const online = (() => {
   }
   const best1 = {};
   async function submit(board, value) {
-    if (!me) return; const low = board === 'hill';
+    if (!me) return; const low = LOW_BOARDS.includes(board);
     if (best1[board] != null && (low ? value >= best1[board] : value <= best1[board])) return;
     try { const r = await rpc('si_submit', { p_token: token, p_board: board, p_value: value }); best1[board] = r.best; if (r.improved) addFeed(`<b>New personal best</b> on the ${BOARDS.find(b => b.id === board).n} leaderboard`); } catch { }
   }
@@ -4677,7 +5103,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.0.2';
+const GAME_VERSION = '2.1.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -4734,7 +5160,7 @@ let trickBarT = 0;
 function buildTrickBar() {
   const el = document.getElementById('trickbar'); if (!el) return;
   const TK = TRICKS[player.kind];
-  el.innerHTML = TRICK_KEYS.filter(k => TK[k]).map(k => `<div data-k="${k}"><b>${KEY_LABEL[k]}</b>${TK[k].n}</div>`).join('') + `<div><b>W/S</b>Flip</div><div><b>A/D</b>Spin</div>`;
+  el.innerHTML = TRICK_KEYS.filter(k => TK[k]).map(k => `<div data-k="${k}"><b>${keyLabel(k)}</b>${TK[k].n}</div>`).join('') + `<div><b>${keyName('up')}/${keyName('down')}</b>Flip</div><div><b>${keyName('left')}/${keyName('right')}</b>Spin</div>`;
   const map = { t1: 'J', t2: 'K', t3: 'L', t4: 'I', t5: 'U', t6: 'O' };
   for (const [id, k] of Object.entries(map)) { const b = document.getElementById('tb-' + id); if (b && TK[k]) b.textContent = TK[k].n.replace('No-Hander', 'NO HAND').replace('Tailwhip', 'WHIP').replace('Barspin', 'BAR').toUpperCase().slice(0, 9); }
   trickBarT = 12;
@@ -4742,7 +5168,7 @@ function buildTrickBar() {
 function updateTrickBar(dt) {
   const el = document.getElementById('trickbar'); const P = player;
   trickBarT -= dt;
-  const show = state === 'play' && !P.bailed && (P.air || P.grind || trickBarT > 0);
+  const show = state === 'play' && !P.bailed && P.mode !== 'walk' && (P.air || P.grind || trickBarT > 0);
   el.style.bottom = hintHidden ? '24px' : '150px';
   el.classList.toggle('hidden', !show);
   if (!show) return;
@@ -4763,11 +5189,11 @@ const mmBg = (() => {
   const tx = x => (x - B.x0) * s, tz = z => (z - B.z0) * s;
   g.fillStyle = '#3b4a30'; g.fillRect(0, 0, c.width, c.height);
   g.fillStyle = '#1f4d5c'; g.fillRect(0, 0, c.width, tz(SEA_Z));
-  const col = { road: '#2b2b30', sidewalk: '#6c6a66', park: '#9b9890', dirt: '#7a5a3e', plaza: '#a8a196', sand: '#c9b48a', hill: '#55555a' };
+  const col = { road: '#2b2b30', sidewalk: '#6c6a66', park: '#9b9890', dirt: '#7a5a3e', plaza: '#a8a196', sand: '#c9b48a', hill: '#55555a', snow: '#e8eef5' };
   for (const r of RECTS) { g.fillStyle = col[r.type] || '#444'; g.fillRect(tx(r.x0), tz(r.z0), (r.x1 - r.x0) * s, (r.z1 - r.z0) * s); }
   g.fillStyle = '#7d7468'; for (const c2 of colliders) if (c2.x1 - c2.x0 > 3 && c2.z1 - c2.z0 > 3) g.fillRect(tx(c2.x0), tz(c2.z0), (c2.x1 - c2.x0) * s, (c2.z1 - c2.z0) * s);
   for (const r of ramps) {
-    g.fillStyle = r.surface === 'airbag' ? '#2a86ff' : r.surface === 'tramp' ? '#1f8fff' : r.surface === 'dirt' ? '#b07a4e' : r.surface === 'wood' ? '#c9a36b' : '#c8c4bb';
+    g.fillStyle = r.surface === 'snow' ? '#f4f8ff' : r.surface === 'sand' ? '#d6c294' : r.surface === 'airbag' ? '#2a86ff' : r.surface === 'tramp' ? '#1f8fff' : r.surface === 'dirt' ? '#b07a4e' : r.surface === 'wood' ? '#c9a36b' : '#c8c4bb';
     if (r.length != null && r.width != null && r.type !== 'bowl') {
       g.save(); g.translate(tx(r.cx), tz(r.cz)); g.rotate(-r.yaw); g.fillRect(-r.width / 2 * s, -r.length / 2 * s, r.width * s, r.length * s); g.restore();
     } else if (r.x0 != null) g.fillRect(tx(r.x0), tz(r.z0), (r.x1 - r.x0) * s, (r.z1 - r.z0) * s);
@@ -4777,7 +5203,7 @@ const mmBg = (() => {
 let hudT = 0;
 function updateHUD(dt) {
   const P = player;
-  const sp = P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
+  const sp = P.mode === 'walk' ? Math.abs(P.wspd || 0) : P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
   hudT += dt;
   if (hudT > 0.06) { elSpeed.textContent = Math.round(sp * 3.6); hudT = 0; }
   const showW = P.inWheelie && !P.air && !P.bailed;
@@ -4801,6 +5227,7 @@ function updateHUD(dt) {
   const k = MMK;
   for (const Lt of LETTERS) if (!Lt.got) { mctx.fillStyle = '#ffc531'; mctx.beginPath(); mctx.arc((Lt.p.x - P.pos.x) * k, (Lt.p.z - P.pos.z) * k, 3.6, 0, 7); mctx.fill(); }
   for (const r of net.remotes.values()) { if (!r.S) continue; mctx.fillStyle = '#' + r.helmet.toString(16).padStart(6, '0'); mctx.beginPath(); mctx.arc((r.S.x - P.pos.x) * k, (r.S.z - P.pos.z) * k, 5.6, 0, 7); mctx.fill(); }
+  drawMiniExtras(k, P);
   mctx.restore();
   mctx.fillStyle = '#ff4d1f'; mctx.beginPath(); mctx.moveTo(90, 80); mctx.lineTo(97, 98); mctx.lineTo(90, 94); mctx.lineTo(83, 98); mctx.fill();
 }
@@ -4843,8 +5270,11 @@ const ZONE_INFO = {
   airbag: ['Airbag', 'Land anything on the airbag, plus trampolines', 'NEW'], downtown: ['Downtown', 'Town Hall 12-stair, El Toro, hubbas and rails', 'NEW'],
   canyon: ['Canyon', 'Roll in off a mesa and jump the canyon', 'NEW'], desert: ['Desert line', 'Five huge desert doubles', 'NEW'],
   woods: ['Woods', 'Forest downhill with tables, drops and logs', 'NEW'],
+  market: ['Market Street', 'DcMonalds, Kurger Bings, Barstucks, Ocset and the pub', 'NEW'], mountain: ['Peak Run', 'Snowy mountain: ski hut, chairlift and a ski run', 'NEW'],
+  islands: ['Islands', 'Surf out to five islands with treasure chests', 'NEW'],
+  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'],
 };
-const ZONE_ORDER = ['auto', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
+const ZONE_ORDER = ['auto', 'woodpark', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
 const zoneThumb = k => `assets/maps/${k}.jpg`;
 function renderRidePicker() {
   const el = document.getElementById('ride-picker'); if (!el) return;
@@ -4892,7 +5322,7 @@ function renderTrickBook() {
   document.getElementById('tb-rides').innerHTML = VEH_KEYS.map(v => `<button data-tb="${v}" class="${v === k ? 'sel' : ''}">${VEH[v].label}</button>`).join('');
   const pts = t => t.t === 'whip' ? WHIP_PTS[t.n] : t.t === 'bar' ? BAR_PTS[t.n] : POSE_PTS[t.p];
   const kind = t => t.t === 'whip' ? (k === 'skate' ? 'board spin' : 'whip') : t.t === 'bar' ? (k === 'skate' ? 'board flip' : 'spin') : 'hold it';
-  const rows = TRICK_KEYS.filter(x => TK[x]).map(x => `<div class="tb-row"><kbd>${KEY_LABEL[x]}</kbd><b>${TK[x].n}</b><span>${kind(TK[x])}</span><em>${pts(TK[x]) || ''}</em></div>`).join('');
+  const rows = TRICK_KEYS.filter(x => TK[x]).map(x => `<div class="tb-row"><kbd>${keyLabel(x)}</kbd><b>${TK[x].n}</b><span>${kind(TK[x])}</span><em>${pts(TK[x]) || ''}</em></div>`).join('');
   const body = [['W / S', 'Frontflip / Backflip', 'tap in the air · hold for a double', 650], ['A / D', '180, 360, 540…', 'spin in the air', 135], ['SPACE', k === 'skate' ? 'Ollie' : 'Hop', 'on the ground', ''], ['SHIFT', IS_KICK(k) ? 'Manual' : 'Wheelie', 'on the ground (+S: ' + (IS_KICK(k) ? 'nose manual' : 'stoppie') + ')', '']];
   const gs = GRIND_STYLES[k];
   const combos = (k === 'skate' ? SKATE_COMBOS : C.flip > 0 ? COMBO_NAMES : COMBO_NAMES.filter(c => !/flip|Cork/i.test(c[1]))).map(c => `<div class="tb-row combo"><b>${c[0]}</b><span>${c[1]}</span></div>`).join('');
@@ -4904,7 +5334,7 @@ function renderTrickBook() {
     `<div class="tb-note">Doing the same trick again in one combo scores less each time. Mix it up, land clean (PERFECT +15%), and keep the combo going with manuals and grinds.</div>`;
 }
 document.getElementById('tb-rides').addEventListener('click', e => { const b = e.target.closest('[data-tb]'); if (b) { tbRide = b.dataset.tb; renderTrickBook(); } });
-const zoneFor = () => player.zone !== 'auto' && ZONES[player.zone] ? player.zone : ({ bike: 'dirt', ebike: 'mega', scooter: 'park', escooter: 'street', skate: 'downtown' })[player.kind];
+const zoneFor = () => player.zone !== 'auto' && ZONES[player.zone] ? player.zone : ({ bike: 'dirt', ebike: 'mega', scooter: 'park', escooter: 'street', skate: 'downtown' })[player.kind] || 'beach';
 document.getElementById('vol').oninput = e => music.volume(e.target.value / 100);
 document.getElementById('sfx-vol').value = Math.round(store.get('sfxVol', 0.6) * 100);
 document.getElementById('sfx-vol').oninput = e => sfx.setVolume(e.target.value / 100);
@@ -4931,7 +5361,7 @@ function startRide() {
   camState.init = false;
 }
 function togglePause() {
-  if (state === 'play') { state = 'menu'; elMenu.classList.remove('hidden'); elHUD.classList.add('hidden'); elTouch.classList.add('hidden'); document.getElementById('ride-btn').textContent = 'RESUME'; buildMenu(); }
+  if (state === 'play') { online.submit('xp', xp); state = 'menu'; elMenu.classList.remove('hidden'); elHUD.classList.add('hidden'); elTouch.classList.add('hidden'); document.getElementById('ride-btn').textContent = 'RESUME'; buildMenu(); }
   else if (state === 'menu') startRide();
 }
 document.getElementById('pause-btn').onclick = togglePause;
@@ -4958,7 +5388,7 @@ function updateWoods() {
   const W = WOODS_TRAIL, P = player, on = Math.abs(P.pos.z - W.z) < 8 && P.pos.x > W.x - 2 && P.pos.x < W.x + W.L + 2;
   if (!on || P.bailed) { woodsRun = 0; return; }
   if (P.pos.x < W.x + 16) woodsRun = clock;
-  else if (woodsRun && P.pos.x > W.x + W.L - 18) { const t = clock - woodsRun; woodsRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'WOODS DOWNHILL'); earn(300, 'Woods downhill'); goal('woods'); }
+  else if (woodsRun && P.pos.x > W.x + W.L - 18) { const t = clock - woodsRun; woodsRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'WOODS DOWNHILL'); earn(300, 'Woods downhill'); goal('woods'); online.submit('woods', +t.toFixed(2)); }
 }
 // ───────────────────────── v2.0: levels, daily challenges, photo mode, instant replay, map ─────────────────────────
 let xp = store.get('xp', 0);
@@ -4974,6 +5404,7 @@ function addXP(n) {
   const L1 = levelOf(xp);
   if (L1.l > before) { const c = earn(100 + 50 * L1.l); setTimeout(() => { showPopup('LEVEL ' + L1.l, 'good', `LEVEL UP · +${c} COINS`); sfx.ding(); }, 900); addFeed(`<b>Level up!</b> You're level ${L1.l}`); }
   renderLevel(); online.saveSoon();
+  if (L1.l > before) online.submit('xp', xp);
 }
 // daily challenges: three a day, the same for everyone
 const DAILY_POOL = [
@@ -5084,7 +5515,7 @@ function updateReplay(dt) {
 }
 
 // the full map: every place in the game, click one to go there
-const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods'];
+const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
 let mapPrev = 'play';
 function openMap() {
   if (state === 'map') return closeMap();
@@ -5158,6 +5589,1134 @@ function tvCam(dt) {
   const d = camState.cine.distanceTo(p); camera.fov = damp(camera.fov, clamp(70 - d * 1.2, 28, 60), 3, dt); camera.updateProjectionMatrix();
 }
 
+// ───────────────────────── v2.1: surfing, skiing, interacting ─────────────────────────
+// skis live on the rider's boots; poles are held in the hands
+const SKI_MAT = new THREE.MeshStandardMaterial({ color: 0xff3b5c, roughness: 0.35, metalness: 0.1 });
+const POLE_MAT = new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.4, metalness: 0.6 });
+const SKI_GEO = (() => { const g = new THREE.BoxGeometry(0.085, 0.024, 1.7, 1, 1, 16), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const z = p.getZ(i); if (z > 0.6) p.setY(i, p.getY(i) + (z - 0.6) ** 2 * 0.45); } g.computeVertexNormals(); return g; })();
+function syncSkis(A) {
+  const R = A.rider; if (!R) return;
+  const want = A.kind === 'ski';
+  if (want && !R.skis) {
+    R.skis = [R.parts.shoeL, R.parts.shoeR].map(sh => { const m = new THREE.Mesh(SKI_GEO, SKI_MAT); m.position.set(0, -0.07, 0.1); m.castShadow = true; sh.add(m); return m; });
+    R.poles = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.009, 1.15, 6), POLE_MAT); m.castShadow = true; R.group.add(m); const b = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.008, 4, 10).rotateX(Math.PI / 2), POLE_MAT); b.position.y = -0.5; m.add(b); return m; });
+  } else if (!want && R.skis) { for (const m of R.skis) m.parent.remove(m); for (const m of R.poles) R.group.remove(m); R.skis = R.poles = null; }
+}
+const _pa = v3(), _pb = v3();
+function poseSkier(dt, S, A) {
+  const R = A.rider, D = R.D, sm = A.sm, PO = S.poses || {};
+  sm.airA = damp(sm.airA || 0, S.air ? 1 : 0, 6, dt);
+  const plough = S.braking ? 1 : 0;
+  sm.pl = damp(sm.pl || 0, plough, 8, dt);
+  const crouch = 0.12 + S.crouch + sm.airA * 0.1 + Math.max(0, S.wheelie) * 0.15;
+  const fy = 0.125, wide = 0.13 + sm.pl * 0.12;
+  L.ft[0].set(-wide, fy, 0); L.ft[1].set(wide, fy, 0);
+  L.hip.set(0, 0.88 - crouch, -0.1 - crouch * 0.3);
+  let yawL = -0.35 * sm.pl, yawR = 0.35 * sm.pl;
+  const arm = sm.airA * 0.1;
+  L.ht[0].set(-0.3, L.hip.y + 0.05 + arm, 0.32); L.ht[1].set(0.3, L.hip.y + 0.05 + arm, 0.32);
+  const tuck = a => { L.ft[0].y += 0.28 * a; L.ft[1].y += 0.28 * a; L.hip.y -= 0.06 * a; };
+  if ((PO.mute || 0) > 0.01) { const a = PO.mute; tuck(a); L.ht[0].lerp(v3(0.1, fy + 0.32, 0.38), a); L.ht[1].lerp(v3(0.16, fy + 0.3, 0.42), a); }
+  if ((PO.japan || 0) > 0.01) { const a = PO.japan; tuck(a); L.ht[0].lerp(v3(0.12, fy + 0.34, 0.3), a); yawL += 0.3 * a; yawR += 0.3 * a; }
+  if ((PO.tailg || 0) > 0.01) { const a = PO.tailg; tuck(a); L.ht[0].lerp(v3(-0.13, fy + 0.3, -0.45), a); L.ht[1].lerp(v3(0.13, fy + 0.3, -0.45), a); }
+  if ((PO.safety || 0) > 0.01) { const a = PO.safety; tuck(a); L.ht[1].lerp(v3(0.2, fy + 0.3, 0.02), a); }
+  if ((PO.iron || 0) > 0.01) { const a = PO.iron; L.ft[0].x += 0.06 * a; L.ft[1].x -= 0.06 * a; yawL += 0.6 * a; yawR -= 0.6 * a; }
+  if ((PO.eagle || 0) > 0.01) { const a = PO.eagle; L.ft[0].lerp(v3(-0.45, fy + 0.18, 0), a); L.ft[1].lerp(v3(0.45, fy + 0.18, 0), a); L.ht[0].lerp(v3(-0.62, L.hip.y + 0.55, 0.05), a); L.ht[1].lerp(v3(0.62, L.hip.y + 0.55, 0.05), a); }
+  if ((PO.daffy || 0) > 0.01) { const a = PO.daffy; L.ft[0].lerp(v3(-0.12, fy + 0.15, 0.48), a); L.ft[1].lerp(v3(0.12, fy + 0.15, -0.48), a); L.ht[0].lerp(v3(-0.55, L.hip.y + 0.25, 0.1), a); L.ht[1].lerp(v3(0.55, L.hip.y + 0.25, 0.1), a); }
+  const lookDir = v3(0, 1, 0.28 + crouch * 0.5).normalize();
+  L.chest.copy(L.hip).addScaledVector(lookDir, D.torso);
+  for (let s = 0; s < 2; s++) {
+    const side = s ? 1 : -1;
+    L.hp[s].copy(L.hip).add(v3(side * 0.1, 0, 0));
+    L.sh[s].copy(L.chest).add(v3(side * 0.19, -0.05, -0.04));
+    ik(L.hp[s], L.ft[s], D.thigh, D.shin, v3(side * 0.12, 0.1, 1).normalize(), L.knee[s], L.foot[s]);
+    ik(L.sh[s], L.ht[s], D.upper, D.fore, v3(side * 0.6, -0.6, -0.3).normalize(), L.elbow[s], L.hand[s]);
+  }
+  placeBody(R, L, lookDir, [yawL, yawR]);
+  R.parts.head.rotation.set(0.15, 0, 0);
+  if (R.poles) for (let s = 0; s < 2; s++) {
+    const m = R.poles[s], side = s ? 1 : -1;
+    _pa.copy(L.hand[s]); _pb.copy(_pa).add(v3(side * 0.08, -1.05, -0.38 - sm.airA * 0.2));
+    m.position.copy(_pa).lerp(_pb, 0.5); m.quaternion.setFromUnitVectors(_up, _a.subVectors(_pa, _pb).normalize());
+  }
+}
+
+// ── surfing ──
+let prevKind = null;
+function swapRide(kind, why) {
+  const P = player;
+  if (!VEH[kind].hidden) prevKind = null; else if (!VEH[P.kind].hidden) prevKind = P.kind;
+  if (P.kind === 'surf' && (P.surfDist || 0) > 20) { online.submit('surf', Math.round(P.surfDist)); P.surfDist = 0; }
+  const keep = { pos: P.pos.clone(), yaw: P.yaw, v: P.v };
+  equip(kind);
+  P.pos.copy(keep.pos); P.yaw = keep.yaw; P.v = keep.v;
+  if (why) showPopup(why);
+}
+function backToRide() { if (parked) { scene.remove(parked.g); parked = null; } swapRide(prevKind && !VEH[prevKind].hidden ? prevKind : store.get('vehicle', 'bike')); }
+function enterSea(fromAir) {
+  const P = player;
+  emitDust(P.pos.clone().add(v3(0, 0.2, 0)), 30, 'water', 2.6); emitDust(P.pos.clone(), 20, 'water', 1.2);
+  sfx.splash && sfx.splash();
+  const hv = P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
+  if (fromAir && P.airStart.z < -215 && Math.abs(P.airStart.x - 40) < 5 && P.airStart.y > 1) {
+    finishOpenRotations(P); scoreAir(P, veh.cfg, 0, 0); addToCombo('Pier Send', 800, 2); endCombo(true); goal('pier');
+    showPopup('PIER SEND!', 'good', "SURF'S UP");
+  }
+  P.air = false; P.grind = null; P.inWheelie = false; P.wheelie = 0; P.flip = 0; P.spin = 0; P.poses = {};
+  if (P.vel.x || P.vel.z) P.yaw = Math.atan2(P.vel.x, P.vel.z);
+  P.vel.set(0, 0, 0); P.pos.y = SEA_Y;
+  if (veh.kind !== 'surf') { swapRide('surf', "SURF'S UP"); goal('surf'); }
+  P.v = Math.min(hv * 0.5, 6); P.surfDist = 0;
+}
+function surfStep(dt, P, C) {
+  const t = clock;
+  forward(P.yaw);
+  const e = 0.7, h0 = waveH(P.pos.x, P.pos.z, t), hf = waveH(P.pos.x + fwd.x * e, P.pos.z + fwd.z * e, t);
+  const slope = (hf - h0) / e;
+  let a = 0;
+  if (input.throttle > 0) a += C.accel * 1.7 * clamp(1 - P.v / C.top, 0, 1);
+  if (input.brake > 0) a -= (P.v > 0.2 ? 5 : 1.5);
+  a -= G * slope * 0.6;
+  a -= Math.sign(P.v) * (0.3 + 0.022 * P.v * P.v);
+  P.v = clamp(P.v + a * dt, -1.5, 15);
+  P.steer = damp(P.steer, input.steer, 6, dt);
+  P.yaw += P.steer * (1.0 + Math.min(Math.abs(P.v), 9) * 0.17) * dt;
+  P.lean = damp(P.lean, -P.steer * clamp(Math.abs(P.v) / 6, 0, 1) * 0.55, 5, dt);
+  forward(P.yaw);
+  const np = v3(P.pos.x + fwd.x * P.v * dt, 0, P.pos.z + fwd.z * P.v * dt);
+  if (collideWorld(np)) P.v *= -0.3;
+  const ng = heightAt(np.x, np.z);
+  if (ng - (SEA_Y + waveH(np.x, np.z, t)) > 0.45) { P.v *= -0.3; np.x = P.pos.x; np.z = P.pos.z; }   // the pier, a rock, an island cliff
+  P.pos.x = np.x; P.pos.z = np.z;
+  const wy = SEA_Y + waveH(P.pos.x, P.pos.z, t) + 0.04;
+  const vy = (wy - P.pos.y) / Math.max(dt, 1e-3);
+  P.pos.y = ng > wy ? ng : wy; P.slope = Math.atan(slope); P.onRamp = null; P.crouch = damp(P.crouch, input.throttle ? 0.08 : 0, 4, dt);
+  P.kickAmt = damp(P.kickAmt || 0, 0, 6, dt);
+  P.surfDist = (P.surfDist || 0) + Math.abs(P.v) * dt;
+  if (P.surfDist > 200) goal('surf200');
+  if (input.jump) { launch(P, C.hop + Math.max(0, vy) * 0.7, P.v, null, 0, true); sfx.hop(); return; }
+  if (vy > 2.4 && P.v > 5.5) { launch(P, vy * 0.9, P.v, null, 0); goal('waveair'); return; }
+}
+// on land a surfboard only moves when your foot pushes: 0.2 m per push, one push a second
+function landSurfStep(dt, P, C) {
+  const pushing = input.throttle > 0;
+  P.kickAmt = damp(P.kickAmt || 0, pushing ? 1 : 0, 8, dt);
+  P.v = 0; P.lean = damp(P.lean, 0, 6, dt); P.steer = 0;
+  P.yaw += input.steer * 0.8 * dt;
+  forward(P.yaw);
+  if (pushing) {
+    P.kickPhase = ((P.kickPhase || 0) + dt) % 1;
+    if (P.kickPhase > 0.3 && P.kickPhase < 0.7) {
+      const step = 0.2 / 0.4 * dt, nx = P.pos.x + fwd.x * step, nz = P.pos.z + fwd.z * step, nh = heightAt(nx, nz);
+      if (nh - P.pos.y < 0.3) { const np = v3(nx, P.pos.y, nz); collideWorld(np); P.pos.x = np.x; P.pos.z = np.z; P.v = 0.5; }
+    }
+  }
+  P.pos.y = heightAt(P.pos.x, P.pos.z); P.slope = 0;
+  if (P.pos.z < SEA_Z && P.pos.y <= 0.01) { P.pos.y = SEA_Y; }
+}
+function surfLand(P, C) {
+  const hv = Math.hypot(P.vel.x, P.vel.z), velYaw = Math.atan2(P.vel.x, P.vel.z);
+  const yawErr = hv > 2.2 ? Math.abs(wrap(P.yaw - velYaw)) : 0, flipRem = wrap(P.flip);
+  const fault = landingFault(P, yawErr, flipRem, 0);
+  finishOpenRotations(P);
+  if (fault) { if ((P.surfDist || 0) > 20) online.submit('surf', Math.round(P.surfDist)); P.surfDist = 0; showPopup('WIPEOUT', 'bail', fault); emitDust(P.pos.clone(), 26, 'water', 2.2); sfx.splash && sfx.splash(); endCombo(false); P.v = 0; }
+  else { scoreAir(P, C, yawErr, Math.abs(flipRem)); P.v = hv * 0.85; if (hv > 2.2 && yawErr < 1.4) P.yaw = velYaw; P.landWindow = 1.4; }
+  P.air = false; P.flip = 0; P.spinRate = 0; P.flipRate = 0; P.poses = {}; P.vel.set(0, 0, 0); P.pos.y = SEA_Y + waveH(P.pos.x, P.pos.z, clock);
+}
+// the waves you see: a patch of moving water that follows you around
+const wavePatch = (() => {
+  const geo = new THREE.PlaneGeometry(120, 120, 72, 72).rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, M.sea); m.userData.noMerge = true; m.receiveShadow = true; m.visible = false; scene.add(m);
+  return m;
+})();
+function updateWaves() {
+  const c = camera.position, near = c.z < SEA_Z + 70 && c.y < 120;
+  wavePatch.visible = near; if (!near) return;
+  const cx = Math.round(c.x / 2) * 2, cz = Math.min(SEA_Z - 60, Math.round(c.z / 2) * 2);
+  wavePatch.position.set(cx, 0, cz);
+  const pa = wavePatch.geometry.attributes.position, t = clock;
+  for (let i = 0; i < pa.count; i++) {
+    const x = pa.getX(i) + cx, z = pa.getZ(i) + cz, r = Math.max(Math.abs(pa.getX(i)), Math.abs(pa.getZ(i))) / 60;
+    const fade = 1 - smooth(clamp((r - 0.6) / 0.4, 0, 1));
+    pa.setY(i, z > SEA_Z - 1 ? -2 : -0.36 + (SEA_Y + 0.06 + waveH(x, z, t) + 0.36) * fade);
+  }
+  pa.needsUpdate = true; wavePatch.geometry.computeVertexNormals();
+}
+
+// ── skiing: only on the mountain, and only after you hire skis at the hut ──
+const inSnow = (x, z) => x > SKI.region.x0 && x < SKI.region.x1 && z > SKI.region.z0 && z < SKI.region.z1;
+let skiRun = 0;
+function updateSki(dt) {
+  const P = player;
+  if (veh.kind === 'ski' && !inSnow(P.pos.x, P.pos.z) && !P.air) { backToRide(); showPopup('SKIS OFF', '', 'SKIS ONLY WORK ON THE MOUNTAIN'); return; }
+  if (veh.kind !== 'ski') { skiRun = 0; return; }
+  const u = SKI.z - P.pos.z, onRun = Math.abs(P.pos.x - SKI.x) < SKI.W / 2 + 4;
+  if (u < 18 && onRun && Math.abs(P.v) > 1) { if (!skiRun) skiRun = clock; }
+  else if (skiRun && u > SKI.L - 22) { const t = clock - skiRun; skiRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'PEAK RUN'); earn(400, 'Peak Run'); goal('skirun'); online.submit('ski', +t.toFixed(2)); }
+  if (P.bailed) skiRun = 0;
+}
+
+// ── things you can walk or ride up to and press E ──
+const INTERACT = [];   // { x, z, r, label: () => string, fn: () => void, y?, when?: () => bool }
+let interactNear = null;
+const elPrompt = (() => { const d = document.createElement('div'); d.id = 'prompt'; d.className = 'hidden'; document.body.appendChild(d); return d; })();
+// treasure chests
+const chestDay = () => store.get('chests', {});
+for (const c of CHESTS) INTERACT.push({ x: c.x, z: c.z, r: 2.6, y: c.y, label: () => chestDay()[c.id] === dayKey() ? 'Empty (back tomorrow)' : 'Open the treasure chest', fn: () => openChest(c) });
+function openChest(c) {
+  const done = chestDay(); if (done[c.id] === dayKey()) { showPopup('ALREADY EMPTY', '', 'COME BACK TOMORROW'); return; }
+  done[c.id] = dayKey(); store.set('chests', done);
+  const coins = earn(150 + Math.floor(Math.random() * 451), c.name + ' treasure');
+  c.open = 1; c.glow.intensity = 6; setTimeout(() => { c.glow.intensity = 0; }, 2500);
+  sfx.ding(); showPopup('TREASURE!', 'good', `+${coins} COINS`);
+  const n = store.get('treasures', 0) + 1; store.set('treasures', n); online.submit('treasure', n);
+  goal('chest'); if (ISLANDS.every(I => done[I.id] === dayKey())) goal('allchests');
+  addXP(150);
+}
+function updateChests(dt) { for (const c of CHESTS) { const t = c.open ? 1.9 : 0; c.lidP.rotation.x = damp(c.lidP.rotation.x, -t, 4, dt); if (c.open && chestDay()[c.id] !== dayKey()) c.open = 0; } }
+// ski hut + chairlift
+function hireSkis() { const P = player; prevKind = P.kind; P.mode = 'ride'; setVehicleShown(me, true); swapRide('ski', 'SKIS ON'); P.v = 0; goal('skis'); camState.init = false; }
+INTERACT.push({ x: SKI.hut.x, z: SKI.hut.z, r: 3.2, hire: true, walkOnly: true, when: () => player.kind !== 'ski', label: 'Hire skis (free)', fn: hireSkis });
+INTERACT.push({ x: SKI.hut.x, z: SKI.hut.z, r: 3.2, when: () => player.kind === 'ski', label: 'Hand the skis back', fn: () => backToRide() });
+INTERACT.push({ x: SKI.lift.x - 4, z: SKI.lift.z, r: 4, label: 'Ride the chairlift to the top', fn: () => { if (player.mode === 'walk') mount(true); spawn('mountain'); showPopup('PEAK RUN', '', 'CHAIRLIFT'); } });
+
+// ───────────────────────── v2.1: on foot, shops, food, NPCs, speech, dialogue, quests ─────────────────────────
+// walking uses the player object itself (player.mode = 'walk'), so the map, camera, quests and peds all just work
+player.mode = 'ride';
+let parked = null;   // the ride you left behind: { kind, g, pos, yaw }
+function canGetOff() { const P = player; return P.mode === 'ride' && !P.air && !P.grind && !P.bailed && Math.abs(P.v) < 4.5; }
+function getOff() {
+  const P = player;
+  if (P.kind === 'surf' && inWater(P.pos.x, P.pos.z)) { showPopup("YOU'RE IN THE SEA", '', 'SURF BACK TO LAND FIRST'); return; }
+  if (!canGetOff()) { showPopup(P.air || P.grind ? 'LAND FIRST' : 'SLOW DOWN TO GET OFF'); return; }
+  if (VEH[P.kind].hidden) { backToRide(); P.v = 0; }
+  goal('walk');
+  if (P.inWheelie) finishWheelie();
+  if (parked) { scene.remove(parked.g); parked = null; }
+  const out = buildVehicle(P.kind, paintColor); applyPaint(out.paint, paintId, COLORS[paintColor]);
+  const g = new THREE.Group(); g.add(out.model); g.userData.noMerge = true; scene.add(g);
+  forward(P.yaw); const side = v3(fwd.z, 0, -fwd.x);
+  g.position.copy(P.pos); g.rotation.set(0, P.yaw, P.kind === 'skate' || P.kind === 'surf' || P.kind === 'ski' ? 0 : -0.12);
+  out.model.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  parked = { kind: P.kind, g, pos: P.pos.clone(), yaw: P.yaw };
+  P.mode = 'walk'; P.v = 0; P.wspd = 0; P.wvy = 0; P.wph = 0; P.punchT = 0; P.hp = P.hp ?? 100;
+  P.pos.addScaledVector(side, 0.7);
+  setVehicleShown(me, false); endCombo(true);
+  camState.init = false;
+}
+function setVehicleShown(A, on) {
+  if (!A.veh) return;
+  for (const c of A.veh.model.children) if (c !== A.rider.group) c.visible = on;
+  if (!on) { A.rider.group.rotation.set(0, 0, 0); A.rider.group.position.set(0, 0, 0); if (A.rider.poles) for (const p of A.rider.poles) p.visible = false; if (A.rider.skis) for (const s of A.rider.skis) s.visible = A.kind === 'ski'; }
+  else { A.rider.group.rotation.set(0, stanceYaw(A.kind), 0); if (A.rider.poles) for (const p of A.rider.poles) p.visible = true; }
+  A.walking = !on;
+}
+function getOn(quiet) {
+  const P = player; if (P.mode !== 'walk') return;
+  const near = parked && Math.hypot(parked.pos.x - P.pos.x, parked.pos.z - P.pos.z) < 4;
+  if (parked) { if (near) { P.pos.copy(parked.pos); P.yaw = parked.yaw; } scene.remove(parked.g); parked = null; }
+  if (!near && !quiet) showPopup(VEH[P.kind].label + ' DELIVERED');
+  P.mode = 'ride'; P.v = 0; P.air = false; P.wspd = 0;
+  P.pos.y = heightAt(P.pos.x, P.pos.z);
+  if (inWater(P.pos.x, P.pos.z) && P.kind !== 'surf') { swapRide('surf'); }
+  setVehicleShown(me, true); camState.init = false;
+}
+function mount(quiet) { getOn(quiet); }
+// food and drink make you faster for a while
+const ITEMS = {
+  bigdac: { n: 'Big Dac', price: 60, spd: 0.22, dur: 120, k: 'food', c: '#e0a03a' }, dacfries: { n: 'Dac Fries', price: 25, spd: 0.1, dur: 60, k: 'food', c: '#f2c94c' }, dacswirl: { n: 'DacSwirl', price: 35, spd: 0.15, dur: 90, k: 'food', c: '#f5e6c8' },
+  whomper: { n: 'Whomper', price: 65, spd: 0.24, dur: 120, k: 'food', c: '#b5651d' }, bingrings: { n: 'Bing Rings', price: 25, spd: 0.1, dur: 60, k: 'food', c: '#e8b04a' }, fizz: { n: 'Fizzy Cola', price: 15, spd: 0.08, dur: 45, k: 'drink', c: '#7a2b1d' },
+  espresso: { n: 'Espresso', price: 30, spd: 0.3, dur: 60, k: 'drink', c: '#3b2416' }, latte: { n: 'Latte', price: 40, spd: 0.2, dur: 120, k: 'drink', c: '#c8a27a' }, frappe: { n: 'Caramel Frappe', price: 55, spd: 0.25, dur: 150, k: 'drink', c: '#d9a066' },
+  banana: { n: 'Banana', price: 10, spd: 0.05, dur: 60, k: 'food', c: '#f7dc4a' }, energy: { n: 'Energy Drink', price: 45, spd: 0.35, dur: 90, k: 'drink', c: '#39ff14' }, mealdeal: { n: 'Meal Deal', price: 50, spd: 0.2, dur: 150, k: 'food', c: '#5ab0e0' }, water: { n: 'Water', price: 8, spd: 0.03, dur: 30, k: 'drink', c: '#9fd8ff' },
+  lemonade: { n: 'Lemonade', price: 20, spd: 0.08, dur: 60, k: 'drink', c: '#f4ef8a' }, gingerbeer: { n: 'Ginger Beer', price: 25, spd: 0.12, dur: 90, k: 'drink', c: '#c98a3a' }, pie: { n: 'Pie & Chips', price: 55, spd: 0.22, dur: 150, k: 'food', c: '#a0632d' },
+  hotchoc: { n: 'Hot Chocolate', price: 20, spd: 0.12, dur: 90, k: 'drink', c: '#5a3520' },
+};
+const BRANDS = {
+  dcmonalds: { n: 'DcMonalds', bg: '#2b2f8f', fg: '#ffd84a', icon: 'burger', menu: ['bigdac', 'dacfries', 'dacswirl'], staff: 0x2b2f8f, job: 'cashier' },
+  kurger: { n: 'Kurger Bings', bg: '#ff7a00', fg: '#3a1d0a', icon: 'flame', menu: ['whomper', 'bingrings', 'fizz'], staff: 0xff7a00, job: 'cashier' },
+  barstucks: { n: 'Barstucks', bg: '#3b2416', fg: '#f3e2c4', icon: 'cup', menu: ['espresso', 'latte', 'frappe', 'hotchoc'], staff: 0x3b2416, job: 'barista' },
+  ocset: { n: 'Ocset', bg: '#18a058', fg: '#ffffff', icon: 'basket', menu: ['banana', 'energy', 'mealdeal', 'water'], staff: 0x18a058, job: 'shelf stacker' },
+  pub: { n: 'The Kickflip Arms', bg: '#14372a', fg: '#e8c46a', icon: 'glass', menu: ['lemonade', 'gingerbeer', 'pie'], staff: 0x14372a, job: 'bartender' },
+};
+let inv = store.get('inv', {});
+const buffs = store.get('buffs', []).filter(b => b.until > Date.now());
+const buffMul = () => { const now = Date.now(); let m = 0; for (const b of buffs) if (b.until > now) m = Math.max(m, b.spd); return 1 + m; };
+const rideBuff = () => 1 + (buffMul() - 1) * 0.5;
+function buy(id) {
+  const it = ITEMS[id]; if (!it) return;
+  if (cash < it.price) { showPopup('NOT ENOUGH COINS'); return false; }
+  cash -= it.price; store.set('cash', cash); renderCash(); online.saveSoon();
+  inv[id] = (inv[id] || 0) + 1; store.set('inv', inv);
+  sfx.ding(); goal('buy'); renderBag(); return true;
+}
+function consume(id) {
+  const it = ITEMS[id]; if (!it || !inv[id]) return;
+  inv[id]--; if (!inv[id]) delete inv[id]; store.set('inv', inv);
+  const now = Date.now(), ex = buffs.find(b => b.id === id && b.until > now);
+  if (ex) ex.until += it.dur * 1000; else buffs.push({ id, spd: it.spd, until: now + it.dur * 1000 });
+  store.set('buffs', buffs);
+  showPopup((it.k === 'drink' ? 'DRANK ' : 'ATE ') + it.n.toUpperCase(), 'good', `+${Math.round(it.spd * 100)}% SPEED FOR ${Math.round(it.dur)}s`);
+  sfx.ding(); const n = store.get('eaten', 0) + 1; store.set('eaten', n); goal('eat'); if (n >= 10) goal('eat10');
+  renderBag(); renderBuffs();
+}
+function renderBuffs() {
+  const el = document.getElementById('buffs'); if (!el) return;
+  const now = Date.now(), act = buffs.filter(b => b.until > now);
+  el.innerHTML = act.map(b => { const s = Math.ceil((b.until - now) / 1000); return `<div title="${ITEMS[b.id].n}"><i style="background:${ITEMS[b.id].c}"></i>+${Math.round(b.spd * 100)}% <span>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span></div>`; }).join('');
+}
+function renderBag() {
+  const el = document.getElementById('bag-list'); if (!el) return;
+  const ids = Object.keys(inv).filter(k => inv[k] > 0 && ITEMS[k]);
+  el.innerHTML = ids.length ? ids.map(k => `<div class="bag-row"><i style="background:${ITEMS[k].c}"></i><b>${ITEMS[k].n}</b><span>×${inv[k]}</span><em>+${Math.round(ITEMS[k].spd * 100)}% speed · ${ITEMS[k].dur}s</em><button class="act" data-eat="${k}">${ITEMS[k].k === 'drink' ? 'DRINK' : 'EAT'}</button></div>`).join('')
+    : `<div class="muted" style="padding:14px 4px">Your bag is empty. Buy food and drinks at DcMonalds, Kurger Bings, Barstucks, Ocset or The Kickflip Arms.</div>`;
+}
+function openBag() { renderBag(); document.getElementById('bag').classList.remove('hidden'); }
+function openShop(brand) {
+  const B = BRANDS[brand], el = document.getElementById('shop');
+  el.querySelector('.m-title').textContent = B.n.toUpperCase();
+  el.querySelector('.shop-head').style.background = B.bg; el.querySelector('.shop-head').style.color = B.fg;
+  el.querySelector('#shop-list').innerHTML = B.menu.map(k => { const it = ITEMS[k]; return `<div class="bag-row"><i style="background:${it.c}"></i><b>${it.n}</b><em>+${Math.round(it.spd * 100)}% speed for ${it.dur}s</em><button class="act" data-shopbuy="${k}">${coinHTML(it.price)}</button></div>`; }).join('');
+  el.querySelector('#shop-cash').innerHTML = coinHTML(cash);
+  el.classList.remove('hidden'); { const seen = store.get('shopsSeen', []); if (!seen.includes(brand)) { seen.push(brand); store.set('shopsSeen', seen); } goal('shop'); if (Object.keys(BRANDS).every(b => seen.includes(b))) goal('allshops'); }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-shopbuy]'); if (b) { if (buy(b.dataset.shopbuy)) { const el = document.getElementById('shop'); el.querySelector('#shop-cash').innerHTML = coinHTML(cash); } return; }
+  const c = e.target.closest('[data-eat]'); if (c) consume(c.dataset.eat);
+});
+
+// ── speech: NPCs talk out loud (your computer's text-to-speech) with a bubble over their head ──
+let voicesOn = store.get('voices', true);
+const BUBBLES = [];
+function speak(who, text, opts = {}) {
+  if (who && !opts.noBubble) { const b = BUBBLES.find(x => x.who === who) || (BUBBLES.push({ who, el: Object.assign(document.createElement('div'), { className: 'bubble' }) }), BUBBLES[BUBBLES.length - 1]); b.el.textContent = text; b.t = 3 + text.length * 0.05; if (!b.el.parentNode) document.body.appendChild(b.el); }
+  if (!voicesOn || !('speechSynthesis' in window) || opts.silent) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text), vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+    if (vs.length && who) u.voice = vs[(who.voiceIdx || 0) % vs.length];
+    u.pitch = who ? who.pitch || 1 : 1; u.rate = who ? who.rate || 1 : 1; u.volume = Math.min(1, 0.4 + sfxLevel());
+    if (opts.interrupt !== false) speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch { }
+}
+const _bp = v3();
+function updateBubbles(dt) {
+  for (let i = BUBBLES.length - 1; i >= 0; i--) {
+    const b = BUBBLES[i]; b.t -= dt;
+    const g = b.who.g || b.who.root; if (!g || b.t <= 0) { b.el.remove(); BUBBLES.splice(i, 1); continue; }
+    g.getWorldPosition(_bp); _bp.y += 2.25; const d = _bp.distanceTo(camera.position); _bp.project(camera);
+    const vis = _bp.z < 1 && d < 40 && state === 'play';
+    b.el.style.display = vis ? '' : 'none';
+    if (vis) { b.el.style.left = ((_bp.x + 1) / 2 * innerWidth) + 'px'; b.el.style.top = ((1 - _bp.y) / 2 * innerHeight) + 'px'; b.el.style.opacity = Math.min(1, b.t * 2); }
+  }
+}
+
+// ── dialogue box: each letter appears just after the last, with a little blip ──
+const dlg = { open: false, lines: [], i: 0, shown: 0, t: 0, who: null, done: null, choices: null };
+const elDlg = document.getElementById('dialog');
+let blipCtx = null;
+function blip(pitch) {
+  try { blipCtx = blipCtx || sfx.ctx(); const c = blipCtx; if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 520 * (pitch || 1) * (0.94 + Math.random() * 0.12); g.gain.setValueAtTime(0.025 * sfxLevel() * 3, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.045); o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + 0.05); } catch { }
+}
+function openDialog(who, lines, done, choices) {
+  Object.assign(dlg, { open: true, lines: lines.slice(), i: 0, shown: 0, t: 0, who, done, choices: choices || null });
+  elDlg.classList.remove('hidden'); elDlg.querySelector('.dl-name').textContent = who ? who.name : '';
+  renderDialog(); if (who) speak(who, lines[0], { silent: !voicesOn, noBubble: true });
+}
+function renderDialog() {
+  const line = dlg.lines[dlg.i] || '', last = dlg.i === dlg.lines.length - 1, full = dlg.shown >= line.length;
+  elDlg.querySelector('.dl-text').textContent = line.slice(0, Math.floor(dlg.shown));
+  const ch = elDlg.querySelector('.dl-choices');
+  ch.innerHTML = last && full && dlg.choices ? dlg.choices.map((c, k) => `<button data-choice="${k}">${k + 1}. ${c[0]}</button>`).join('') : '';
+  elDlg.querySelector('.dl-next').style.visibility = full && !(last && dlg.choices) ? 'visible' : 'hidden';
+}
+function updateDialog(dt) {
+  if (!dlg.open) return;
+  const line = dlg.lines[dlg.i] || '';
+  if (dlg.shown < line.length) {
+    const before = Math.floor(dlg.shown);
+    dlg.shown = Math.min(line.length, dlg.shown + dt * 32);
+    const now = Math.floor(dlg.shown);
+    for (let k = before; k < now; k++) if (k % 2 === 0 && /\w/.test(line[k])) blip(dlg.who ? dlg.who.pitch : 1);
+    renderDialog();
+  }
+}
+function advanceDialog() {
+  const line = dlg.lines[dlg.i] || '';
+  if (dlg.shown < line.length) { dlg.shown = line.length; renderDialog(); return; }
+  if (dlg.i < dlg.lines.length - 1) { dlg.i++; dlg.shown = 0; renderDialog(); if (dlg.who) speak(dlg.who, dlg.lines[dlg.i], { silent: !voicesOn, noBubble: true }); return; }
+  if (dlg.choices) return;
+  closeDialog();
+}
+function closeDialog(choice) {
+  dlg.open = false; elDlg.classList.add('hidden');
+  try { speechSynthesis.cancel(); } catch { }
+  const d = dlg.done, c = dlg.choices; dlg.done = null; dlg.choices = null;
+  if (c && choice != null && c[choice][1]) c[choice][1]();
+  if (d) d();
+}
+elDlg.addEventListener('click', e => { const b = e.target.closest('[data-choice]'); if (b) closeDialog(+b.dataset.choice); else advanceDialog(); });
+
+// ── NPCs with jobs: shop staff, quest givers, a ski instructor, a fisherman… ──
+const NPCS = [];
+const JOB_LINES = {
+  cashier: ['Hi! What can I get you?', 'Welcome in! Anything to eat?', 'Our burgers are hot right now.', 'Card or coins? Coins, right.'],
+  barista: ['Hey! Coffee will make you faster, trust me.', 'One extra-shot espresso coming right up.', 'What name shall I put on the cup?', 'The frappes are my favourite.'],
+  'shelf stacker': ['Bananas are on offer today.', 'Energy drinks are by the till.', "Mind the wet floor, I've just mopped it.", 'Meal deals: three things, one price.'],
+  bartender: ['Evening. What are you having?', "Ginger beer's on the house. Kidding, it's 25 coins.", 'Saw someone jump the bus earlier. Mad.', "Pie and chips: best in town."],
+  instructor: ['Skis are free to hire. Just ask!', 'Lean forward and keep your knees bent.', 'Chairlift is round the side, it goes all the way up.', 'The kickers in the middle are the big ones.'],
+  fisherman: ['Not a bite all day.', 'Waves are good further out.', 'Found a bottle once. Had a note in it, too.', 'Folk keep jumping off my pier!'],
+  mechanic: ['Need a tune-up? The garage has upgrades.', 'Brakes? Who needs brakes.', 'That XL ramp is wild. Thirty metres up!'],
+  walker: ['Lovely day for a walk.', 'Have you seen the woods? Gorgeous.', 'My dog loves the park.'],
+  guard: ['No riding in the shop, please.', 'Everything all right here?', 'Keep it moving.'],
+  tourist: ['Is this the way to the beach?', 'This town has the best ramps!', 'Could you take my photo? Oh, you have to press P.'],
+  lifeguard: ['Surf is up today!', 'Ride into the sea and you will be surfing in no time.', 'There are islands out there with treasure. Allegedly.'],
+};
+function addNPC(o) {
+  const R = buildRider({ ped: true, top: o.top ?? CLOTHES[Math.floor(Math.random() * CLOTHES.length)], pants: o.pants ?? 0x2b2b30, skin: o.skin ?? SKIN[Math.floor(Math.random() * SKIN.length)], hair: o.hair ?? [0x1a1410, 0x3b2a1a, 0x8a6a3a, 0xbcbcbc][Math.floor(Math.random() * 4)], hat: !!o.hat });
+  const g = new THREE.Group(); g.userData.noMerge = true; g.add(R.group); g.position.set(o.x, o.y ?? heightAt(o.x, o.z), o.z); g.rotation.y = o.yaw || 0; scene.add(g);
+  const npc = Object.assign({ R, g, phase: Math.random() * 6, mode: 'npc', cd: 0, pitch: 0.85 + Math.random() * 0.4, rate: 0.95 + Math.random() * 0.15, voiceIdx: Math.floor(Math.random() * 6), lines: JOB_LINES[o.job] || JOB_LINES.tourist }, o);
+  NPCS.push(npc);
+  INTERACT.push({ x: o.x + Math.sin(o.yaw || 0) * (o.talkOff ?? 1.4), z: o.z + Math.cos(o.yaw || 0) * (o.talkOff ?? 1.4), r: o.talkR ?? 2.4, y: npc.g.position.y, walkOnly: !!o.shop, label: () => npc.shop ? `Order at ${BRANDS[npc.shop].n}` : questLabel(npc) || `Talk to ${npc.name}`, fn: () => talkTo(npc) });
+  return npc;
+}
+function talkTo(npc) {
+  npc.g.rotation.y = Math.atan2(player.pos.x - npc.x, player.pos.z - npc.z);
+  if (npc.quest && questTalk(npc)) return;
+  if (npc.shop) { speak(npc, npc.lines[Math.floor(Math.random() * npc.lines.length)]); openShop(npc.shop); return; }
+  openDialog(npc, [npc.lines[Math.floor(Math.random() * npc.lines.length)]]);
+}
+function updateNPCs(dt) {
+  const P = player.pos, cam = camera.position;
+  for (const n of NPCS) {
+    const dc = Math.hypot(cam.x - n.x, cam.z - n.z); n.g.visible = dc < 140; if (dc > 70) continue;
+    n.phase += dt * 1.2; poseWalker(n, 0);
+    n.cd -= dt;
+    const d = Math.hypot(P.x - n.x, P.z - n.z);
+    if (d < 4.5 && n.cd <= 0 && !dlg.open && state === 'play') { n.cd = 30; speak(n, n.lines[Math.floor(Math.random() * n.lines.length)], { interrupt: false }); }
+    if (d < 6) n.g.rotation.y = damp(n.g.rotation.y, n.g.rotation.y + wrap(Math.atan2(P.x - n.x, P.z - n.z) - n.g.rotation.y), 3, dt);
+  }
+}
+
+// ── shop buildings you can walk (or ride) into ──
+function brandTex(brand, w = 1024, h = 256) {
+  const B = BRANDS[brand], c = makeCanvas(w, h), g = c.getContext('2d');
+  g.fillStyle = B.bg; g.fillRect(0, 0, w, h);
+  g.fillStyle = B.fg; g.globalAlpha = 0.18; for (let x = -h; x < w; x += 60) { g.beginPath(); g.moveTo(x, h); g.lineTo(x + h, 0); g.lineTo(x + h + 22, 0); g.lineTo(x + 22, h); g.fill(); } g.globalAlpha = 1;
+  // icon
+  const ix = h * 0.62, iy = h / 2, s = h * 0.32; g.fillStyle = B.fg; g.strokeStyle = B.fg; g.lineWidth = 10; g.lineCap = 'round';
+  if (B.icon === 'burger') { g.beginPath(); g.ellipse(ix, iy - s * 0.35, s, s * 0.55, 0, Math.PI, 0); g.fill(); g.fillRect(ix - s, iy - s * 0.15, s * 2, s * 0.25); g.beginPath(); g.roundRect(ix - s, iy + s * 0.2, s * 2, s * 0.35, 12); g.fill(); }
+  else if (B.icon === 'flame') { g.beginPath(); g.moveTo(ix, iy - s); g.quadraticCurveTo(ix + s * 1.1, iy, ix + s * 0.5, iy + s * 0.9); g.lineTo(ix - s * 0.5, iy + s * 0.9); g.quadraticCurveTo(ix - s * 1.1, iy, ix, iy - s); g.fill(); }
+  else if (B.icon === 'cup') { g.beginPath(); g.moveTo(ix - s * 0.7, iy - s * 0.7); g.lineTo(ix + s * 0.7, iy - s * 0.7); g.lineTo(ix + s * 0.5, iy + s * 0.9); g.lineTo(ix - s * 0.5, iy + s * 0.9); g.closePath(); g.fill(); g.beginPath(); g.arc(ix + s * 0.8, iy, s * 0.35, -1.2, 1.2); g.stroke(); }
+  else if (B.icon === 'basket') { g.beginPath(); g.moveTo(ix - s, iy - s * 0.2); g.lineTo(ix + s, iy - s * 0.2); g.lineTo(ix + s * 0.7, iy + s * 0.8); g.lineTo(ix - s * 0.7, iy + s * 0.8); g.closePath(); g.fill(); g.beginPath(); g.arc(ix, iy - s * 0.2, s * 0.7, Math.PI, 0); g.stroke(); }
+  else { g.beginPath(); g.moveTo(ix - s * 0.6, iy - s * 0.8); g.lineTo(ix + s * 0.6, iy - s * 0.8); g.lineTo(ix + s * 0.45, iy + s * 0.9); g.lineTo(ix - s * 0.45, iy + s * 0.9); g.closePath(); g.fill(); }
+  g.font = `900 ${Math.round(h * (B.n.length > 12 ? 0.36 : 0.5))}px Impact, "Arial Black", sans-serif`; g.textBaseline = 'middle'; g.fillText(B.n, h * 1.15, h / 2 + 4);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO; return t;
+}
+function menuTex(brand) {
+  const B = BRANDS[brand], c = makeCanvas(512, 320), g = c.getContext('2d');
+  g.fillStyle = '#15161a'; g.fillRect(0, 0, 512, 320); g.fillStyle = B.bg; g.fillRect(0, 0, 512, 64);
+  g.fillStyle = B.fg; g.font = '900 40px Impact, sans-serif'; g.textBaseline = 'middle'; g.fillText('MENU', 22, 34);
+  g.font = '600 30px Inter, Arial, sans-serif';
+  B.menu.forEach((k, i) => { g.fillStyle = '#fff'; g.fillText(ITEMS[k].n, 26, 104 + i * 54); g.fillStyle = '#ffd84a'; g.textAlign = 'right'; g.fillText(ITEMS[k].price + ' c', 486, 104 + i * 54); g.textAlign = 'left'; });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const SHOP_BLDS = [];
+function shopBuilding(x, z, yaw, brand) {
+  // yaw = the direction the door faces (0 = +z)
+  const B = BRANDS[brand], W = 14, D = 12, H = 5.2, T = 0.25, door = 2.6;
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; scene.add(g);
+  const wallM = new THREE.MeshStandardMaterial({ color: new THREE.Color(B.bg).lerp(new THREE.Color(0xe8e2d6), 0.72), roughness: 0.8 });
+  const floorM = new THREE.MeshStandardMaterial({ map: T_TILE(), roughness: 0.5 });
+  const sw = (w, h, d, m, lx, ly, lz) => { const b = box(w, h, d, m, lx, ly, lz, g); b.receiveShadow = true; return b; };
+  sw(W, H, T, wallM, 0, H / 2, -D / 2); sw(T, H, D, wallM, -W / 2, H / 2, 0); sw(T, H, D, wallM, W / 2, H / 2, 0);
+  const fw = (W - door) / 2;
+  for (const sd of [-1, 1]) { const gl = sw(fw - 0.3, H - 1.6, 0.08, M.glass, sd * (door / 2 + fw / 2), 1.4 + (H - 1.6) / 2 - 0.4, D / 2); gl.castShadow = false; sw(fw, 0.8, T, wallM, sd * (door / 2 + fw / 2), 0.4, D / 2); sw(0.2, H, T, M.darkMetal, sd * (door / 2 + 0.1), H / 2, D / 2); sw(0.2, H, T, M.darkMetal, sd * (W / 2 - 0.1), H / 2, D / 2); }
+  sw(door, 1.2, T, wallM, 0, H - 0.6, D / 2);
+  const roof = sw(W + 0.4, 0.3, D + 0.4, M.concrete2, 0, H + 0.15, 0); roof.castShadow = false;
+  const floor = sw(W - 0.3, 0.05, D - 0.3, floorM, 0, 0.03, 0); floor.castShadow = false;
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(W * 0.86, 1.3, 0.2), [wallM, wallM, wallM, wallM, new THREE.MeshStandardMaterial({ map: brandTex(brand), roughness: 0.5, emissive: 0xffffff, emissiveMap: brandTex(brand), emissiveIntensity: 0.25 }), wallM]);
+  sign.position.set(0, H - 0.3, D / 2 + 0.2); g.add(sign);
+  // inside: counter, menu board, lights, tables
+  const counterM = new THREE.MeshStandardMaterial({ color: B.bg, roughness: 0.5 });
+  sw(6.2, 1.05, 0.9, counterM, 0, 0.525, -D / 2 + 2.6); sw(6.4, 0.06, 1.0, M.white, 0, 1.08, -D / 2 + 2.6);
+  const mb = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 2.25), new THREE.MeshStandardMaterial({ map: menuTex(brand), emissive: 0xffffff, emissiveMap: menuTex(brand), emissiveIntensity: 0.35 })); mb.position.set(0, 3.1, -D / 2 + T / 2 + 0.02); g.add(mb);
+  for (const lx of [-4, 0, 4]) for (const lz of [-2.5, 2]) { const l = box(1.6, 0.05, 0.5, M.lamp, lx, H - 0.05, lz, g, false); l.castShadow = false; }
+  for (const [tx, tz] of [[-4.2, 2.6], [4.2, 2.6], [-4.2, -0.4], [4.2, -0.4]]) { cyl(0.55, 0.55, 0.06, M.white, tx, 0.78, tz, g, 18); cyl(0.07, 0.07, 0.78, M.darkMetal, tx, 0.39, tz, g, 8); for (const sx of [-0.9, 0.9]) { cyl(0.22, 0.22, 0.06, counterM, tx + sx, 0.5, tz, g, 12); cyl(0.04, 0.04, 0.5, M.darkMetal, tx + sx, 0.25, tz, g, 6); } }
+  if (brand === 'ocset') for (const sx of [-4.6, 4.6]) for (const sz of [-1.5, 1.5]) { sw(0.8, 1.8, 2.6, M.white, sx, 0.9, sz); for (let k = 0; k < 4; k++) sw(0.85, 0.05, 2.6, M.darkMetal, sx, 0.35 + k * 0.45, sz); for (let k = 0; k < 10; k++) box(0.2, 0.25, 0.18, new THREE.MeshStandardMaterial({ color: [0xe63946, 0xf4a261, 0x2a9d8f, 0xffd166, 0x118ab2][k % 5] }), sx + (Math.random() - 0.5) * 0.4, 0.5 + (k % 4) * 0.45, sz - 1.1 + (k / 10) * 2.2, g); }
+  // colliders in world space (buildings are always square to the grid)
+  const toW = (lx, lz) => { const c = Math.cos(yaw), s = Math.sin(yaw); return [x + lx * c + lz * s, z - lx * s + lz * c]; };
+  const colLocal = (lx0, lx1, lz0, lz1, h = 99) => { const a = toW(lx0, lz0), b = toW(lx1, lz1); collide((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.abs(a[0] - b[0]) / 2, Math.abs(a[1] - b[1]) / 2, h); };
+  colLocal(-W / 2, W / 2, -D / 2 - T / 2, -D / 2 + T / 2); colLocal(-W / 2 - T / 2, -W / 2 + T / 2, -D / 2, D / 2); colLocal(W / 2 - T / 2, W / 2 + T / 2, -D / 2, D / 2);
+  colLocal(-W / 2, -door / 2, D / 2 - T / 2, D / 2 + T / 2); colLocal(door / 2, W / 2, D / 2 - T / 2, D / 2 + T / 2);
+  colLocal(-3.1, 3.1, -D / 2 + 2.15, -D / 2 + 3.05, 1.1);
+  if (brand === 'ocset') for (const sx of [-4.6, 4.6]) for (const sz of [-1.5, 1.5]) colLocal(sx - 0.4, sx + 0.4, sz - 1.3, sz + 1.3, 1.8);
+  // the person behind the counter
+  const [nx, nz] = toW(0, -D / 2 + 1.6);
+  const staff = addNPC({ x: nx, z: nz, yaw, name: { dcmonalds: 'Dee', kurger: 'Kev', barstucks: 'Bea', ocset: 'Olu', pub: 'Pat' }[brand], job: B.job, top: B.staff, pants: 0x222222, shop: brand, talkOff: 2.4, talkR: 2.2, hat: brand !== 'pub' });
+  const sh = { brand, x, z, yaw, staff, W, D, door: toW(0, D / 2 + 1.5), inside: (px, pz) => { const c = Math.cos(-yaw), s = Math.sin(-yaw), dx = px - x, dz = pz - z, lx = dx * c + dz * s, lz = -dx * s + dz * c; return Math.abs(lx) < W / 2 && Math.abs(lz) < D / 2; } };
+  SHOP_BLDS.push(sh); { const [lx, lz] = toW(0, D / 2 + 2); lampSpots.push(v3(lx, 4, lz)); }
+  return sh;
+}
+let _tileTex = null;
+function T_TILE() { if (_tileTex) return _tileTex; const c = makeCanvas(256, 256), g = c.getContext('2d'); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + y) % 2 ? '#e9e5dc' : '#cfc8bb'; g.fillRect(x * 32, y * 32, 32, 32); } _tileTex = new THREE.CanvasTexture(c); _tileTex.wrapS = _tileTex.wrapT = THREE.RepeatWrapping; _tileTex.repeat.set(4, 4); _tileTex.colorSpace = THREE.SRGBColorSpace; return _tileTex; }
+
+// ── quests: talk to someone, find what they lost, bring it back ──
+const QUESTS = [
+  { id: 'cat', giver: { name: 'Margaret', x: -8.8, z: 238, yaw: Math.PI / 2, top: 0x9b59b6, hat: true, job: 'walker' }, item: { n: 'Mittens the cat', x: 108, z: 90, model: 'cat' },
+    hint: 'Mittens ran off towards the skatepark.', ask: ["Oh, hello dear. Have you seen my cat, Mittens?", "She's ginger and very naughty. She ran off towards the skatepark!", "Could you find her for me?"], thanks: ["Mittens! Oh, you found her!", "Thank you, dear. Here, take these coins. And this outfit, I knitted it myself."], reward: { coins: 500, outfit: 'tabby' } },
+  { id: 'delivery', giver: { name: 'Chef Dac', x: 0, z: 0, inShop: 'dcmonalds', top: 0xffffff, hat: true, job: 'cashier' }, item: { n: 'Delivery bag', x: 128, z: -104, model: 'bag' },
+    hint: 'The delivery bag fell off the van at the dirt jumps.', ask: ["Disaster! A delivery bag fell off our van.", "The driver says it was somewhere near the dirt jumps.", "Bring it back and I'll make it worth your while."], thanks: ["You legend! The Big Dacs are saved!", "Here's some coins, and a proper chef's outfit."], reward: { coins: 400, outfit: 'chef' } },
+  { id: 'bottle', giver: { name: 'Old Pete', x: 42.4, z: -248, yaw: -Math.PI / 2, top: 0x2b4c7e, hat: true, job: 'fisherman' }, item: { n: 'Message in a bottle', x: -446, z: -846, model: 'bottle' },
+    hint: 'A bottle washed up on Far Isle, way out to sea.', ask: ["Ahoy. See that horizon? Far Isle is out there.", "Saw a bottle wash up on its beach. Could be a message in it!", "You'll need to surf there. Just ride into the sea."], thanks: ["Well I never! It's a treasure map from my grandad!", "You keep the coins. And take my captain's gear."], reward: { coins: 700, outfit: 'captain' } },
+  { id: 'goggles', giver: { name: 'Ingrid', x: 50, z: 680, yaw: -Math.PI / 2, top: 0xd61f1f, hat: true, job: 'instructor' }, item: { n: 'Ski goggles', x: 30, z: 1052, model: 'goggles', y: true },
+    hint: 'Ingrid lost her goggles near the top of the Peak Run.', ask: ["Hej! I dropped my goggles at the top of the run.", "Take the chairlift up, they should be near the start gate.", "I can't teach without them!"], thanks: ["My goggles! Tusen takk!", "Here, have my old ski kit. It's very fast."], reward: { coins: 600, outfit: 'skipro' } },
+  { id: 'wheel', giver: { name: 'Raj', x: 150, z: 172, yaw: Math.PI, top: 0x1f6f8b, job: 'mechanic' }, item: { n: 'Golden wheel', x: 346, z: 95, model: 'wheel', y: true },
+    hint: 'The golden wheel is on top of the XL mega ramp at Big Air.', ask: ["Some joker put my golden wheel on top of the XL mega ramp!", "It's thirty metres up at Big Air. Press 9 to get there fast.", "Get it back and you can have something shiny."], thanks: ["My golden wheel! You beauty!", "Take this gold kit. You've earned it."], reward: { coins: 1000, outfit: 'golden' } },
+  { id: 'dog', giver: { name: 'Sophie', x: -440, z: 30, yaw: Math.PI, top: 0x2a9d8f, job: 'walker' }, item: { n: 'Biscuit the dog', x: 430, z: 495, model: 'dog' },
+    hint: 'Biscuit ran into the Woods.', ask: ["Biscuit! Biscuit! Oh, sorry. My dog ran off.", "He chased a squirrel all the way to the Woods.", "Please bring him home!"], thanks: ["Biscuit! Good boy!", "Thank you so much. Here, take my ranger kit."], reward: { coins: 500, outfit: 'ranger' } },
+  { id: 'map', giver: { name: 'Captain Flint', x: 236, z: -594, yaw: 0, top: 0x1d1d1d, hat: true, job: 'fisherman' }, item: { n: 'Old map', x: -236, z: 560, model: 'map', y: true },
+    hint: 'The old map is on top of the canyon mesa.', ask: ["Arr. You made it to Skull Rock!", "My old map blew away to the top of the Canyon mesa, far inland.", "Fetch it and I'll make you an explorer."], thanks: ["My map! Now where was that X...", "Here's your reward, explorer."], reward: { coins: 900, outfit: 'explorer' } },
+];
+let questState = store.get('quests', {});
+const qSet = (id, st) => { questState[id] = st; store.set('quests', questState); renderQuest(); online.saveSoon(); };
+function questLabel(npc) { const q = npc.quest; if (!q) return ''; const st = questState[q.id]; return st === 'found' ? `Give ${q.item.n} to ${npc.name}` : st === 'done' ? `Talk to ${npc.name}` : st === 'active' ? `Talk to ${npc.name}` : `${npc.name} needs help (quest)`; }
+function questTalk(npc) {
+  const q = npc.quest, st = questState[q.id];
+  if (!st) { openDialog(npc, q.ask, null, [['Sure, I\'ll find it', () => { qSet(q.id, 'active'); showPopup('QUEST STARTED', 'good', q.item.n.toUpperCase()); goal('quest1'); }], ['Not right now', null]]); return true; }
+  if (st === 'active') { openDialog(npc, [q.hint, 'Come back when you have it!']); return true; }
+  if (st === 'found') {
+    openDialog(npc, q.thanks, () => {
+      qSet(q.id, 'done'); const c = earn(q.reward.coins, 'quest reward'); addXP(500);
+      if (q.reward.outfit && !owned.includes('o:' + q.reward.outfit)) { owned.push('o:' + q.reward.outfit); store.set('owned', owned); }
+      showPopup('QUEST COMPLETE', 'good', `+${c} COINS · ${outfit(q.reward.outfit).n.toUpperCase()} OUTFIT UNLOCKED`); sfx.ding(); goal('questdone');
+      if (QUESTS.every(x => questState[x.id] === 'done')) goal('questall');
+      if (q.itemObj) q.itemObj.visible = false;
+    });
+    return true;
+  }
+  openDialog(npc, ['Thanks again for your help!']); return true;
+}
+function questItemModel(kind) {
+  const g = new THREE.Group();
+  const m = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 });
+  if (kind === 'cat') { const o = m(0xe08a3c); const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.3, 4, 8).rotateX(Math.PI / 2), o); b.position.y = 0.2; g.add(b); const h = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), o); h.position.set(0, 0.32, 0.25); g.add(h); for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.08, 4), o); e.position.set(s * 0.06, 0.44, 0.25); g.add(e); } const t = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.02, 0.35, 6), o); t.position.set(0, 0.35, -0.3); t.rotation.x = -0.6; g.add(t); }
+  else if (kind === 'bag') { box(0.5, 0.45, 0.35, m(0x2b2f8f), 0, 0.23, 0, g); box(0.52, 0.06, 0.37, m(0xffd84a), 0, 0.3, 0, g); }
+  else if (kind === 'bottle') { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.32, 10), new THREE.MeshPhysicalMaterial({ color: 0x6ee7b7, transmission: 0.6, roughness: 0.1, transparent: true, opacity: 0.8 })); b.rotation.z = Math.PI / 2; b.position.y = 0.1; g.add(b); const r = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.24, 6), m(0xf0e2b6)); r.rotation.z = Math.PI / 2; r.position.y = 0.1; g.add(r); }
+  else if (kind === 'goggles') { const s = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 6, 20), m(0x111111)); s.position.y = 0.3; g.add(s); const l = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.05), new THREE.MeshStandardMaterial({ color: 0xff9a2e, metalness: 0.8, roughness: 0.1 })); l.position.set(0, 0.3, 0.15); g.add(l); }
+  else if (kind === 'wheel') { const w = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.05, 8, 28), M.gold); w.position.y = 0.4; g.add(w); for (let k = 0; k < 8; k++) { const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.66, 4), M.gold); sp.position.y = 0.4; sp.rotation.z = k / 8 * Math.PI; g.add(sp); } }
+  else if (kind === 'dog') { const d = makeDog(0xc8a06a); d.g.scale.setScalar(1); g.add(d.g); g.userData.dog = d; }
+  else { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 10).rotateZ(Math.PI / 2), m(0xe8d9a8)); r.position.y = 0.12; g.add(r); }
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.85, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffc531, transparent: true, opacity: 0.8 })); ring.position.y = 0.05; g.add(ring); g.userData.ring = ring;
+  return g;
+}
+function buildQuests() {
+  for (const q of QUESTS) {
+    let gx = q.giver.x, gz = q.giver.z, gy;
+    if (q.giver.inShop) { const sh = SHOP_BLDS.find(s => s.brand === q.giver.inShop); const c = Math.cos(sh.yaw), s = Math.sin(sh.yaw); gx = sh.x + 3.5 * c + 2 * s; gz = sh.z - 3.5 * s + 2 * c; q.giver.yaw = sh.yaw; }
+    const npc = addNPC(Object.assign({}, q.giver, { x: gx, z: gz, y: gy }));
+    npc.quest = q; q.npc = npc;
+    const mk = new THREE.Sprite(new THREE.SpriteMaterial({ map: questMarkTex('!'), depthTest: false, transparent: true })); mk.scale.set(0.7, 0.7, 1); mk.position.y = 2.45; mk.renderOrder = 5; npc.g.add(mk); q.mark = mk;
+    const it = questItemModel(q.item.model); const iy = heightAt(q.item.x, q.item.z);
+    it.position.set(q.item.x, iy, q.item.z); it.userData.noMerge = true; scene.add(it); q.itemObj = it; q.item.y = iy;
+  }
+}
+const QMT = {};
+function questMarkTex(ch) { if (QMT[ch]) return QMT[ch]; const c = makeCanvas(128, 128), g = c.getContext('2d'); g.fillStyle = '#ffd84a'; g.strokeStyle = '#1a1a1a'; g.lineWidth = 8; g.beginPath(); g.arc(64, 64, 54, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#1a1a1a'; g.font = '900 86px Impact, Arial Black, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 64, 70); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return QMT[ch] = t; }
+function updateQuests(dt) {
+  const P = player.pos;
+  for (const q of QUESTS) {
+    const st = questState[q.id], o = q.itemObj;
+    if (q.mark) { q.mark.visible = st !== 'done' && st !== 'active'; q.mark.material.map = questMarkTex(st === 'found' ? '?' : '!'); q.mark.position.y = 2.45 + Math.sin(clock * 3) * 0.08; }
+    if (!o) continue;
+    o.visible = st === 'active' || !st;
+    if (!o.visible) continue;
+    o.rotation.y += dt * (q.item.model === 'dog' || q.item.model === 'cat' ? 0.3 : 1.2);
+    if (o.userData.ring) o.userData.ring.material.opacity = 0.5 + Math.sin(clock * 4) * 0.3;
+    if (o.userData.dog) poseDog(o.userData.dog, clock, 0);
+    if (st === 'active' && Math.hypot(P.x - q.item.x, P.z - q.item.z) < 3 && Math.abs(P.y - q.item.y) < 3) { qSet(q.id, 'found'); showPopup('FOUND IT', 'good', `BRING ${q.item.n.toUpperCase()} BACK TO ${q.npc.name.toUpperCase()}`); sfx.ding(); }
+  }
+}
+function activeQuest() { for (const q of QUESTS) { const st = questState[q.id]; if (st === 'active' || st === 'found') return q; } return null; }
+function questTarget() { const q = activeQuest(); if (!q) return null; return questState[q.id] === 'found' ? { x: q.npc.x, z: q.npc.z, q, what: 'Return to ' + q.npc.name } : { x: q.item.x, z: q.item.z, q, what: q.hint }; }
+function renderQuest() {
+  const el = document.getElementById('quest-hud'); if (!el) return;
+  const t = questTarget();
+  el.classList.toggle('hidden', !t);
+  if (t) { const d = Math.round(Math.hypot(t.x - player.pos.x, t.z - player.pos.z)); el.innerHTML = `<small>QUEST · ${t.q.item.n.toUpperCase()}</small><span>${t.what}</span><b>${d} m</b>`; }
+}
+function renderQuestLog() {
+  const el = document.getElementById('quest-log'); if (!el) return;
+  el.innerHTML = QUESTS.map(q => { const st = questState[q.id]; const s = st === 'done' ? 'DONE' : st === 'found' ? 'RETURN IT' : st === 'active' ? 'IN PROGRESS' : 'NOT STARTED'; return `<div class="q-row ${st || ''}"><b>${q.npc ? q.npc.name : q.giver.name}</b><span>${st ? q.hint : 'Find ' + (q.npc ? q.npc.name : q.giver.name) + ' to start this quest.'}</span><em>${s}</em><i>${coinHTML(q.reward.coins)} + ${outfit(q.reward.outfit).n}</i></div>`; }).join('');
+}
+
+// ───────────────────────── v2.1: on foot, punching, people who react, dogs, drivers ─────────────────────────
+// walking: W/S forwards and back, A/D turn, SHIFT run, SPACE jump, J punch
+function walkStep(dt, P) {
+  if (P.ko) { P.koT -= dt; P.wspd = 0; if (P.koT <= 0) { P.ko = false; P.hp = 100; showPopup('BACK UP', '', ''); } return; }
+  const run = keyDown('run') ? 1 : 0, m = buffMul();
+  const want = (input.throttle > 0 ? (run ? 4.8 : 2.0) : input.brake > 0 ? -1.4 : 0) * m;
+  P.wspd = damp(P.wspd || 0, want, 9, dt);
+  P.yaw += input.steer * (run ? 2.2 : 2.8) * dt;
+  forward(P.yaw);
+  const onGround = P.pos.y <= heightAt(P.pos.x, P.pos.z) + 0.02;
+  if (input.jump && onGround) { P.wvy = 4.6; sfx.hop(); }
+  const np = v3(P.pos.x + fwd.x * P.wspd * dt, P.pos.y, P.pos.z + fwd.z * P.wspd * dt);
+  const nh = heightAt(np.x, np.z);
+  if (nh - P.pos.y > 0.5) { np.x = P.pos.x; np.z = P.pos.z; P.wspd *= 0.3; }
+  if (collideWorld(np)) P.wspd *= 0.6;
+  for (const p of PEDS) if (!p.down) { const dx = np.x - p.x, dz = np.z - p.z, d = Math.hypot(dx, dz); if (d < 0.55 && d > 0.001) { np.x = p.x + dx / d * 0.55; np.z = p.z + dz / d * 0.55; } }
+  for (const n of NPCS) { const dx = np.x - n.x, dz = np.z - n.z, d = Math.hypot(dx, dz); if (d < 0.55 && d > 0.001) { np.x = n.x + dx / d * 0.55; np.z = n.z + dz / d * 0.55; } }
+  P.pos.x = np.x; P.pos.z = np.z;
+  P.wvy = (P.wvy || 0) - G * dt; P.pos.y += P.wvy * dt;
+  const gh = heightAt(P.pos.x, P.pos.z);
+  if (P.pos.y <= gh) { if (P.wvy < -9) hurt(Math.round((-P.wvy - 9) * 6), 'FELL'); P.pos.y = gh; P.wvy = 0; }
+  P.wair = P.pos.y > gh + 0.05;
+  P.wph = (P.wph || 0) + dt * (Math.abs(P.wspd) * 2.6 + (Math.abs(P.wspd) > 0.1 ? 1 : 0));
+  P.v = 0; P.dist += Math.abs(P.wspd) * dt;
+  if (P.punchT > 0) P.punchT -= dt;
+  if (P.hp < 100 && clock - (P.hurtAt || 0) > 4) P.hp = Math.min(100, P.hp + 6 * dt);
+  // walk into the sea and you get your surfboard out
+  if (inWater(P.pos.x, P.pos.z) && !P.wair) { if (parked) { scene.remove(parked.g); parked = null; } P.mode = 'ride'; setVehicleShown(me, true); swapRide('surf', "SURF'S UP"); P.pos.y = SEA_Y; P.v = 1; goal('surf'); }
+}
+// get hurt (on foot): a hit, a fall or a punch from someone you annoyed
+function hurt(n, why) {
+  const P = player; if (n <= 0 || P.ko) return;
+  P.hp = Math.max(0, (P.hp ?? 100) - n); P.hurtAt = clock;
+  const f = document.getElementById('flash'); if (f) { f.style.background = 'rgba(255,40,30,.35)'; f.style.opacity = 1; setTimeout(() => { f.style.opacity = 0; }, 120); }
+  shake = Math.max(shake, 0.25); sfx.thud();
+  if (P.hp <= 0) { P.ko = true; P.koT = 3; showPopup('KNOCKED OUT', 'bail', why || ''); for (const p of PEDS) if (p.angry) { p.angry = 0; p.say && speak(p, ['Ha! Stay down.', "That'll teach you.", 'Next time, watch it.'][Math.floor(Math.random() * 3)]); } }
+}
+// punch whatever's in front of you
+function punch() {
+  const P = player; if (P.punchT > 0 || P.ko) return;
+  P.punchT = 0.45; P.punchAt = clock; P.punchSide = 1 - (P.punchSide || 0);
+  forward(P.yaw);
+  let hit = false;
+  for (const p of PEDS) {
+    if (p.down && p.down.t < p.down.dur) continue;
+    const dx = p.x - P.pos.x, dz = p.z - P.pos.z, d = Math.hypot(dx, dz);
+    if (d < 1.35 && (dx * fwd.x + dz * fwd.z) / (d || 1) > 0.35) { hitPed(p, fwd.x, fwd.z, 'punch'); hit = true; break; }
+  }
+  if (!hit) for (const n of NPCS) {
+    const dx = n.x - P.pos.x, dz = n.z - P.pos.z, d = Math.hypot(dx, dz);
+    if (d < 1.4 && (dx * fwd.x + dz * fwd.z) / (d || 1) > 0.35) { speak(n, ['Ow! What was that for?', 'Hey! Not cool.', "I'm calling security!", 'Do you want to be served or not?'][Math.floor(Math.random() * 4)]); n.cd = 8; hit = true; sfx.thud(); break; }
+  }
+  if (!hit) for (const r of net.remotes.values()) {
+    if (!r.S) continue; const dx = r.S.x - P.pos.x, dz = r.S.z - P.pos.z, d = Math.hypot(dx, dz);
+    if (d < 1.5 && (dx * fwd.x + dz * fwd.z) / (d || 1) > 0.3 && Math.abs(r.S.y - P.pos.y) < 1.5) { net.punch(r.id, fwd.x, fwd.z); hit = true; sfx.thud(); addFeed(`You punched <b>${esc(r.name)}</b>`); break; }
+  }
+  if (hit) { goal('punch'); const n = store.get('punches', 0) + 1; store.set('punches', n); }
+  else sfx.whoosh();
+}
+// someone punched you over the network
+function gotPunched(m) {
+  const P = player;
+  if (P.mode === 'walk') { hurt(15, 'PUNCHED'); P.pos.x += (m.dx || 0) * 0.6; P.pos.z += (m.dz || 0) * 0.6; }
+  else if (!P.bailed) bail('PUNCHED');
+}
+
+// what people do when you hit them: fight back, run off, or just tell you off
+const LINES = {
+  fight: ['Right, that\'s it!', 'Oi! Come here!', 'You want some?', 'Big mistake, mate.', 'Say that to my face!'],
+  run: ['Aaah! Help!', 'Leave me alone!', 'Someone call the police!', 'What is wrong with you?!'],
+  talk: ['Watch where you\'re going!', 'Do you mind?!', 'Unbelievable.', 'Kids these days...', 'I\'m telling your mum.', 'That really hurt, you know.', 'Ow! My back!', 'Learn to ride!'],
+  hitRide: ['Look where you\'re going!', 'Get off the pavement!', 'Oi! I was walking here!', 'Are you blind?!', 'My shopping!'],
+  dog: ['Woof!', 'Woof woof!', 'Grrr...', 'Arf!'],
+};
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function hitPed(p, dx, dz, how, speed = 0) {
+  sfx.thud();
+  p.hits = (p.hits || 0) + 1;
+  if (how === 'punch') {
+    if (p.hits >= 2 || Math.random() < 0.3) knockDown(p, dx, dz, 3.5);
+    else { p.stagger = 0.35; p.sx = dx * 1.6; p.sz = dz * 1.6; emitDust(v3(p.x, 1.3, p.z), 3, 'road', 0.3); }
+  } else knockDown(p, dx, dz, speed);
+  // they decide how to react straight away
+  p.reactAt = p.down ? p.down.dur + 0.9 : 0.3;
+  p.reactT = 0; p.reactHow = how;
+}
+function reactPed(p) {
+  const t = p.temper;
+  if (t === 'fighter') { p.angry = 18; speak(p, pick(LINES.fight)); }
+  else if (t === 'runner') { p.flee = 7; speak(p, pick(LINES.run)); }
+  else speak(p, pick(p.reactHow === 'punch' ? LINES.talk : LINES.hitRide));
+  // they leave their pavement to chase or run, and wander nearby afterwards
+  if (p.mode === 'line' && (p.angry || p.flee)) { p.mode = 'wander'; p.box = [p.x - 12, p.x + 12, p.z - 12, p.z + 12]; p.tx = p.x; p.tz = p.z; }
+}
+function updateMoodyPed(p, dt) {
+  const P = player;
+  if (p.stagger > 0) { p.stagger -= dt; p.x += p.sx * dt; p.z += p.sz * dt; }
+  if (p.reactAt != null) { p.reactT += dt; if (p.reactT >= p.reactAt && !p.down) { p.reactAt = null; reactPed(p); } }
+  if (p.flee > 0) {
+    p.flee -= dt;
+    const dx = p.x - P.pos.x, dz = p.z - P.pos.z, d = Math.hypot(dx, dz) || 1;
+    const nx = p.x + dx / d * 4.4 * dt, nz = p.z + dz / d * 4.4 * dt;
+    if (heightAt(nx, nz) < 0.6 && !insideCollider(v3(nx, 0, nz))) { p.x = nx; p.z = nz; } else { p.flee = 0; }
+    p.yaw = Math.atan2(dx, dz); p.runAnim = 1; return true;
+  }
+  if (p.angry > 0) {
+    p.angry -= dt;
+    const dx = P.pos.x - p.x, dz = P.pos.z - p.z, d = Math.hypot(dx, dz) || 1;
+    if (d > 40 || P.bailed && P.mode !== 'walk') { p.angry = 0; return false; }
+    p.yaw = Math.atan2(dx, dz);
+    const fast = P.mode === 'walk' ? 3.6 : 4.8;
+    if (d > 1.0) { const nx = p.x + dx / d * fast * dt, nz = p.z + dz / d * fast * dt; if (heightAt(nx, nz) < 0.6) { p.x = nx; p.z = nz; } p.runAnim = 1; }
+    else p.runAnim = 0;
+    p.punchCd = (p.punchCd || 0) - dt;
+    if (d < 1.15 && p.punchCd <= 0 && Math.abs(P.pos.y - heightAt(p.x, p.z)) < 1.2) {
+      p.punchCd = 1.1; p.punchAt = clock; sfx.thud();
+      if (P.mode === 'walk') hurt(12, 'PUNCHED');
+      else if (Math.abs(P.v) < 6 && !P.air && !P.bailed) { bail('PUNCHED'); p.angry = Math.min(p.angry, 2); }
+      if (Math.random() < 0.3) speak(p, pick(['Take that!', 'And stay off my street!', 'Had enough?']));
+    }
+    if (p.angry <= 0) speak(p, pick(['Hmph. Not worth it.', 'Whatever.', "I'll let you off this time."]));
+    return true;
+  }
+  return false;
+}
+
+// a proper fall: they get thrown, flop down, bounce, slide, lie there limp, then pick themselves up
+function knockDown(p, dx, dz, speed) {
+  const l = Math.hypot(dx, dz) || 1, push = Math.min(7, 1.2 + speed * 0.45);
+  const back = Math.random() < 0.55;
+  p.down = { t: 0, vx: dx / l * push, vz: dz / l * push, y: 0, vy: Math.min(4.5, speed * 0.32), ang: 0, angV: 0, roll: (Math.random() - 0.5) * 0.8, dur: 2.6 + Math.random() * 1.6, back, limp: 0, upT: 0 };
+  p.yaw = Math.atan2(dx, dz) + (back ? Math.PI : 0);
+  p.angry = 0; p.flee = 0;
+  sfx.thud(); emitDust(v3(p.x, 0.3, p.z), 10, surfaceAt(p.x, p.z), 0.9);
+  if (speed > 3) goal('bowling');
+}
+function updateDownPed(p, dt) {
+  const D = p.down; D.t += dt;
+  const gy = heightAt(p.x, p.z) > 0.5 ? 0 : heightAt(p.x, p.z);
+  const getUp = D.t > D.dur;
+  // airborne arc and bounces
+  D.vy -= G * dt; D.y += D.vy * dt;
+  if (D.y <= 0) { D.y = 0; if (D.vy < -1.6) { D.vy = -D.vy * 0.28; emitDust(v3(p.x, gy + 0.2, p.z), 5, surfaceAt(p.x, p.z), 0.6); } else D.vy = 0; }
+  // slide along the ground with friction (more in the air-less phase)
+  const fr = D.y > 0.02 ? 0.4 : 5;
+  D.vx *= Math.exp(-fr * dt); D.vz *= Math.exp(-fr * dt);
+  const nx = p.x + D.vx * dt, nz = p.z + D.vz * dt;
+  if (!insideCollider(v3(nx, 0.5, nz))) { p.x = nx; p.z = nz; } else { D.vx *= -0.3; D.vz *= -0.3; }
+  // body angle: a springy topple (overshoots a touch when they hit the floor), then a two-step get-up
+  const target = getUp ? 0 : Math.PI / 2;
+  const k = getUp ? 40 : 90, c = getUp ? 12 : 9;
+  D.angV += ((target - D.ang) * k - D.angV * c) * dt; D.ang += D.angV * dt;
+  if (!getUp && D.ang > Math.PI / 2 + 0.08) { D.ang = Math.PI / 2 + 0.08; D.angV *= -0.35; }
+  D.limp = damp(D.limp, getUp ? 0 : 1, getUp ? 6 : 10, dt);
+  D.roll = damp(D.roll, getUp ? 0 : D.roll, 2, dt);
+  p.g.rotation.order = 'YXZ';
+  p.g.rotation.set(D.ang * (D.back ? -1 : 1), p.yaw, D.roll * D.limp);
+  // keep the body on the floor while it's lying down (pivot is at the feet)
+  p.g.position.set(p.x, gy + D.y + Math.sin(Math.min(D.ang, Math.PI / 2)) * 0.14, p.z);
+  if (getUp && D.ang < 0.04 && D.t > D.dur + 0.6) {
+    p.down = null; p.g.rotation.set(0, p.yaw, 0);
+    if (p.mode === 'line') { p.s = clamp(p.x, p.lo, p.hi); p.dodge = clamp(p.z - p.lat, -1.5, 1.5); p.dodgeV = 0; }
+  }
+}
+// limp ragdoll pose while lying, a crouch while getting up
+function posePedDown(p) {
+  const R = p.R, D = R.D, L = PL, d = p.down, a = d.limp, up = d.t > d.dur ? clamp((d.t - d.dur) / 0.8, 0, 1) : 0;
+  const sp = Math.sin(p.phase * 0.7) * 0.02;
+  L.hip.set(0, 0.93 - 0.35 * up * (1 - up) * 4 * 0.25, 0);
+  const look = v3(0, 1, 0.02).normalize();
+  L.chest.copy(L.hip).addScaledVector(look, D.torso);
+  for (let s = 0; s < 2; s++) {
+    const side = s ? 1 : -1;
+    L.hp[s].set(side * 0.1, L.hip.y, 0);
+    // limp: legs a bit apart and one knee bent; arms flung out above the head
+    L.ft[s].set(side * (0.11 + 0.14 * a), 0.075 + (s ? 0.25 * a : 0), (s ? 0.25 : -0.05) * a);
+    L.sh[s].copy(L.chest).add(v3(side * 0.19, -0.05, 0));
+    L.ht[s].copy(L.sh[s]).add(v3(side * (0.06 + 0.35 * a), -0.56 + 1.0 * a + sp, (s ? 0.15 : -0.2) * a));
+    ik(L.hp[s], L.ft[s], D.thigh, D.shin, v3(0, 0, 1), L.knee[s], L.foot[s]);
+    ik(L.sh[s], L.ht[s], D.upper, D.fore, v3(side * 0.2, 0, -1).normalize(), L.elbow[s], L.hand[s]);
+  }
+  placeBody(R, L, look);
+  R.parts.head.rotation.set(0.05 + a * 0.3, a * 0.5, 0);
+}
+// people walking, running, punching (also used for you on foot)
+function poseHuman(R, ph, spd, punchK, punchSide, air, opts = {}) {
+  const pr = R.parts, D = R.D, L = PL;
+  const mv = clamp(Math.abs(spd) / 2, 0, 1), run = clamp((Math.abs(spd) - 2.2) / 2.2, 0, 1);
+  const sw = Math.sin(ph) * mv * (1 + run * 0.4), back = spd < 0 ? -1 : 1;
+  const bob = mv ? Math.abs(Math.cos(ph)) * (0.035 + run * 0.04) : Math.sin(ph) * 0.006;
+  L.hip.set(0, 0.93 + bob - run * 0.06 - (air ? 0.05 : 0), 0);
+  const look = v3(0, 1, 0.04 + run * 0.18 + punchK * 0.1).normalize();
+  L.chest.copy(L.hip).addScaledVector(look, D.torso);
+  for (let s = 0; s < 2; s++) {
+    const side = s ? 1 : -1, ps = (s ? -sw : sw) * back;
+    L.hp[s].set(side * 0.1, L.hip.y, 0);
+    const lift = mv ? Math.max(0, Math.cos(ph + (s ? Math.PI : 0))) * (0.09 + run * 0.16) : 0;
+    L.ft[s].set(side * 0.11, 0.075 + lift + (air ? 0.18 + s * 0.08 : 0), ps * (0.3 + run * 0.18) + (air ? (s ? -0.1 : 0.15) : 0));
+    L.sh[s].copy(L.chest).add(v3(side * 0.19, -0.05, 0));
+    if (run > 0.1) L.ht[s].copy(L.sh[s]).add(v3(side * 0.12, -0.38, -ps * 0.5 + 0.12));
+    else L.ht[s].copy(L.sh[s]).add(v3(side * 0.06, -0.56, -ps * 0.22));
+    if (opts.leash && s === 1) L.ht[s].copy(L.sh[s]).add(v3(0.14, -0.42, 0.28));
+    if (opts.guard) L.ht[s].copy(L.sh[s]).add(v3(-side * 0.06, 0.02, 0.26));
+    // punch: the punching arm shoots forward then comes back
+    if (punchK > 0 && s === punchSide) L.ht[s].lerp(v3(side * 0.04, L.chest.y - 0.02, 0.62), punchK);
+    ik(L.hp[s], L.ft[s], D.thigh, D.shin, v3(0, 0, 1), L.knee[s], L.foot[s]);
+    ik(L.sh[s], L.ht[s], D.upper, D.fore, v3(side * 0.2, 0, -1).normalize(), L.elbow[s], L.hand[s]);
+  }
+  placeBody(R, L, look);
+  pr.head.rotation.set(0.05, 0, 0);
+}
+const punchCurve = t => t < 0 ? 0 : t < 0.09 ? t / 0.09 : t < 0.3 ? 1 - (t - 0.09) / 0.21 : 0;
+
+// ── dogs (some people walk them, and one is a quest) ──
+const DOG_MAT = {};
+function makeDog(col) {
+  const m = DOG_MAT[col] || (DOG_MAT[col] = new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 }));
+  const g = new THREE.Group(); g.userData.noMerge = true;
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.42, 4, 10).rotateX(Math.PI / 2), m); body.position.y = 0.4; body.castShadow = true; g.add(body);
+  const head = new THREE.Group(); head.position.set(0, 0.55, 0.32); g.add(head);
+  const sk = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), m); head.add(sk);
+  const snout = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.1, 4, 8).rotateX(Math.PI / 2), m); snout.position.set(0, -0.03, 0.12); head.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), EYE_M); nose.position.set(0, -0.01, 0.2); head.add(nose);
+  for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.08), m); ear.position.set(sx * 0.09, 0.02, -0.02); ear.rotation.z = sx * 0.4; head.add(ear); const eye = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), EYE_M); eye.position.set(sx * 0.05, 0.03, 0.1); head.add(eye); }
+  const legs = [];
+  for (const [lx, lz] of [[-0.08, 0.2], [0.08, 0.2], [-0.08, -0.2], [0.08, -0.2]]) { const p = new THREE.Group(); p.position.set(lx, 0.34, lz); g.add(p); const l = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.32, 6), m); l.position.y = -0.16; l.castShadow = true; p.add(l); legs.push(p); }
+  const tail = new THREE.Group(); tail.position.set(0, 0.48, -0.32); g.add(tail);
+  const tl = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.25, 6), m); tl.position.y = 0.12; tail.add(tl); tail.rotation.x = -0.6;
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 14), new THREE.MeshStandardMaterial({ color: 0xd61f1f })); collar.position.set(0, 0.5, 0.24); collar.rotation.x = 1.1; g.add(collar);
+  return { g, legs, tail, head, collar, ph: Math.random() * 6 };
+}
+function poseDog(d, t, spd) {
+  d.ph += 0.016 * (2 + spd * 5);
+  const a = Math.sin(d.ph) * Math.min(1, spd) * 0.55;
+  d.legs[0].rotation.x = a; d.legs[3].rotation.x = a; d.legs[1].rotation.x = -a; d.legs[2].rotation.x = -a;
+  d.tail.rotation.z = Math.sin(t * (d.happy ? 22 : 9)) * (d.happy ? 0.7 : 0.35);
+  d.head.rotation.x = Math.sin(t * 1.3 + d.ph) * 0.06;
+}
+const DOGS = [];
+const leashMat = new THREE.LineBasicMaterial({ color: 0x222222 });
+function giveDog(p) {
+  const d = makeDog([0xc8a06a, 0x2b2b2b, 0xf2efe6, 0x8a5a33, 0xd9b26a][Math.floor(Math.random() * 5)]);
+  d.g.scale.setScalar(0.85 + Math.random() * 0.4); scene.add(d.g);
+  d.leash = new THREE.Line(new THREE.BufferGeometry().setFromPoints([v3(), v3()]), leashMat); d.leash.frustumCulled = false; scene.add(d.leash);
+  d.owner = p; d.x = p.x ?? p.s ?? 0; d.z = p.z ?? p.lat ?? 0; d.yaw = 0; d.barkT = 3 + Math.random() * 8; d.pitch = 1.6; d.rate = 1.2;
+  p.dog = d; DOGS.push(d);
+  INTERACT.push({ at: () => ({ x: d.x, z: d.z }), r: 1.6, walkOnly: true, label: 'Pet the dog', fn: () => { d.happy = 3; speak(d, pick(['*happy wag*', 'Woof!', '*licks your hand*'])); goal('petdog'); sfx.ding(); } });
+}
+const _hand = v3(), _col = v3();
+function updateDogs(dt) {
+  const cam = camera.position;
+  for (const d of DOGS) {
+    const p = d.owner, far = Math.hypot(cam.x - p.x, cam.z - p.z) > 100;
+    d.g.visible = d.leash.visible = !far; if (far) continue;
+    // trot at the owner's side, a little ahead
+    const oy = p.down ? p.yaw : p.g.rotation.y;
+    const tx = p.x + Math.sin(oy) * 0.9 + Math.cos(oy) * 0.7, tz = p.z + Math.cos(oy) * 0.9 - Math.sin(oy) * 0.7;
+    const dx = tx - d.x, dz = tz - d.z, dd = Math.hypot(dx, dz);
+    const sp = dd > 0.15 ? Math.min(6, dd * 3) : 0;
+    if (dd > 0.01) { d.x += dx / dd * sp * dt; d.z += dz / dd * sp * dt; }
+    if (sp > 0.2) d.yaw = Math.atan2(dx, dz); else if (!p.down) d.yaw = oy;
+    d.g.position.set(d.x, heightAt(d.x, d.z) > 0.5 ? 0 : heightAt(d.x, d.z), d.z); d.g.rotation.y = d.yaw;
+    d.happy = Math.max(0, (d.happy || 0) - dt);
+    poseDog(d, clock, sp);
+    // bark at you now and then (more if you knocked their owner over)
+    d.barkT -= dt;
+    const pd = Math.hypot(player.pos.x - d.x, player.pos.z - d.z);
+    if (d.barkT <= 0 && pd < 14) { d.barkT = p.down || p.angry ? 1.2 : 6 + Math.random() * 10; speak(d, pick(LINES.dog), { silent: true }); sfx.bark && sfx.bark(); }
+    // leash from the owner's hand to the collar
+    p.R.parts.handR.getWorldPosition(_hand); d.collar.getWorldPosition(_col);
+    const pa = d.leash.geometry.attributes.position; pa.setXYZ(0, _hand.x, _hand.y, _hand.z); pa.setXYZ(1, _col.x, _col.y, _col.z); pa.needsUpdate = true;
+  }
+}
+
+// ── a driver in every car ──
+function seatDriver(car) {
+  const R = buildRider({ ped: true, top: CLOTHES[Math.floor(Math.random() * CLOTHES.length)], pants: 0x2b2b30, skin: SKIN[Math.floor(Math.random() * SKIN.length)], hair: [0x1a1410, 0x3b2a1a, 0x8a6a3a, 0xbcbcbc][Math.floor(Math.random() * 4)], hat: Math.random() < 0.2 });
+  const g = new THREE.Group(); g.userData.noMerge = true; g.add(R.group); g.position.set(-0.4, 0.08, -0.1); car.g.add(g);
+  const L = PL, D = R.D;
+  L.hip.set(0, 0.55, -0.15);
+  const look = v3(0, 1, -0.12).normalize();
+  L.chest.copy(L.hip).addScaledVector(look, D.torso);
+  for (let s = 0; s < 2; s++) {
+    const side = s ? 1 : -1;
+    L.hp[s].set(side * 0.1, L.hip.y, L.hip.z);
+    L.ft[s].set(side * 0.13, 0.15, 0.62);
+    L.sh[s].copy(L.chest).add(v3(side * 0.19, -0.05, 0));
+    L.ht[s].set(side * 0.16, 0.98, 0.42);
+    ik(L.hp[s], L.ft[s], D.thigh, D.shin, v3(0, 1, 0.3).normalize(), L.knee[s], L.foot[s]);
+    ik(L.sh[s], L.ht[s], D.upper, D.fore, v3(side * 0.6, -0.8, 0).normalize(), L.elbow[s], L.hand[s]);
+  }
+  placeBody(R, L, look);
+  // steering wheel
+  const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.018, 6, 20), M.darkMetal); wheel.position.set(-0.4, 1.05, 0.38); wheel.rotation.x = -0.9; car.g.add(wheel);
+  car.driver = R;
+}
+
+// ───────────────────────── v2.1: controls you can change ─────────────────────────
+const BIND_DEF = {
+  up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', wheelie: 'ShiftLeft',
+  t1: 'KeyJ', t2: 'KeyK', t3: 'KeyL', t4: 'KeyI', t5: 'KeyU', t6: 'KeyO',
+  use: 'KeyE', getoff: 'KeyF', punch: 'KeyJ', run: 'ShiftLeft', bag: 'KeyB', quests: 'KeyG',
+  ride: 'KeyQ', map: 'KeyM', cam: 'KeyC', reset: 'KeyR', replay: 'KeyV', photo: 'KeyP', radio: 'KeyN', chat: 'KeyT', help: 'KeyH',
+};
+const BIND_GROUPS = [
+  ['RIDING', [['up', 'Ride / frontflip'], ['down', 'Brake / reverse / backflip'], ['left', 'Steer left / spin'], ['right', 'Steer right / spin'], ['jump', 'Hop / ollie'], ['wheelie', 'Wheelie / manual']]],
+  ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6']]],
+  ['ON FOOT', [['getoff', 'Get off / get on'], ['use', 'Talk / use / open'], ['punch', 'Punch'], ['run', 'Run'], ['bag', 'Bag (food & drink)'], ['quests', 'Quest log']]],
+  ['OTHER', [['ride', 'Switch ride'], ['map', 'World map'], ['cam', 'Camera'], ['reset', 'Reset'], ['replay', 'Instant replay'], ['photo', 'Photo mode'], ['radio', 'Next radio station'], ['chat', 'Chat'], ['help', 'Hide help']]],
+];
+let BIND = Object.assign({}, BIND_DEF, store.get('binds', {}));
+const BIND_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], wheelie: ['ShiftRight'], run: ['ShiftRight'] };
+const keyDown = a => !!keys[BIND[a]] || (BIND_EXTRA[a] || []).some(c => keys[c]);
+const hit = a => pressed.has(BIND[a]);
+function keyName(a) {
+  const c = BIND[a] || '';
+  const NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ShiftRight: 'R-SHIFT', ControlLeft: 'CTRL', ControlRight: 'R-CTRL', AltLeft: 'ALT', AltRight: 'R-ALT', Tab: 'TAB', Enter: 'ENTER', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', CapsLock: 'CAPS' };
+  return NAMES[c] || c.replace(/^Key|^Digit|^Numpad/, '').replace(/^Arrow/, '').toUpperCase();
+}
+const TK2B = { J: 't1', K: 't2', L: 't3', I: 't4', U: 't5', O: 't6', SH: 'wheelie' };
+const keyLabel = k => keyName(TK2B[k]);
+let bindWait = null;
+addEventListener('keydown', e => {
+  if (!bindWait) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.code !== 'Escape') { BIND[bindWait] = e.code; store.set('binds', BIND); }
+  bindWait = null; renderControls(); buildTrickBar(); renderHint();
+}, true);
+function renderControls() {
+  const el = document.getElementById('controls-list'); if (!el) return;
+  el.innerHTML = BIND_GROUPS.map(([g, list]) => `<div class="cl-head">${g}</div>` + list.map(([a, n]) => `<div class="cl-row"><span>${n}</span><button class="key-btn${bindWait === a ? ' wait' : ''}" data-bind="${a}">${bindWait === a ? 'PRESS A KEY…' : keyName(a)}</button></div>`).join('')).join('');
+}
+function renderHint() {
+  const el = document.getElementById('hint'); if (!el) return;
+  const K = keyName;
+  el.innerHTML = `<b>${K('up')}/${K('down')}</b> ride · brake · reverse &nbsp; <b>${K('left')}/${K('right')}</b> steer &nbsp; <b>${K('jump')}</b> hop &nbsp; <b>${K('wheelie')}</b> wheelie<br>` +
+    `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks<br>` +
+    `<b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
+    `<b>${K('map')}</b> map &nbsp; <b>1-0</b> places &nbsp; <b>${K('ride')}</b> ride &nbsp; <b>${K('cam')}</b> camera &nbsp; <b>${K('replay')}</b> replay &nbsp; <b>${K('photo')}</b> photo &nbsp; <b>${K('reset')}</b> reset &nbsp; <b>${K('chat')}</b> chat &nbsp; <b>${K('help')}</b> hide &nbsp; <b>ESC</b> menu`;
+}
+
+// ───────────────────────── v2.1: surf & ski tricks ─────────────────────────
+TRICKS.surf = { J: { t: 'bar', n: 'Board Flip', d: 1 }, K: { t: 'whip', n: 'Board 360', d: 1 }, L: { t: 'pose', p: 'indy', n: 'Indy Grab' }, I: { t: 'pose', p: 'melon', n: 'Melon' }, U: { t: 'whip', n: 'Board 180', d: -1, a: Math.PI }, O: { t: 'pose', p: 'airwalk', n: 'Airwalk' }, SH: { t: 'pose', p: 'nosegrab', n: 'Nose Grab' } };
+TRICKS.ski = { J: { t: 'pose', p: 'mute', n: 'Mute Grab' }, K: { t: 'pose', p: 'japan', n: 'Japan' }, L: { t: 'pose', p: 'tailg', n: 'Tail Grab' }, I: { t: 'pose', p: 'safety', n: 'Safety' }, U: { t: 'pose', p: 'iron', n: 'Iron Cross' }, O: { t: 'pose', p: 'eagle', n: 'Spread Eagle' }, SH: { t: 'pose', p: 'daffy', n: 'Daffy' } };
+Object.assign(WHIP_PTS, { 'Board 360': 300, 'Board 180': 160 });
+Object.assign(BAR_PTS, { 'Board Flip': 280 });
+Object.assign(POSE_PTS, { mute: 260, japan: 300, tailg: 260, safety: 240, iron: 320, eagle: 280, daffy: 300 });
+GRIND_STYLES.surf = { none: 'Rail Ride', A: 'Boardslide', D: 'Lipslide', W: 'Nose Slide', S: 'Tail Slide' };
+GRIND_STYLES.ski = { none: 'Rail Slide', A: 'Frontswap', D: 'Backswap', W: 'Nose Butter', S: 'Tail Press' };
+
+// ───────────────────────── v2.1: more skins (hats, capes and quest rewards) ─────────────────────────
+OUTFITS.push(
+  { id: 'retro', n: 'Retro Hero', price: 2500, top: 0xd61f1f, pants: 0x2b54d6, helmet: 0xffd84a, hatK: 'retro', cape: 0xd61f1f },
+  { id: 'gent', n: 'Top Hat', price: 2800, top: 0x1a1a1a, pants: 0x1a1a1a, helmet: 0x111111, hatK: 'tophat' },
+  { id: 'pirate', n: 'Pirate', price: 3000, top: 0x7a1f2b, pants: 0x2b2b30, helmet: 0x1a1a1a, hatK: 'pirate' },
+  { id: 'banana', n: 'Banana', price: 3500, top: 0xf7dc4a, pants: 0xf7dc4a, helmet: 0xf7dc4a, hatK: 'banana' },
+  { id: 'wizard', n: 'Wizard', price: 4000, top: 0x4b1d8f, pants: 0x4b1d8f, helmet: 0x2b1d5f, hatK: 'wizard', cape: 0x2b1d5f },
+  { id: 'knight', n: 'Knight', price: 4500, top: 0x9aa3ad, pants: 0x6b737d, helmet: 0xc0c8d0, hatK: 'knight' },
+  { id: 'robot', n: 'Robot', price: 5500, top: 0x8a949e, pants: 0x5a6470, helmet: 0xaab4be, hatK: 'robot' },
+  { id: 'astro', n: 'Astronaut', price: 6000, top: 0xf2f2f2, pants: 0xf2f2f2, helmet: 0xffffff, hatK: 'astro' },
+  { id: 'devil', n: 'Devil', price: 6660, top: 0xb3121f, pants: 0x1a1a1a, helmet: 0xb3121f, hatK: 'horns', cape: 0x1a1a1a },
+  { id: 'king', n: 'King', price: 8000, top: 0x7a1f2b, pants: 0xf2efe6, helmet: 0xffc531, hatK: 'crown', cape: 0x9b1b30 },
+  { id: 'tabby', n: 'Tabby', price: 0, quest: 'cat', top: 0xe08a3c, pants: 0xf2efe6, helmet: 0xe08a3c, hatK: 'cat' },
+  { id: 'chef', n: 'Chef', price: 0, quest: 'delivery', top: 0xf7f7f7, pants: 0x2b2b30, helmet: 0xffffff, hatK: 'chef' },
+  { id: 'captain', n: 'Captain', price: 0, quest: 'bottle', top: 0x1d2a4a, pants: 0xf2efe6, helmet: 0x1d2a4a, hatK: 'captain' },
+  { id: 'skipro', n: 'Ski Pro', price: 0, quest: 'goggles', top: 0xd61f1f, pants: 0x1a1a1a, helmet: 0xd61f1f, hatK: 'goggles' },
+  { id: 'golden', n: 'Golden', price: 0, quest: 'wheel', top: 0xffc531, pants: 0xb8860b, helmet: 0xffd84a, hatK: 'goldhelm' },
+  { id: 'ranger', n: 'Ranger', price: 0, quest: 'dog', top: 0x3f6b3a, pants: 0x4a3b2a, helmet: 0x6b5a3a, hatK: 'ranger' },
+  { id: 'explorer', n: 'Explorer', price: 0, quest: 'map', top: 0xc9b28a, pants: 0x8a7550, helmet: 0xe8dcc0, hatK: 'pith' },
+);
+const HAT_M = c => MAT_CACHE['hat' + c] || (MAT_CACHE['hat' + c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.05 }));
+function hatMesh(kind, o) {
+  const g = new THREE.Group(), c = o.helmet ?? 0x222222, m = HAT_M(c);
+  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const k = new THREE.Mesh(geo, mat); k.position.set(x, y, z); k.rotation.set(rx, ry, rz); g.add(k); return k; };
+  if (kind === 'retro') { // round cap with a big peak and goggles
+    add(new THREE.SphereGeometry(0.122, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), m, 0, 0.02, 0, -0.15);
+    add(new THREE.CylinderGeometry(0.11, 0.11, 0.012, 18, 1, false, -Math.PI / 2, Math.PI), m, 0, 0.04, 0.08, 0.15);
+    for (const sx of [-1, 1]) add(new THREE.TorusGeometry(0.03, 0.01, 6, 14), HAT_M(0x333333), sx * 0.04, 0.08, 0.1, -0.4);
+  } else if (kind === 'tophat') { add(new THREE.CylinderGeometry(0.09, 0.09, 0.22, 18), m, 0, 0.19, 0); add(new THREE.CylinderGeometry(0.16, 0.16, 0.012, 22), m, 0, 0.08, 0); add(new THREE.CylinderGeometry(0.092, 0.092, 0.03, 18), HAT_M(0x9b1b30), 0, 0.1, 0); }
+  else if (kind === 'pirate') { const t = add(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 3), m, 0, 0.11, -0.01, 0, Math.PI / 6); t.scale.set(1, 1, 0.75); add(new THREE.SphereGeometry(0.11, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), m, 0, 0.1, 0); add(new THREE.SphereGeometry(0.02, 8, 6), HAT_M(0xf2efe6), 0, 0.16, 0.09); }
+  else if (kind === 'banana') { const b = add(new THREE.TorusGeometry(0.2, 0.07, 10, 20, Math.PI * 0.8), m, 0, 0.08, -0.08, 0, Math.PI / 2, 0.6); b.scale.set(1, 1, 0.9); add(new THREE.CylinderGeometry(0.015, 0.02, 0.06, 6), HAT_M(0x5a3a1a), 0, 0.27, 0.02); }
+  else if (kind === 'wizard') { add(new THREE.ConeGeometry(0.13, 0.42, 18), m, 0, 0.27, -0.02, -0.15); add(new THREE.CylinderGeometry(0.2, 0.2, 0.012, 24), m, 0, 0.07, 0); for (let i = 0; i < 4; i++) add(new THREE.OctahedronGeometry(0.018), HAT_M(0xffd84a), Math.cos(i * 1.7) * 0.08, 0.16 + i * 0.06, 0.06 - i * 0.01); }
+  else if (kind === 'knight') { const h = add(new THREE.SphereGeometry(0.15, 20, 14), new THREE.MeshStandardMaterial({ color: 0xc0c8d0, metalness: 0.9, roughness: 0.25 }), 0, 0.01, 0); h.scale.set(0.95, 1.05, 1.08); add(new THREE.BoxGeometry(0.2, 0.02, 0.01), EYE_M, 0, 0.02, 0.155); add(new THREE.BoxGeometry(0.02, 0.12, 0.2), HAT_M(0xd61f1f), 0, 0.17, -0.04); }
+  else if (kind === 'robot') { const b = add(new THREE.BoxGeometry(0.27, 0.27, 0.27), new THREE.MeshStandardMaterial({ color: 0xaab4be, metalness: 0.8, roughness: 0.3 }), 0, 0.01, 0.01); for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.06, 0.035, 0.01), new THREE.MeshBasicMaterial({ color: 0x39ff14 }), sx * 0.06, 0.04, 0.146); add(new THREE.CylinderGeometry(0.008, 0.008, 0.1, 6), m, 0, 0.19, 0); add(new THREE.SphereGeometry(0.022, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3b3b }), 0, 0.25, 0); add(new THREE.BoxGeometry(0.12, 0.02, 0.01), HAT_M(0x333333), 0, -0.05, 0.146); }
+  else if (kind === 'astro') { add(new THREE.SphereGeometry(0.19, 22, 16), new THREE.MeshPhysicalMaterial({ color: 0xbfe6ff, transmission: 0.7, roughness: 0.05, transparent: true, opacity: 0.35, metalness: 0.1 }), 0, 0.01, 0.01); add(new THREE.TorusGeometry(0.15, 0.03, 8, 22), HAT_M(0xf2f2f2), 0, -0.13, 0, Math.PI / 2); }
+  else if (kind === 'horns') { for (const sx of [-1, 1]) add(new THREE.ConeGeometry(0.025, 0.1, 8), HAT_M(0x1a1a1a), sx * 0.07, 0.13, 0.02, 0, 0, -sx * 0.4); }
+  else if (kind === 'crown') { add(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 16, 1, true), M.gold || HAT_M(0xffc531), 0, 0.1, 0); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(new THREE.ConeGeometry(0.02, 0.06, 4), M.gold || HAT_M(0xffc531), Math.sin(a) * 0.1, 0.15, Math.cos(a) * 0.1); } add(new THREE.SphereGeometry(0.015, 8, 6), HAT_M(0xd61f1f), 0, 0.1, 0.1); }
+  else if (kind === 'cat') { for (const sx of [-1, 1]) add(new THREE.ConeGeometry(0.04, 0.08, 4), m, sx * 0.07, 0.12, 0, 0, 0, -sx * 0.3); for (const sx of [-1, 1]) for (const k of [0, 1]) add(new THREE.BoxGeometry(0.06, 0.003, 0.003), HAT_M(0x222222), sx * 0.07, -0.02 - k * 0.012, 0.1, 0, 0, sx * (k ? -0.2 : 0.2)); }
+  else if (kind === 'chef') { add(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 16), HAT_M(0xffffff), 0, 0.12, 0); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(new THREE.SphereGeometry(0.06, 10, 8), HAT_M(0xffffff), Math.sin(a) * 0.05, 0.21, Math.cos(a) * 0.05); } }
+  else if (kind === 'captain') { add(new THREE.CylinderGeometry(0.125, 0.11, 0.07, 18), HAT_M(0xffffff), 0, 0.1, 0); add(new THREE.CylinderGeometry(0.112, 0.112, 0.03, 18), m, 0, 0.065, 0); add(new THREE.CylinderGeometry(0.09, 0.09, 0.01, 16, 1, false, -Math.PI / 2, Math.PI), HAT_M(0x111111), 0, 0.05, 0.06, 0.2); add(new THREE.SphereGeometry(0.018, 8, 6), M.gold || HAT_M(0xffc531), 0, 0.09, 0.115); }
+  else if (kind === 'goggles') { add(new THREE.SphereGeometry(0.122, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), m, 0, 0.015, 0, -0.2); add(new THREE.BoxGeometry(0.2, 0.06, 0.04), new THREE.MeshStandardMaterial({ color: 0xff9a2e, metalness: 0.8, roughness: 0.1 }), 0, 0.03, 0.1); add(new THREE.TorusGeometry(0.115, 0.012, 6, 22), HAT_M(0x111111), 0, 0.03, 0, Math.PI / 2); }
+  else if (kind === 'goldhelm') { const h = add(new THREE.SphereGeometry(0.145, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), M.gold || HAT_M(0xffc531), 0, 0.02, 0, -0.15); h.scale.set(0.97, 1, 1.08); }
+  else if (kind === 'ranger') { add(new THREE.CylinderGeometry(0.09, 0.11, 0.09, 16), m, 0, 0.12, 0); add(new THREE.CylinderGeometry(0.2, 0.2, 0.012, 22), m, 0, 0.075, 0); }
+  else if (kind === 'pith') { const h = add(new THREE.SphereGeometry(0.15, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), m, 0, 0.04, 0); h.scale.set(1, 0.85, 1.1); add(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 22), m, 0, 0.05, 0); }
+  return g;
+}
+function capeMesh(col) {
+  const geo = new THREE.PlaneGeometry(0.42, 0.85, 4, 8), pa = geo.attributes.position;
+  for (let i = 0; i < pa.count; i++) { const y = pa.getY(i), x = pa.getX(i); pa.setX(i, x * (1 + (0.425 - y) * 0.6)); pa.setZ(i, -Math.sin((0.425 - y) * 1.6) * 0.12); }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.7, side: THREE.DoubleSide })); m.position.set(0, 0.1, -0.15); m.castShadow = true;
+  return m;
+}
+
+// ───────────────────────── v2.1: more goals & leaderboards ─────────────────────────
+GOALS.push(
+  ['walk', 'Get off and walk around'], ['reverse', 'Ride backwards for 10 m'], ['shop', 'Go into a shop'], ['allshops', 'Visit all five shops'],
+  ['buy', 'Buy food or a drink'], ['eat', 'Eat or drink something'], ['eat10', 'Eat or drink 10 things'],
+  ['surf', 'Ride into the sea and surf'], ['surf200', 'Surf 200 m in one go'], ['waveair', 'Get air off a wave'],
+  ['chest', 'Open a treasure chest'], ['allchests', 'Open all five island chests in one day'],
+  ['skis', 'Hire skis at the ski hut'], ['skirun', 'Ski the Peak Run top to bottom'],
+  ['punch', 'Land a punch'], ['bowling', 'Send someone flying'], ['petdog', 'Pet a dog'],
+  ['quest1', 'Start a quest'], ['questdone', 'Finish a quest'], ['questall', 'Finish all 7 quests'],
+);
+BOARDS.push(
+  { id: 'xp', n: 'Most XP', f: v => Math.round(v).toLocaleString() },
+  { id: 'treasure', n: 'Treasure chests', f: v => Math.round(v).toLocaleString() },
+  { id: 'surf', n: 'Longest surf', f: v => Math.round(v) + ' m' },
+  { id: 'ski', n: 'Peak Run (ski)', f: v => v.toFixed(2) + 's' },
+  { id: 'woods', n: 'Woods downhill', f: v => v.toFixed(2) + 's' },
+);
+const LOW_BOARDS = ['hill', 'ski', 'woods'];
+
+// ───────────────────────── v2.1: update log ─────────────────────────
+const CHANGELOG = [
+  { v: '2.1.0', d: 'November 2026', t: 'Get off and explore', items: [
+    'Get off your ride (F) and walk, run (Shift) and jump anywhere',
+    'Market Street: DcMonalds, Kurger Bings, Barstucks, Ocset and The Kickflip Arms, with people working inside',
+    'Buy food and drinks with coins, keep them in your bag (B) and eat them for a speed boost',
+    '7 quests: talk to people, find what they lost and bring it back for coins and a unique outfit (G for the quest log)',
+    'Dialogue that types out letter by letter, and people who talk out loud',
+    'Surfing: ride or walk into the sea and you get a surfboard. Catch waves, get air off them',
+    '5 islands out at sea, each with a treasure chest of coins (refills every day)',
+    'Snowy mountain: hire skis at the ski hut, take the chairlift and ski the Peak Run',
+    'Press S to ride backwards',
+    'All rides are faster',
+    'Punch people (J on foot). Some fight back, some run away, some just tell you off',
+    'Knocking people over looks real now: they fly, bounce, lie there and get back up (sometimes angry)',
+    'People walking their dogs (you can pet them), and drivers in the cars',
+    '17 new skins with hats and capes: Retro Hero, Pirate, Wizard, Knight, Robot, Astronaut, King and more',
+    '20 new goals and 5 new leaderboards: XP, treasure, longest surf, Peak Run and Woods downhill',
+    'Change any control in Settings',
+    'This update log!',
+    'Plaza 7-stair: grinding the handrail down it counts now too',
+  ] },
+  { v: '2.0.2', d: 'November 2026', t: 'Flips', items: ['Tap W or S in the air to do a full flip (hold for a double)', 'Flips work on the e-scooter'] },
+  { v: '2.0.1', d: 'November 2026', t: 'Fixes', items: ['Fixed the Plaza 7-stair goal'] },
+  { v: '2.0.0', d: 'November 2026', t: 'The ultra update', items: ['Skateboard', 'Big Air, Downtown, Canyon, Woods, Vert ramp, Airbag and Desert line', 'New menu, ride picker and world map', 'Levels, XP and daily challenges', 'Photo mode and instant replay', 'Day/night cycle', 'Lots more tricks and named combos'] },
+  { v: '1.5', d: 'October 2026', t: 'Online', items: ['Accounts, friends and servers', 'Leaderboards', 'Discord sign-in', 'Auto-updates'] },
+  { v: '1.0', d: 'October 2026', t: 'First release', items: ['Bike, e-bike, scooter and e-scooter', 'Skatepark, dirt jumps, mega ramp, plaza and the high street'] },
+];
+function openLog() {
+  const el = document.getElementById('whatsnew');
+  el.querySelector('.wn-body').innerHTML = CHANGELOG.map((c, i) => `<div class="wn-ver${i === 0 ? ' latest' : ''}"><div class="wn-h"><b>VERSION ${c.v}</b><span>${c.t}</span><em>${c.d}</em></div><ul>${c.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
+  el.classList.remove('hidden'); store.set('seenVer', GAME_VERSION);
+}
+document.getElementById('wn-x').onclick = () => document.getElementById('whatsnew').classList.add('hidden');
+document.getElementById('whatsnew').addEventListener('click', e => { if (e.target.id === 'whatsnew') e.target.classList.add('hidden'); });
+document.getElementById('log-btn').onclick = openLog;
+document.getElementById('ver-line').onclick = openLog;
+
+// ───────────────────────── v2.1: build the town life ─────────────────────────
+// Market Street runs up the road north of the skatepark
+for (const [x, z, yaw, b] of [[-16.5, 192, Math.PI / 2, 'dcmonalds'], [-16.5, 214, Math.PI / 2, 'barstucks'], [-16.5, 262, Math.PI / 2, 'pub'], [16.5, 196, -Math.PI / 2, 'kurger'], [16.5, 226, -Math.PI / 2, 'ocset']]) shopBuilding(x, z, yaw, b);
+pavement(-10.5, -7, 176, 290); pavement(7, 10.5, 176, 290);
+ZONES.market = { name: 'MARKET STREET', pos: v3(-3, 0, 176), yaw: 0 };
+buildQuests();
+// a few people with jobs about town
+addNPC({ name: 'Lifeguard Lou', x: 22, z: -206, yaw: Math.PI, job: 'lifeguard', top: 0xd61f1f, pants: 0xffd84a });
+addNPC({ name: 'Security', x: -8.8, z: 250, yaw: Math.PI / 2, job: 'guard', top: 0x1a1a1a, pants: 0x1a1a1a, hat: true });
+addNPC({ name: 'Tourist', x: 186, z: 30, yaw: -Math.PI / 2, job: 'tourist', top: 0xff6fb5 });
+addNPC({ name: 'Walker', x: -120, z: 9.5, yaw: 0, job: 'walker' });
+
+// the rooftop park's lift
+function rideLift(to) { const P = player; P.pos.copy(to); P.v = 0; P.air = false; P.wspd = 0; P.safe.pos.copy(to); P.hist = []; camState.init = false; showPopup(to.y > 1 ? 'ROOFTOP PARK' : 'GROUND FLOOR', '', 'LIFT'); }
+INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: 'Take the lift to the roof', fn: () => rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)) });
+INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
+// ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
+function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
+function closeUi() {
+  if (dlg.open) { closeDialog(); return true; }
+  for (const id of ['shop', 'bag', 'quest-modal']) { const el = document.getElementById(id); if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return true; } }
+  return false;
+}
+for (const id of ['shop', 'bag', 'quest-modal']) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', e => { if (e.target === el || e.target.closest('.x')) el.classList.add('hidden'); });
+}
+function toggleBag() { const el = document.getElementById('bag'); if (el.classList.contains('hidden')) openBag(); else el.classList.add('hidden'); }
+function toggleQuests() { const el = document.getElementById('quest-modal'); if (el.classList.contains('hidden')) { renderQuestLog(); el.classList.remove('hidden'); } else el.classList.add('hidden'); }
+
+// things you can walk (or ride) up to: a prompt shows the key to press
+function updateInteract() {
+  const P = player.pos, walking = player.mode === 'walk';
+  let best = null, bd = 1e9;
+  if (state === 'play' && !uiOpen() && !player.bailed) for (const it of INTERACT) {
+    if (it.when && !it.when()) continue;
+    const q = it.at ? it.at() : it;
+    const d = Math.hypot(q.x - P.x, q.z - P.z); if (d < it.r && d < bd && Math.abs((it.y ?? P.y) - P.y) < 3.5) { bd = d; best = it; }
+  }
+  interactNear = best;
+  if (best) {
+    const t = typeof best.label === 'function' ? best.label() : best.label;
+    elPrompt.innerHTML = best.walkOnly && !walking ? `<kbd>${keyName('getoff')}</kbd> Get off to: ${t}` : `<kbd>${keyName('use')}</kbd> ${t}`;
+    elPrompt.classList.remove('hidden');
+  } else elPrompt.classList.add('hidden');
+}
+function useNear() {
+  const it = interactNear; if (!it) return;
+  if (it.walkOnly && player.mode !== 'walk') { showPopup('GET OFF FIRST', '', `PRESS ${keyName('getoff')}`); return; }
+  it.fn();
+}
+// on-foot camera (stays inside shops)
+function walkCam(dt) {
+  const P = player;
+  if (!camState.init) { camState.yaw = P.yaw; camState.init = true; camState.pos.copy(P.pos).add(v3(0, 2, 0)); camState.look.copy(P.pos); }
+  camState.yaw += wrap(P.yaw - camState.yaw) * (1 - Math.exp(-4 * dt));
+  const sh = SHOP_BLDS.find(s => s.inside(P.pos.x, P.pos.z));
+  const dist = sh ? 2.8 : 3.6, ht = sh ? 1.65 : 1.9;
+  const f = forward(camState.yaw, v3());
+  const want = P.pos.clone().addScaledVector(f, -dist).add(v3(0, ht, 0));
+  if (sh) { // keep the camera inside the walls
+    const c = Math.cos(-sh.yaw), s = Math.sin(-sh.yaw), dx = want.x - sh.x, dz = want.z - sh.z;
+    let lx = dx * c + dz * s, lz = -dx * s + dz * c;
+    lx = clamp(lx, -sh.W / 2 + 0.5, sh.W / 2 - 0.5); lz = clamp(lz, -sh.D / 2 + 0.5, sh.D / 2 + 3);
+    const c2 = Math.cos(sh.yaw), s2 = Math.sin(sh.yaw); want.x = sh.x + lx * c2 + lz * s2; want.z = sh.z - lx * s2 + lz * c2;
+  }
+  const gh = heightAt(want.x, want.z); if (want.y < gh + 0.5) want.y = gh + 0.5;
+  camState.pos.lerp(want, 1 - Math.exp(-8 * dt));
+  camState.look.lerp(P.pos.clone().add(v3(0, 1.4, 0)).addScaledVector(f, 1.2), 1 - Math.exp(-12 * dt));
+  camera.position.copy(camState.pos); camera.lookAt(camState.look);
+  if (shake > 0) { camera.position.add(v3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(shake * 0.2)); shake = Math.max(0, shake - dt * 1.8); }
+  camera.fov = damp(camera.fov, 60, 4, dt); camera.updateProjectionMatrix();
+}
+let lifeT = 0;
+function updateLife(dt) {
+  { const p = player.pos, c = camera.position, W = WAREHOUSE, inside = q => q.x > W.x0 && q.x < W.x1 && q.z > W.z0 && q.z < W.z1 && q.y < 13; W.shell.visible = !(inside(p) || inside(c)); }
+  updateNPCs(dt); updateBubbles(dt); updateDialog(dt); updateDogs(dt); updateChests(dt); updateWaves();
+  if (state !== 'play') { elPrompt.classList.add('hidden'); document.getElementById('hp').classList.add('hidden'); return; }
+  updateInteract(); updateQuests(dt); updateSki(dt);
+  lifeT -= dt;
+  if (lifeT <= 0) {
+    lifeT = 0.25; renderBuffs(); renderQuest();
+    const P = player, hpEl = document.getElementById('hp');
+    hpEl.classList.toggle('hidden', P.mode !== 'walk');
+    hpEl.querySelector('i').style.width = Math.round(P.hp ?? 100) + '%';
+    document.getElementById('veh-name').textContent = P.mode === 'walk' ? 'ON FOOT' : VEH[P.kind].label;
+  }
+}
+// minimap extras: the quest target, your parked ride
+function drawMiniExtras(k, P) {
+  const t = questTarget();
+  if (t) { mctx.fillStyle = '#ffd84a'; mctx.strokeStyle = '#1a1a1a'; mctx.lineWidth = 2; const x = (t.x - P.pos.x) * k, z = (t.z - P.pos.z) * k; mctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, r = i % 2 ? 3.5 : 8; mctx.lineTo(x + Math.sin(a) * r, z + Math.cos(a) * r); } mctx.closePath(); mctx.fill(); mctx.stroke(); }
+  if (parked) { mctx.fillStyle = '#18a0ff'; mctx.fillRect((parked.pos.x - P.pos.x) * k - 4, (parked.pos.z - P.pos.z) * k - 4, 8, 8); }
+  for (const q of QUESTS) { const st = questState[q.id]; if (st === 'done' || st === 'active' || !q.npc) continue; const x = (q.npc.x - P.pos.x) * k, z = (q.npc.z - P.pos.z) * k; mctx.fillStyle = '#ffd84a'; mctx.beginPath(); mctx.arc(x, z, 6, 0, 7); mctx.fill(); mctx.fillStyle = '#111'; mctx.font = '900 10px sans-serif'; mctx.textAlign = 'center'; mctx.fillText(st === 'found' ? '?' : '!', x, z + 4); }
+  for (const s of SHOP_BLDS) { mctx.fillStyle = BRANDS[s.brand].bg; mctx.beginPath(); mctx.arc((s.x - P.pos.x) * k, (s.z - P.pos.z) * k, 4, 0, 7); mctx.fill(); }
+}
+// settings: NPC voices + controls
+{
+  const vs = document.getElementById('voice-seg');
+  const draw = () => { vs.innerHTML = ''; for (const [v, n] of [[true, 'ON'], [false, 'OFF']]) { const b = document.createElement('button'); b.textContent = n; b.className = voicesOn === v ? 'sel' : ''; b.onclick = () => { voicesOn = v; store.set('voices', v); draw(); if (v) speak(null, 'Voices on'); }; vs.appendChild(b); } };
+  draw();
+  document.getElementById('controls-list').addEventListener('click', e => { const b = e.target.closest('[data-bind]'); if (b) { bindWait = b.dataset.bind; renderControls(); } });
+  document.getElementById('controls-reset').onclick = () => { BIND = Object.assign({}, BIND_DEF); store.set('binds', {}); renderControls(); buildTrickBar(); renderHint(); };
+  renderControls(); renderHint();
+  document.getElementById('quest-log-btn').onclick = () => { toggleQuests(); };
+}
+
 // ───────────────────────── main loop ─────────────────────────
 let last = performance.now(), acc = 0, hintHidden = false, manual = false, clock = 0, timeScale = 1;
 function frame(now) {
@@ -5169,18 +6728,33 @@ function frame(now) {
 function tick(dt, doRender = true) {
   clock += dt;
   readInput();
+  if (pressed.has('Escape') && state === 'play' && closeUi()) pressed.delete('Escape');
   if (pressed.has('Escape')) { if (state === 'photo') togglePhoto(); else if (state === 'replay') stopReplay(); else if (state === 'map') closeMap(); else togglePause(); pressed.delete('Escape'); }
   if (state === 'play') {
-    if (pressed.has('KeyC')) { camState.mode = (camState.mode + 1) % 4; camState.cine = null; showPopup(['CHASE CAM', 'WIDE CAM', 'HELMET CAM', 'TV CAM'][camState.mode]); }
-    if (pressed.has('KeyP')) { togglePhoto(); pressed.delete('KeyP'); }
-    if (pressed.has('KeyV')) { startReplay(); pressed.delete('KeyV'); }
-    if (pressed.has('KeyM')) { openMap(); pressed.delete('KeyM'); }
-    if (pressed.has('KeyR')) respawnSafe();
-    if (pressed.has('KeyH')) { hintHidden = !hintHidden; document.getElementById('hint').style.display = hintHidden ? 'none' : ''; }
-    if (pressed.has('KeyQ')) { const i = (VEH_KEYS.indexOf(player.kind) + 1) % VEH_KEYS.length; const p = player.pos.clone(), y = player.yaw; equip(VEH_KEYS[i]); spawn(zoneFor()); player.pos.copy(p); player.yaw = y; player.safe.pos.copy(p); showPopup(VEH[VEH_KEYS[i]].label); }
+    if (dlg.open) {
+      if (pressed.has('Space') || pressed.has('Enter') || hit('use')) advanceDialog();
+      for (const d of [1, 2, 3, 4]) if (pressed.has('Digit' + d) && dlg.choices && dlg.shown >= (dlg.lines[dlg.i] || '').length) closeDialog(d - 1);
+      pressed.clear();
+    }
+    const walking = player.mode === 'walk';
+    if (hit('cam')) { camState.mode = (camState.mode + 1) % 4; camState.cine = null; showPopup(['CHASE CAM', 'WIDE CAM', 'HELMET CAM', 'TV CAM'][camState.mode]); }
+    if (hit('photo')) { togglePhoto(); pressed.delete(BIND.photo); }
+    if (hit('replay')) { startReplay(); pressed.delete(BIND.replay); }
+    if (hit('map')) { openMap(); pressed.delete(BIND.map); }
+    if (hit('reset')) respawnSafe();
+    if (hit('help')) { hintHidden = !hintHidden; document.getElementById('hint').style.display = hintHidden ? 'none' : ''; }
+    if (hit('use')) useNear();
+    if (hit('getoff')) { if (walking) getOn(); else getOff(); }
+    if (hit('bag')) toggleBag();
+    if (hit('quests')) toggleQuests();
+    if (walking && hit('punch')) punch();
+    if (hit('ride') && !walking) {
+      if (VEH[player.kind].hidden) { if (player.kind === 'surf' && inWater(player.pos.x, player.pos.z)) showPopup("YOU'RE IN THE SEA", '', 'SURF BACK TO THE BEACH FIRST'); else backToRide(); }
+      else { const i = (VEH_KEYS.indexOf(player.kind) + 1) % VEH_KEYS.length; const p = player.pos.clone(), y = player.yaw; equip(VEH_KEYS[i]); spawn(zoneFor()); player.pos.copy(p); player.yaw = y; player.safe.pos.copy(p); showPopup(VEH[VEH_KEYS[i]].label); }
+    }
     ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'downtown'].forEach((z, i) => { if (pressed.has('Digit' + ((i + 1) % 10))) { spawn(z); showPopup(ZONES[z].name); } });
-    if (pressed.has('KeyN')) music.next();
-    if (pressed.has('KeyT')) { if (net.connected) window.openChat(); else showPopup('CHAT', '', 'join a multiplayer room first'); }
+    if (hit('radio')) music.next();
+    if (hit('chat')) { if (net.connected) window.openChat(); else showPopup('CHAT', '', 'join a multiplayer room first'); }
     // slow motion on big airs while you're doing something
     const wantTS = settings.slowmo && player.air && player.maxH > 3.2 && trickActive(player) ? 0.6 : 1;
     timeScale = damp(timeScale, wantTS, 6, dt);
@@ -5197,7 +6771,7 @@ function tick(dt, doRender = true) {
     updateAttack(dt);
     music.duck(timeScale);
     if (player.dist > 2000) goal('ride2k');
-    const sp = player.air ? Math.hypot(player.vel.x, player.vel.z) : Math.abs(player.v);
+    const sp = player.mode === 'walk' ? 0 : player.air ? Math.hypot(player.vel.x, player.vel.z) : Math.abs(player.v);
     sfx.update(sp, !player.air && !player.bailed, veh.cfg.motor, input.throttle, player.onRamp ? player.onRamp.surface : surfaceAt(player.pos.x, player.pos.z), player.skidding, veh.kind === 'bike' && !input.throttle, dt);
   } else if (state === 'photo') {
     if (pressed.has('KeyP')) togglePhoto();
@@ -5221,6 +6795,7 @@ function tick(dt, doRender = true) {
   updateSkids();
   updateTraffic(ldt);
   updatePeds(ldt);
+  updateLife(ldt);
   updateNightLights(dt);
   net.update(dt);
   M.sea.normalMap.offset.set(clock * 0.004, clock * 0.009); for (const f of FOAM) f.material.opacity = 0.55 + Math.sin(clock * 1.3) * 0.2;
@@ -5247,6 +6822,7 @@ buildMenu();
 setTab('play');
 online.restore();
 document.getElementById('loading').remove();
+if (store.get('seenVer', null) !== GAME_VERSION) setTimeout(openLog, 600);
 requestAnimationFrame(t => { last = t; frame(t); });
 
 // test hook
@@ -5268,7 +6844,7 @@ window.__game = {
   place(x, z, yaw) { ZONES._t = { name: '', pos: v3(x, 0, z), yaw }; spawn('_t'); delete ZONES._t; }, music, earn, cashNow: () => cash, race, attack, vehCfg, zones: ZONES, net, settings, goals: () => [...goalsDone], rails: RAILS,
   setQuality(q) { qualityName = q; buildComposer(); },
   look(p, o, c) { if (c != null) { paintColor = c; } if (p) paintId = p; if (o) outfitId = o; equipLook(); },
-  fixCam(x, y, z, fov = 50) { camFixed = x == null ? null : { p: v3(x, y, z), fov }; if (x == null) camState.init = false; },
+  fixCam(x, y, z, fov = 50, lx, ly, lz) { camFixed = x == null ? null : { p: v3(x, y, z), fov, l: lx == null ? null : v3(lx, ly, lz) }; if (x == null) camState.init = false; },
   setCam(x, y, z) { camOverride = x == null ? null : v3(x, y, z); },
   player, input, keys, spawn, equip, startRide, togglePause, get state() { return state; }, camState, VEH, veh: () => veh, score: () => score, combo: () => combo,
-  vs: VS, root, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
+  vs: VS, root, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };

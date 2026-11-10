@@ -1,23 +1,23 @@
 {
- "version": "2.0.2",
+ "version": "2.1.0",
  "minShell": "1.5.0",
- "notes": "Flips are easier: tap S for a backflip or W for a frontflip (hold for a double). E-scooter can flip now. Plaza 7-stair goal fixed.",
+ "notes": "2.1: get off and walk, shops & food, 7 quests, surfing & treasure islands, skiing, Wood Park, indoor Warehouse park, Rooftop park, punching, dogs, 17 new skins, remappable controls, update log",
  "files": [
   {
    "path": "index.html",
-   "sha256": "883e8b73be4e1a7468045d232a525678c6d9512e0eb250774254f39c8e1de5b9"
+   "sha256": "bbad596fb3a8516a64c4454aa78662d0057f2451599c0c58e43254fe31fec042"
   },
   {
    "path": "style.css",
-   "sha256": "f47c7ce6f688a66e4d08e2cb7859ee3f7cc75bef8b0e45a8a05c8313468d666a"
+   "sha256": "b9feb43b66534b076a5f1a1b666b515aae58f788c066267b3a08334e17349b84"
   },
   {
    "path": "version.json",
-   "sha256": "ae3ad40d3d91641101a9489dc59e55c82a87b58df96b7dda48e3c2f02f31794e"
+   "sha256": "c3f8711413043d5b0f28847bf85ceb6b75eb5994476d63e6cde92fe0db92c79f"
   },
   {
    "path": "src/game.js",
-   "sha256": "a0193282b4e3e89732c9b810a26ce8f1e91acec4d8ca82741b695444146849e3"
+   "sha256": "3989292c1babf1a653d0ede19d612a46d94d473f001df08bfb77048ad7df720e"
   },
   {
    "path": "assets/logo-icon.png",
@@ -68,8 +68,20 @@
    "sha256": "eb1f85dc26cf40834bf3d8a7f24bfec09d1bce644e20e5897ba85edae764ebc5"
   },
   {
+   "path": "assets/maps/islands.jpg",
+   "sha256": "e7aa71514ca704386d079e3cc94425c9f1121277b31c60055a9598d2cad9d29b"
+  },
+  {
+   "path": "assets/maps/market.jpg",
+   "sha256": "c9c5af8ed6fb1747fccdc7924601a2a7adac648aae0f005e08f4abafe4989fba"
+  },
+  {
    "path": "assets/maps/mega.jpg",
    "sha256": "f1ab5bbb54a349dead930d9f38eabea30f4cd5b277994f25c1e0de1eeac4185a"
+  },
+  {
+   "path": "assets/maps/mountain.jpg",
+   "sha256": "4b21ceb7bc9aa0c1816dd466c3c433be6098a232eef03fb8f7bfb6907f8e4399"
   },
   {
    "path": "assets/maps/park.jpg",
@@ -80,12 +92,24 @@
    "sha256": "7ca0f61ee00513ed3dbe4357a86d133fb7697203db2fd6326dd66a43c75d3451"
   },
   {
+   "path": "assets/maps/rooftop.jpg",
+   "sha256": "75f4f130dfab7a14c24c2aabc1ea2ad5235e68ecda649dd7ae634ebb354946d5"
+  },
+  {
    "path": "assets/maps/street.jpg",
    "sha256": "a8eaa363ffede81042d934c291e248e04900e0ef032f80b893edb39c19c41be5"
   },
   {
    "path": "assets/maps/vert.jpg",
    "sha256": "ee970dce1ac8531bce4015b56d73ed86a65a0980e715848fc2eb3bf6626a3ec9"
+  },
+  {
+   "path": "assets/maps/warehouse.jpg",
+   "sha256": "9db2987896839c354c24ac13aa8f3ddbfd5f012f504e415ddb3c8300d51ae867"
+  },
+  {
+   "path": "assets/maps/woodpark.jpg",
+   "sha256": "e5d7945c445880f28f8079d08c38e00d8e97f069ffac4d79dc9d966924835653"
   },
   {
    "path": "assets/maps/woods.jpg",
