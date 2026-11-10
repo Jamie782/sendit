@@ -469,7 +469,7 @@ M.tLight = { red: new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0x
 
 // ───────────────────────── world: ground & zones ─────────────────────────
 const WORLD = 300;
-const BOUNDS = { x0: -620, x1: 620, z0: -1000, z1: 1100 };   // the whole riding area, new maps included
+const BOUNDS = { x0: -620, x1: 930, z0: -1000, z1: 1100 };   // the whole riding area, new maps included
 const ZONES = {
   street: { name: 'STREET', pos: v3(-150, 0, 0), yaw: Math.PI / 2 },
   park: { name: 'SKATEPARK', pos: v3(65, 0, 52), yaw: 0 },
@@ -1139,6 +1139,24 @@ function spokedWheel(r, tw, o = {}) {
   return g;
 }
 // small solid-core stunt scooter wheel (110 mm): PU tyre on a spoked alloy core
+// printed deck art: black grip shapes with gaps where the paint shows through, like a pro scooter deck
+let _deckArt = null;
+function deckArtMat(w, l) {
+  if (_deckArt) return _deckArt;
+  const c = makeCanvas(128, 512), g = c.getContext('2d');
+  g.clearRect(0, 0, 128, 512); g.fillStyle = '#0c0c0e';
+  // grip tape where your feet go
+  g.beginPath(); g.roundRect(10, 250, 108, 250, 14); g.fill(); g.beginPath(); g.roundRect(10, 96, 108, 120, 14); g.fill();
+  // angular shapes towards the nose
+  for (const pts of [[[10, 86], [118, 60], [118, 86]], [[10, 20], [70, 8], [10, 70]], [[118, 12], [118, 50], [40, 68]], [[10, 224], [118, 224], [118, 242], [10, 242]]]) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); }
+  g.strokeStyle = '#f2f2f2'; g.lineWidth = 3;
+  for (const [a, b, c2, d] of [[10, 92, 118, 66], [20, 232, 108, 232], [24, 262, 104, 262], [24, 488, 104, 488]]) { g.beginPath(); g.moveTo(a, b); g.lineTo(c2, d); g.stroke(); }
+  g.fillStyle = '#f2f2f2'; g.font = '900 30px Impact, sans-serif'; g.save(); g.translate(64, 160); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('SEND IT', 0, 10); g.restore();
+  for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(34 + i * 14, 300); g.lineTo(26 + i * 14, 330); g.lineTo(32 + i * 14, 330); g.lineTo(40 + i * 14, 300); g.closePath(); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = MAX_ANISO;
+  t.repeat.set(1 / w, 1 / l); t.offset.set(0.5, 0.5);
+  return _deckArt = new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.4, roughness: 0.95 });
+}
 function stuntWheel(r, w, coreMat) {
   const g = new THREE.Group();
   const tire = new THREE.Mesh(new THREE.TorusGeometry(r - 0.018, 0.018, 16, 40).scale(1, 1, w / 0.036), M.pu); tire.rotation.y = Math.PI / 2; tire.castShadow = true; g.add(tire);
@@ -1344,7 +1362,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     const R = v3(0, r, -wbLen / 2), F = v3(0, r, wbLen / 2);
     const axis = e ? v3(0, 1, -0.12).normalize() : v3(0, 1, -0.06).normalize();
     const deckTop = e ? 0.2 : 0.11;
-    const HB = v3(0, e ? 0.22 : 0.14, F.z - (e ? 0.04 : 0.028)), HT = HB.clone().addScaledVector(axis, e ? 0.98 : 0.75);
+    const HB = v3(0, e ? 0.22 : 0.14, F.z - (e ? 0.04 : 0.028)), HT = HB.clone().addScaledVector(axis, e ? 0.98 : 0.8);
     out.wbLen = wbLen; out.r = r; out.deckTop = deckTop;
     const front = axisPivot(model, HB, axis);
     const steer = new THREE.Group(); front.add(steer); steer.updateMatrixWorld(true);
@@ -1361,18 +1379,18 @@ function buildVehicle(kind, colorIdx = paintColor) {
     } else {
       tube(HB.clone().addScaledVector(axis, -0.02), HB.clone().addScaledVector(axis, 0.12), 0.025, M.darkMetal, fk); // headset
       for (const k of [0, 0.12]) { const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.029, 0.01, 18), M.alloy); cup.position.copy(HB).addScaledVector(axis, k); fk.add(cup); }
-      tube(HB.clone().addScaledVector(axis, 0.12), HT, 0.017, paint, fk);
+      tube(HB.clone().addScaledVector(axis, 0.12), HT, 0.0185, paint, fk);
       const clampS = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.065, 0.052), M.darkMetal); clampS.position.copy(HB).addScaledVector(axis, 0.18); fk.add(clampS);
       for (const by of [-0.02, 0.02]) for (const bx of [-1, 1]) { const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.012, 6).rotateZ(Math.PI / 2), M.alloy); bolt.position.copy(clampS.position).add(v3(bx * 0.03, by, 0)); fk.add(bolt); }
     }
-    const barW = e ? 0.26 : 0.29;
+    const barW = e ? 0.26 : 0.315;
     const gl = v3(-barW, HT.y, HT.z), gr = v3(barW, HT.y, HT.z);
-    tube(gl, gr, e ? 0.014 : 0.0145, e ? M.darkMetal : paint, fk);
-    if (!e) for (const sx of [-1, 1]) { tube(v3(sx * 0.075, HT.y - 0.2, HT.z + 0.005), v3(sx * 0.075, HT.y, HT.z), 0.011, paint, fk); weld(v3(sx * 0.075, HT.y, HT.z), 0.016, paint, fk); }
-    if (!e) tube(v3(-0.075, HT.y - 0.2, HT.z + 0.005), v3(0.075, HT.y - 0.2, HT.z + 0.005), 0.012, paint, fk);
+    tube(gl, gr, e ? 0.014 : 0.0165, e ? M.darkMetal : paint, fk);
+    if (!e) { weld(v3(0, HT.y, HT.z), 0.024, paint, fk); for (const sx of [-1, 1]) tube(v3(0, HT.y - 0.085, HT.z), v3(sx * 0.07, HT.y - 0.004, HT.z), 0.008, paint, fk); }
     for (const gp of [gl, gr]) {
       const sx = Math.sign(gp.x);
-      const g = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.14, 16).rotateZ(Math.PI / 2), M.grip); g.position.copy(gp).add(v3(-sx * 0.065, 0, 0)); fk.add(g);
+      const g = new THREE.Mesh(new THREE.CylinderGeometry(e ? 0.019 : 0.0205, e ? 0.019 : 0.0185, 0.14, 16).rotateZ(sx * Math.PI / 2), e ? M.grip : paint); g.position.copy(gp).add(v3(-sx * 0.065, 0, 0)); fk.add(g);
+      if (!e) for (let k = 0; k < 6; k++) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.0215, 0.0215, 0.006, 14).rotateZ(Math.PI / 2), M.grip); ring.position.copy(gp).add(v3(-sx * (0.012 + k * 0.021), 0, 0)); fk.add(ring); }
       const fl = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.008, 16).rotateZ(Math.PI / 2), M.grip); fl.position.copy(gp).add(v3(-sx * 0.135, 0, 0)); fk.add(fl);
       const end = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.01, 14).rotateZ(Math.PI / 2), M.alloy); end.position.copy(gp).add(v3(sx * 0.005, 0, 0)); fk.add(end);
       if (e) { const lever = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.008, 0.016), M.alloy); lever.position.copy(gp).add(v3(-sx * 0.07, -0.01, 0.04)); fk.add(lever); }
@@ -1382,7 +1400,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     // fork + front wheel
     for (const sx of [-1, 1]) tube(v3(sx * (e ? 0.045 : 0.03), HB.y - (e ? 0.12 : 0.01), HB.z), v3(sx * (e ? 0.045 : 0.03), F.y, F.z), e ? 0.013 : 0.01, M.darkMetal, fk);
     const fcrown = new THREE.Mesh(new THREE.BoxGeometry(e ? 0.12 : 0.08, 0.02, 0.04), M.darkMetal); fcrown.position.set(0, HB.y - (e ? 0.12 : 0.01), HB.z); fk.add(fcrown);
-    const fw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, motor: true, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, M.alloy); fw.position.copy(F); fk.add(fw);
+    const fw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, motor: true, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); fw.position.copy(F); fk.add(fw);
     if (e) {
       const disp = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.016, 0.055), new THREE.MeshStandardMaterial({ color: 0x050505, emissive: 0x2ad1ff, emissiveIntensity: 1.8 })); disp.position.copy(HT).add(v3(0, 0.022, 0.005)); fk.add(disp);
       const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.035, 16).rotateX(Math.PI / 2), M.headlight); hl.position.copy(HB).addScaledVector(axis, 0.62).add(v3(0, 0, 0.035)); fk.add(hl);
@@ -1395,11 +1413,11 @@ function buildVehicle(kind, colorIdx = paintColor) {
     // deck + rear (tailwhips around the stem)
     const whip = axisPivot(model, HB, axis);
     const fr = new THREE.Group(); model.add(fr);
-    const deckL = e ? 0.76 : 0.5, deckW = e ? 0.17 : 0.115, deckH = e ? 0.085 : 0.034;
+    const deckL = e ? 0.76 : 0.52, deckW = e ? 0.17 : 0.125, deckH = e ? 0.085 : 0.036;
     const dz = HB.z - deckL / 2 - 0.03;
     const deck = roundedDeckGeo(deckL, deckW, deckH, e ? 0.03 : 0.02);
     const dm = new THREE.Mesh(deck.geo, e ? M.darkMetal : paint); dm.position.set(0, deckTop - deckH, dz); dm.castShadow = true; fr.add(dm);
-    const tape = new THREE.Mesh(new THREE.ShapeGeometry(deck.shape, 8).rotateX(-Math.PI / 2), M.griptape); tape.scale.set(0.92, 1, 0.96); tape.position.set(0, deckTop + 0.0015, dz); fr.add(tape);
+    const tape = new THREE.Mesh(new THREE.ShapeGeometry(deck.shape, 8).rotateX(-Math.PI / 2), e ? M.griptape : deckArtMat(deckW, deckL)); tape.scale.set(e ? 0.92 : 0.98, 1, e ? 0.96 : 0.985); tape.position.set(0, deckTop + 0.0015, dz); fr.add(tape);
     if (e) {
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(deckW + 0.004, 0.012, deckL * 0.8), paint); stripe.position.set(0, deckTop - deckH * 0.55, dz); fr.add(stripe);
       const kick = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.16), M.darkMetal); kick.position.set(-deckW / 2 - 0.005, deckTop - deckH + 0.01, dz - 0.05); fr.add(kick);
@@ -1413,7 +1431,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
       const drop = new THREE.Mesh(new THREE.BoxGeometry(0.008, e ? 0.12 : 0.07, e ? 0.12 : 0.08), e ? M.darkMetal : paint); drop.position.copy(a.clone().lerp(v3(a.x, R.y, R.z), 0.5)); drop.rotation.x = e ? 0.4 : 0.6; fr.add(drop);
     }
     const fender = new THREE.Mesh(new THREE.TorusGeometry(r + 0.012, 0.014, 4, 18, Math.PI * 0.55).scale(1, 1, e ? 3.0 : 1.9), M.darkMetal); fender.rotation.y = Math.PI / 2; fender.rotateZ(0.6); fender.position.copy(R); fr.add(fender);
-    const rw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, disc: 0.06, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, M.alloy); rw.position.copy(R); fr.add(rw);
+    const rw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, disc: 0.06, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); rw.position.copy(R); fr.add(rw);
     if (e) {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), M.taillight); tl.position.set(0, r + 0.12, R.z - 0.11); fr.add(tl);
       const shock = curveTube([v3(0.06, deckTop - deckH, dz - deckL / 2 + 0.1), v3(0.06, R.y + 0.05, R.z + 0.06)], 0.012, M.postbox, fr);
@@ -2233,7 +2251,7 @@ function landSoft(P, C, gh, surf) {
   P.landWindow = 1.4;
   if (surf === 'airbag') {
     if (fault) showPopup('AIRBAG', 'good', 'SAVED YOU');
-    P.v = Math.min(hv * 0.12, 1.2); P.crouchV -= 3; sfx.land(3); goal('airbag');
+    P.v = Math.min(hv * 0.12, 1.2); P.crouchV -= 3; sfx.land(3); goal(P.pos.x < -300 ? 'foampit' : 'airbag');
   } else {
     const vy = clamp(-P.vel.y * 0.9 + 2, 8.5, 15.5);
     launch(P, vy, hv * 0.8, null, 0, true); sfx.hop(); goal('tramp');
@@ -2337,6 +2355,7 @@ function scoreAir(P, C, yawErr, flipErr) {
   if (P.airStart.x > 172 && P.airStart.x < 181 && Math.abs(P.airStart.z - 262) < 3 && P.pos.x > 196) { parts.push('Bus Jump'); pts += 900; mult += 2; goal('bus'); }
   if (P.vertAir && Math.abs(P.airStart.x + 150) < 14 && Math.abs(P.airStart.z + 164) < 10) goal('bowl');
   if (P.airStart.x > BA.kickX - 1 && P.airStart.x < BA.kickX + 13 && Math.abs(P.airStart.z - 95) < 5 && P.pos.x > BA.landX + 4) { parts.push('XL Mega'); pts += 1500; mult += 2; goal('xlmega'); }
+  if (P.airStart.x > H100.kickX - 1 && P.airStart.x < H100.kickX + 20 && Math.abs(P.airStart.z - H100.Z) < 6 && P.pos.x > H100.landX + 4) { parts.push('THE 100'); pts += 5000; mult += 3; goal('the100'); }
   if (P.vertAir && P.maxH > 5 && P.airStart.x > 440 && P.airStart.x < 476 && Math.abs(P.airStart.z + 95) < 10) goal('vert5');
   if (P.airStart.x > -162 && P.airStart.x < -146 && Math.abs(P.airStart.z - 490) < 5 && P.pos.x > CY.mesaB) { parts.push('Canyon Gap'); pts += 1200; mult += 2; goal('canyon'); }
   if (P.airStart.x > -367 && P.airStart.x < -353 && P.airStart.z > -112 && P.airStart.z < -106 && P.pos.z > -101) { parts.push('El Toro'); pts += 700; mult += 1; goal('eltoro'); }
@@ -3161,7 +3180,7 @@ concreteRamp({ x: -282, z: 0, yaw: -Math.PI / 2, width: 13, length: 3.4 * 0.965 
 for (const [x, h] of [[-230, 1.1], [-205, 0.6], [-125, 1.3], [-20, 1.0]]) { const r = new Ramp({ x, z: 0, yaw: Math.PI / 2, width: 2.0, length: 2.4, type: 'kicker', surface: 'wood', profile: PROF.kicker(2.4, h, 1.3) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 12 }); }
 const BA = { kickX: 418, landX: 448, bagKickX: 368, bagX: 378 }, CY = { mesaB: -128 }, WOODS_TRAIL = {};
 // ───────────────────────── v2.1: the sea (waves, islands, treasure) and the snowy mountain ─────────────────────────
-const SEA_Y = -0.3, ISLANDS = [], CHESTS = [], SKI = {}, WAREHOUSE = {}, ROOF = {};
+const SEA_Y = -0.3, ISLANDS = [], CHESTS = [], SKI = {}, WAREHOUSE = {}, ROOF = {}, H100 = { Z: 225, kickX: 440, landX: 500 };
 function waveH(x, z, t) {
   const f = clamp((SEA_Z - 4 - z) / 30, 0, 1);   // flat by the beach, rolling further out
   return (Math.sin(z * 0.11 + t * 1.3) * 0.34 + Math.sin(x * 0.06 + z * 0.045 - t * 0.8) * 0.22 + Math.sin(x * 0.17 - t * 1.7) * 0.06) * f;
@@ -3796,6 +3815,64 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
     sign.position.set(X - 5, 9, Z + D / 2 + 16); sign.rotation.y = Math.PI; scene.add(sign);
     for (const sx of [-6.5, 6.5]) { cyl(0.12, 0.12, 9, M.pole, X - 5 + sx, 4.5, Z + D / 2 + 16.1, scene, 8); collide(X - 5 + sx, Z + D / 2 + 16.1, 0.2, 0.2); }
     NEW_ZONES.bigbowl = { name: 'THE BIG BOWL', pos: v3(X - 14, 0, Z + D / 2 - 1.2), yaw: Math.PI };
+  }
+
+  // ── THE 100: a 100 m roll-in inside a stadium ──
+  {
+    const Z = H100.Z, X0 = 304, RUN = 118, TOP = 100;
+    flat(X0 + 8 + RUN - 2, 880, Z - 12, Z + 12, M.rampTop, 0.03, 8, 'park');
+    const roll = new Ramp({ x: X0, z: Z, yaw: Math.PI / 2, width: 10, length: 8 + RUN, type: 'rollin', surface: 'wood', profile: PROF.rollin(8, RUN, TOP) });
+    buildRampMesh(roll, M.wood, M.woodSide, { nu: 140, sideMap: graffitiTex('THE 100') });
+    for (let x = X0 + 2; x <= X0 + 8 + RUN; x += 8) { const h = roll.profile(x - X0); if (h < 1) continue; for (const s of [-1, 1]) cyl(0.12, 0.12, h, M.steel, x, h / 2, Z + s * 4.7, scene, 6); if (h > 14) box(0.1, 0.1, 9.4, M.steel, x, h * 0.5, Z); }
+    for (const s of [-1, 1]) { tube(v3(X0 + 0.2, TOP + 1, Z + s * 4.9), v3(X0 + 7.8, TOP + 1, Z + s * 4.9), 0.04, M.pole, scene); for (const x of [X0 + 0.2, X0 + 4, X0 + 7.8]) cyl(0.035, 0.035, 1, M.pole, x, TOP + 0.5, Z + s * 4.9, scene, 6); }
+    tube(v3(X0 + 0.2, TOP + 1, Z - 4.9), v3(X0 + 0.2, TOP + 1, Z + 4.9), 0.04, M.pole, scene);
+    // lift to the top
+    box(3, TOP + 3, 3, M.darkMetal, X0 - 2.2, (TOP + 3) / 2, Z); collide(X0 - 2.2, Z, 1.5, 1.5, TOP - 1);
+    H100.top = v3(X0 + 3, TOP, Z); H100.base = v3(X0 - 2.2, 0, Z - 5);
+    const KX = H100.kickX, KL = 16, KH = 7;
+    const kick = new Ramp({ x: KX, z: Z, yaw: Math.PI / 2, width: 9, length: KL, type: 'kicker', surface: 'wood', profile: PROF.kicker(KL, KH, 1.8) });
+    buildRampMesh(kick, M.wood, M.woodSide, { nu: 36, sideMap: sponsorTex(4) });
+    const LX = H100.landX, LH = 18, LD = 5, LL = 90;
+    const land = new Ramp({ x: LX, z: Z, yaw: Math.PI / 2, width: 22, length: LD + LL, type: 'landing', surface: 'wood', profile: PROF.landing(LD, LL, LH) });
+    buildRampMesh(land, M.wood, M.woodSide, { nu: 80 });
+    for (let x = LX; x <= LX + LD + LL; x += 6) { const h = land.profile(x - LX); if (h < 1) continue; for (const s of [-1, 1]) cyl(0.09, 0.09, h, M.steel, x, h / 2, Z + s * 10.6, scene, 6); }
+    // the front of the landing is a wall of sponsor boards (like a comp ramp)
+    for (const [dz, i] of [[-6, 0], [0, 4], [6, 2]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(5, 2.5), sponsorMat(i)); m.position.set(LX - 0.06, LH - 3, Z + dz); m.rotation.y = -Math.PI / 2; m.userData.noMerge = true; scene.add(m); }
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(22, LH), M.darkMetal); face.position.set(LX - 0.03, LH / 2, Z); face.rotation.y = -Math.PI / 2; scene.add(face);
+    concreteRamp({ x: 878 - (9 * 0.965 + 2), z: Z, yaw: Math.PI / 2, width: 30, length: 9 * 0.965 + 2, type: 'qp', R: 9, profile: PROF.qp(9) }, { graffiti: true });
+    // stadium: tiers of seats down both sides and round the far end, floodlights on towers
+    const seatM = [0x1f4fd6, 0x2a62e8, 0x1a43b8].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+    const tier = (cx, cz, w, d, rot) => { for (let t = 0; t < 9; t++) { const g = box(w, 1.5, 3, seatM[t % 3], 0, 0, 0); g.position.set(cx + Math.sin(rot) * (t * 3), 0.75 + t * 1.5, cz + Math.cos(rot) * (t * 3)); g.rotation.y = rot; g.castShadow = false; } const c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot)); collide(cx + Math.sin(rot) * 12, cz + Math.cos(rot) * 12, c * w / 2 + s * 13.5, s * w / 2 + c * 13.5); const back = box(w, 16, 1, M.darkMetal, 0, 0, 0); back.position.set(cx + Math.sin(rot) * 27, 8, cz + Math.cos(rot) * 27); back.rotation.y = rot; };
+    tier(650, Z + 46, 430, 3, 0); tier(650, Z - 46, 430, 3, Math.PI); tier(898, Z, 92, 3, Math.PI / 2);
+    for (const [lx, lz] of [[440, Z + 78], [440, Z - 78], [660, Z + 78], [660, Z - 78], [870, Z + 78], [870, Z - 78]]) { cyl(0.5, 0.7, 46, M.pole, lx, 23, lz, scene, 8); const p = box(10, 5, 0.6, M.lamp, lx, 47, lz, scene, false); p.rotation.y = lz > Z ? Math.PI : 0; lampSpots.push(v3(lx, 45, lz - Math.sign(lz - Z) * 6)); collide(lx, lz, 0.8, 0.8); }
+    for (const sd of [-1, 1]) bannerStrip(650, 1.2, Z + sd * 44.4, sd > 0 ? Math.PI : 0, 420, 1.6);
+    lampSpots.push(v3(X0 + 4, TOP + 3, Z), v3(KX + 8, 10, Z), v3(LX + 6, LH + 3, Z));
+    NEW_ZONES.the100 = { name: 'THE 100', pos: v3(X0 + 3, 0, Z), yaw: Math.PI / 2 };
+  }
+  // ── a tall drop-in tower with railings on the Big Bowl deck ──
+  {
+    const X = 455 + 15, Z = -200 - 17.4, BH = 4.5, R = 7, W = 10, u = R * 0.965, dk = 2, top = BH + qh(R);
+    woodQP(X, Z, Math.PI, W, R, dk, BH);
+    const zb = Z - u - dk, za = Z - u;
+    for (const s of [-1, 1]) { tube(v3(X + s * W / 2, top + 1.1, za), v3(X + s * W / 2, top + 1.1, zb), 0.035, M.pole, scene); for (let k = 0; k <= 4; k++) cyl(0.02, 0.02, 1.1, M.pole, X + s * W / 2, top + 0.55, za + (zb - za) * k / 4, scene, 6); }
+    tube(v3(X - W / 2, top + 1.1, zb), v3(X + W / 2, top + 1.1, zb), 0.035, M.pole, scene); for (let k = 0; k <= 8; k++) cyl(0.02, 0.02, 1.1, M.pole, X - W / 2 + W * k / 8, top + 0.55, zb, scene, 6);
+    collide(X, zb - 0.1, W / 2, 0.12, top + 1.1); for (const s of [-1, 1]) collide(X + s * (W / 2 + 0.05), (za + zb) / 2, 0.1, dk / 2, top + 1.1);
+    NEW_ZONES.bigbowl = { name: 'THE BIG BOWL', pos: v3(X, 0, zb + 0.9), yaw: 0 };
+  }
+  // ── a foam pit in the Warehouse, with a kicker into it ──
+  {
+    const X = -355, Z = 295;
+    const fc = makeCanvas(256, 256), g = fc.getContext('2d'); g.fillStyle = '#16264a'; g.fillRect(0, 0, 256, 256);
+    seed = 4242; for (let i = 0; i < 260; i++) { const s = 26 + srand() * 14, x = srand() * 256, y = srand() * 256, v = 34 + Math.floor(srand() * 30); g.save(); g.translate(x, y); g.rotate(srand() * 1.6); g.fillStyle = i % 3 ? `rgb(${v},${v + 46},${v + 130})` : `rgb(${v + 150},${v + 150},${v + 160})`; g.fillRect(-s / 2, -s / 2, s, s); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2; g.strokeRect(-s / 2, -s / 2, s, s); g.restore(); }
+    const ft = new THREE.CanvasTexture(fc); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.colorSpace = THREE.SRGBColorSpace;
+    const foamM = new THREE.MeshStandardMaterial({ map: ft, roughness: 1 });
+    const x0 = X - 30.5, x1 = X - 18, z0 = Z - 21.5, z1 = Z - 8;
+    block(x0, x1, z0, z1, 1.3, foamM, M.rampSide, 'airbag', 3);
+    for (let i = 0; i < 170; i++) { const c = box(0.42, 0.42, 0.42, foamM, x0 + 0.4 + srand() * (x1 - x0 - 0.8), 1.3 + srand() * 0.22, z0 + 0.4 + srand() * (z1 - z0 - 0.8)); c.rotation.set(srand() * 3, srand() * 3, srand() * 3); }
+    for (const [bx, bz, bw, bd] of [[(x0 + x1) / 2, z1 + 0.15, x1 - x0, 0.3], [x1 + 0.15, (z0 + z1) / 2, 0.3, z1 - z0]]) box(bw + 0.3, 1.5, bd, M.darkMetal, bx, 0.75, bz);
+    woodKick(x1 + 7.5, Z - 15, -Math.PI / 2, 5, 5, 2.1);
+    box(0.3, 2.1, 5, M.woodSide, x1 + 2.4, 1.05, Z - 15);
+    deckSign(X - 31.4, 0, Z - 15, Math.PI / 2, 8, 4.5);
   }
 
   // ── the old skatepark gets deck signs and banners ──
@@ -5152,7 +5229,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.2.1';
+const GAME_VERSION = '2.3.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -5321,9 +5398,9 @@ const ZONE_INFO = {
   woods: ['Woods', 'Forest downhill with tables, drops and logs', 'NEW'],
   market: ['Market Street', 'DcMonalds, Kurger Bings, Barstucks, Ocset and the pub', 'NEW'], mountain: ['Peak Run', 'Snowy mountain: ski hut, chairlift and a ski run', 'NEW'],
   islands: ['Islands', 'Surf out to five islands with treasure chests', 'NEW'],
-  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'], bigbowl: ['The Big Bowl', 'A massive concrete bowl, 4.5 m deep', 'NEW'],
+  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'], bigbowl: ['The Big Bowl', 'A massive bowl with an 8 m drop-in tower', 'NEW'], the100: ['The 100', 'A 100 m roll-in inside a stadium', 'NEW'],
 };
-const ZONE_ORDER = ['auto', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
+const ZONE_ORDER = ['auto', 'the100', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
 const zoneThumb = k => `assets/maps/${k}.jpg`;
 function renderRidePicker() {
   const el = document.getElementById('ride-picker'); if (!el) return;
@@ -5567,7 +5644,7 @@ function updateReplay(dt) {
 }
 
 // the full map: every place in the game, click one to go there
-const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
+const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'bigbowl', 'the100', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
 let mapPrev = 'play';
 function openMap() {
   if (state === 'map') return closeMap();
@@ -6611,6 +6688,7 @@ function capeMesh(col) {
 
 // ───────────────────────── v2.1: more goals & leaderboards ─────────────────────────
 GOALS.push(
+  ['the100', 'Clear the gap on The 100'], ['foampit', 'Land in the foam pit'],
   ['walk', 'Get off and walk around'], ['reverse', 'Ride backwards for 10 m'], ['shop', 'Go into a shop'], ['allshops', 'Visit all five shops'],
   ['buy', 'Buy food or a drink'], ['eat', 'Eat or drink something'], ['eat10', 'Eat or drink 10 things'],
   ['surf', 'Ride into the sea and surf'], ['surf200', 'Surf 200 m in one go'], ['waveair', 'Get air off a wave'],
@@ -6630,6 +6708,14 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.3.0', d: 'November 2026', t: 'The 100', items: [
+    'The 100: a 100 m tall roll-in inside a stadium, with a huge gap to clear. Take the lift at the bottom (unlocks at level 9)',
+    'Pro scooter redesign: tall wide T-bars, coloured grips, a printed deck and coloured wheel cores',
+    'An 8 m drop-in tower with railings on the Big Bowl deck. The Big Bowl now starts you on top of it',
+    'A foam pit in The Warehouse with a kicker into it: land anything',
+    'The update log now shows every version since 1.0',
+    '2 new goals',
+  ] },
   { v: '2.2.1', d: 'November 2026', t: 'The launcher', items: [
     'New: the SEND IT Launcher. It installs the game, updates it by itself and starts it with one click (get it from the website)',
     "Sponsor signs don't cut their names off any more",
@@ -6668,8 +6754,14 @@ const CHANGELOG = [
   { v: '2.0.2', d: 'November 2026', t: 'Flips', items: ['Tap W or S in the air to do a full flip (hold for a double)', 'Flips work on the e-scooter'] },
   { v: '2.0.1', d: 'November 2026', t: 'Fixes', items: ['Fixed the Plaza 7-stair goal'] },
   { v: '2.0.0', d: 'November 2026', t: 'The ultra update', items: ['Skateboard', 'Big Air, Downtown, Canyon, Woods, Vert ramp, Airbag and Desert line', 'New menu, ride picker and world map', 'Levels, XP and daily challenges', 'Photo mode and instant replay', 'Day/night cycle', 'Lots more tricks and named combos'] },
-  { v: '1.5', d: 'October 2026', t: 'Online', items: ['Accounts, friends and servers', 'Leaderboards', 'Discord sign-in', 'Auto-updates'] },
-  { v: '1.0', d: 'October 2026', t: 'First release', items: ['Bike, e-bike, scooter and e-scooter', 'Skatepark, dirt jumps, mega ramp, plaza and the high street'] },
+  { v: '1.5.2', d: 'November 2026', t: 'Radio fix', items: ['Fixed a low rumble that built up on 808 FM'] },
+  { v: '1.5.1', d: 'November 2026', t: 'Fair scores', items: ['Fixed a scoring exploit where spamming trick buttons stacked dozens of whips for millions of points', 'Repeating a trick in the same combo pays less each time', 'The combo multiplier tops out at ×12 and one combo pays at most 2,500 coins', 'A whip only counts if it is nearly finished when you land'] },
+  { v: '1.5.0', d: 'November 2026', t: 'Automatic updates', items: ['The game updates itself: it checks when it starts and every 30 minutes, downloads the new version in the background and offers Restart now', 'Your saves are kept across updates', 'Version number shown in Settings'] },
+  { v: '1.4.1', d: 'November 2026', t: 'Smoother and louder', items: ['Quieter, smoother ride sounds with no more buzzing', 'Separate Music and Sound effects sliders', 'Traffic drives faster (about 55–75 km/h)', 'Ride into someone fast and you knock them flat; they get back up a few seconds later'] },
+  { v: '1.4', d: '', t: 'Online', items: ['New menu with Play, Garage, Online, Ranks and Settings tabs', 'Accounts: sign up with a username and password or sign in with Discord. Coins, upgrades, skins and goals save online', 'Coins for tricks: every combo you land pays coins', 'Avatars: design your face or upload your own picture', 'Leaderboards: best combo, Trick Attack, Hill Bomb, biggest air and most coins', 'Server list: join public servers in one click or host public or friends-only servers', 'Friends: add people, see who is online and join them', 'Invites and invite links', '4 new paint jobs (pixel camo, rainbow, lava, diamond) and 4 new skins (ninja, ice, toxic, royal)'] },
+  { v: '1.3', d: '', t: 'Three new places', items: ['New logo and app icon', 'Hill Bomb: a 36 m downhill road with five tabletops and a timed race', 'Seafront: beach, promenade rails, a concrete bowl and a pier to launch off into the sea', 'Construction Yard: jump a double-decker bus, ride containers and a giant concrete pipe', 'More ramps along the high street', 'Garage: 5 upgrades per ride, 10 paint jobs and 8 rider outfits', 'Radio: 5 stations made live in the game', 'Trick Attack: score as much as you can in 2 minutes', '5 new goals'] },
+  { v: '1.2', d: '', t: 'Multiplayer and grinds', items: ['Multiplayer rooms with a 4-letter code, name tags, a scoreboard and chat', 'Grinds on any rail, ledge, bench or the fountain rim', '7 trick buttons per ride, plus stoppies and nose manuals', 'Easy mode and Pro mode', 'Slow-mo on big airs', 'The Plaza: granite deck, 7-stair with handrails, banks, ledges and a fountain', 'A living city: traffic, people on the pavements, murals and billboards', 'Time of day: day, sunset or night', 'Collect S-E-N-D-I-T letters and 14 goals'] },
+  { v: '1.0', d: '', t: 'First release', items: ['Bike, e-bike, scooter and e-scooter', 'Flips, spins, tailwhips, barspins and wheelies', 'Skatepark, dirt jumps, the mega ramp and the high street'] },
 ];
 function openLog() {
   const el = document.getElementById('whatsnew');
@@ -6697,6 +6789,7 @@ addNPC({ name: 'Walker', x: -120, z: 9.5, yaw: 0, job: 'walker' });
 function rideLift(to) { const P = player; P.pos.copy(to); P.v = 0; P.air = false; P.wspd = 0; P.safe.pos.copy(to); P.hist = []; camState.init = false; showPopup(to.y > 1 ? 'ROOFTOP PARK' : 'GROUND FLOOR', '', 'LIFT'); }
 INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: () => placeOpen('rooftop') || curLevel() >= PLACE_LVL.rooftop ? 'Take the lift to the roof' : `Lift to the roof (unlocks at level ${PLACE_LVL.rooftop})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.rooftop) return lockedPlaceMsg('rooftop'); rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)); } });
 INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
+INTERACT.push({ x: H100.base.x, z: H100.base.z, r: 4, label: () => unlockAll || curLevel() >= PLACE_LVL.the100 ? 'Take the lift up The 100' : `Lift up The 100 (unlocks at level ${PLACE_LVL.the100})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.the100) return lockedPlaceMsg('the100'); rideLift(H100.top.clone()); showPopup('THE 100', '', '100 M UP'); } });
 // ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
 function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
 function closeUi() {
@@ -6790,7 +6883,7 @@ function drawMiniExtras(k, P) {
 
 // ───────────────────────── v2.2: rides and places you unlock by levelling up ─────────────────────────
 const RIDE_LVL = { bike: 1, scooter: 1, skate: 2, escooter: 3, ebike: 4, surf: 4, ski: 6 };
-const PLACE_LVL = { woodpark: 3, islands: 4, isle_palm: 4, isle_skull: 4, isle_far: 4, isle_tiny: 4, isle_sandbar: 4, warehouse: 5, mountain: 6, skihut: 6, bigbowl: 7, rooftop: 8 };
+const PLACE_LVL = { woodpark: 3, islands: 4, isle_palm: 4, isle_skull: 4, isle_far: 4, isle_tiny: 4, isle_sandbar: 4, warehouse: 5, mountain: 6, skihut: 6, bigbowl: 7, rooftop: 8, the100: 9 };
 let visited = new Set(store.get('visited', []));
 let unlockAll = store.get('unlockAll', false);
 function curLevel() { return levelOf(xp).l; }
@@ -7132,4 +7225,4 @@ window.__game = {
   fixCam(x, y, z, fov = 50, lx, ly, lz) { camFixed = x == null ? null : { p: v3(x, y, z), fov, l: lx == null ? null : v3(lx, ly, lz) }; if (x == null) camState.init = false; },
   setCam(x, y, z) { camOverride = x == null ? null : v3(x, y, z); },
   player, input, keys, spawn, equip, startRide, togglePause, get state() { return state; }, camState, VEH, veh: () => veh, score: () => score, combo: () => combo,
-  vs: VS, root, rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
+  vs: VS, root, H100, rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };

@@ -1,7 +1,7 @@
 {
- "version": "2.2.1",
+ "version": "2.3.0",
  "minShell": "1.5.0",
- "notes": "2.2.1: the new SEND IT Launcher, and sponsor signs fit their names",
+ "notes": "The 100: a 100 m roll-in in a stadium, pro scooter redesign, drop-in tower at the Big Bowl, foam pit, full update log",
  "files": [
   {
    "path": "index.html",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "5f7dcc7d4d39fb4fad1f8c3c3de1d74c2bc15f2ee60a416c426f2f8da23e60c5"
+   "sha256": "5544be91f7266f0ae68d3b9ecbc69c6126d0fada1799b8c19c93fcdef752573a"
   },
   {
    "path": "src/game.js",
-   "sha256": "3c97c25ffc086c415b6cc7c7027fb87645e4341291f3af31e13d7d787f9519f7"
+   "sha256": "cd1efa9b6e5ec190d9c230856d5ec019c7644dcff6382d2c5407548e3e1341cb"
   },
   {
    "path": "assets/logo-icon.png",
@@ -102,6 +102,10 @@
   {
    "path": "assets/maps/street.jpg",
    "sha256": "a8eaa363ffede81042d934c291e248e04900e0ef032f80b893edb39c19c41be5"
+  },
+  {
+   "path": "assets/maps/the100.jpg",
+   "sha256": "cc99b32b319208f93999d0273daf004f49787bc6d3f03acfbe996251ed216b88"
   },
   {
    "path": "assets/maps/vert.jpg",
