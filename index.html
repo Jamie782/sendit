@@ -89,6 +89,7 @@
       <button data-tab="ranks">RANKS</button>
       <button data-tab="tricks">TRICKS</button>
       <button data-tab="settings">SETTINGS</button>
+      <button data-tab="admin" class="hidden adm-tab">ADMIN</button>
     </nav>
     <div class="tb-right">
       <div class="lvl-chip" id="lvl-top"></div>
@@ -115,7 +116,7 @@
         <div class="room-line hidden" id="room-line" onclick="event.target.closest('[data-copy]') && window.copyInvite()"></div>
         <div class="controls-lbl" id="controls-lbl">W/S ride · A/D steer · SPACE hop · SHIFT wheelie · J K L I U O tricks in the air · M map</div>
       </div>
-      <div class="side-col"><div id="daily" class="daily"></div><button class="act ghost quest-btn" id="quest-log-btn">QUEST LOG</button></div>
+      <div class="side-col"><div id="daily" class="daily"></div><div id="quest-card" class="daily quest-card"></div><button class="hidden" id="quest-log-btn"></button></div>
     </section>
 
     <!-- GARAGE -->
@@ -149,6 +150,7 @@
               <button id="srv-invite" class="act ghost hidden" onclick="window.copyInvite()">COPY INVITE LINK</button>
             </div>
             <div id="mp-status"></div>
+            <div id="srv-players" class="srv-players hidden"></div>
           </div>
           <div class="on-col">
             <div class="p-head">FRIENDS <span class="muted" id="fr-count"></span></div>
@@ -163,12 +165,19 @@
     <!-- RANKS -->
     <section class="pane hidden" data-pane="ranks">
       <div class="panel wide">
-        <div class="seg" id="lb-boards"></div>
-        <div class="lb-sub"><div class="seg small" id="lb-scope"><button data-v="all" class="sel">EVERYONE</button><button data-v="friends">FRIENDS</button></div><span class="muted" id="lb-note"></span></div>
-        <div id="lb-list" class="list lb"></div>
-        <div id="lb-me" class="lb-me"></div>
-        <div class="p-head">GOALS <span id="goal-count" class="muted"></span></div>
-        <div id="goals-panel"></div>
+        <div class="seg sub-view" id="ranks-view"><button data-v="boards" class="sel">LEADERBOARDS</button><button data-v="goals">GOALS</button></div>
+        <div id="ranks-boards" class="ranks-boards">
+          <div id="lb-boards" class="lb-side"></div>
+          <div class="lb-main">
+            <div class="lb-sub"><div class="seg small" id="lb-scope"><button data-v="all" class="sel">EVERYONE</button><button data-v="friends">FRIENDS</button></div><span class="muted" id="lb-note"></span></div>
+            <div id="lb-list" class="list lb"></div>
+            <div id="lb-me" class="lb-me"></div>
+          </div>
+        </div>
+        <div id="ranks-goals" class="hidden">
+          <div class="p-head">GOALS <span id="goal-count" class="muted"></span><span class="muted">· 300 coins each</span></div>
+          <div id="goals-panel"></div>
+        </div>
       </div>
     </section>
 
@@ -183,22 +192,51 @@
     <!-- SETTINGS -->
     <section class="pane hidden" data-pane="settings">
       <div class="panel">
+        <div class="seg sub-view" id="set-view"><button data-v="general" class="sel">GENERAL</button><button data-v="sound">SOUND</button><button data-v="controls">CONTROLS</button><button data-v="about">ABOUT</button></div>
+        <div data-setv="general">
         <div class="set-row"><span>GRAPHICS</span><div class="seg" id="quality-seg"></div></div>
         <div class="set-row"><span>TIME OF DAY</span><div class="seg" id="tod-seg"></div></div>
         <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="easy-seg"></div></div>
+        <div class="set-row"><span>PEOPLE TALK OUT LOUD</span><div class="seg" id="voice-seg"></div></div>
+        </div>
+        <div data-setv="sound" class="hidden">
         <div class="p-head">RADIO <span class="muted">N = next station</span></div>
         <div class="chips" id="music-seg"></div>
         <div class="set-row"><span>MUSIC</span><input type="range" id="vol" min="0" max="100" value="70"></div>
         <div class="set-row"><span>SOUND EFFECTS</span><input type="range" id="sfx-vol" min="0" max="100" value="60"></div>
-        <div class="set-row"><span>PEOPLE TALK OUT LOUD</span><div class="seg" id="voice-seg"></div></div>
+        </div>
+        <div data-setv="controls" class="hidden">
         <div class="p-head">CONTROLS <span class="muted">click a key to change it</span><button class="link-btn" id="controls-reset">RESET</button></div>
         <div id="controls-list" class="controls-list"></div>
-        <div class="ver-row"><div class="ver-line" id="ver-line"></div><button class="act ghost" id="log-btn">UPDATE LOG</button></div>
+        </div>
+        <div data-setv="about" class="hidden">
+          <div class="about"><img src="assets/logo-wordmark.svg" alt="SEND IT"><div class="ver-line" id="ver-line"></div><button class="act" id="log-btn">UPDATE LOG</button><p class="muted small">Made by Jamie. Free for Windows and Mac.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="pane hidden" data-pane="admin">
+      <div class="panel xwide admin">
+        <div class="adm-head"><b>ADMIN</b><small id="adm-role">ADMIN</small><span class="muted">Everything here is logged.</span></div>
+        <div class="p-head">YOU</div>
+        <div class="adm-self"><button class="act" id="adm-max">MAX ALL MY UPGRADES</button><button class="act ghost" id="adm-unlock">UNLOCK ALL RIDES &amp; PLACES</button><button class="act ghost" id="adm-skins">GIVE ME EVERY SKIN &amp; PAINT</button></div>
+        <div class="p-head">PLAYERS <button class="mini" id="adm-refresh" title="Refresh">↻</button></div>
+        <div class="adm-bar">
+          <input id="adm-q" placeholder="Search a username" autocomplete="off">
+          <label>COINS <input id="adm-amount" type="number" min="1" value="500"></label>
+          <label>BAN FOR <select id="adm-len"></select></label>
+          <input id="adm-why" maxlength="120" placeholder="Ban reason (optional)" autocomplete="off">
+        </div>
+        <div id="adm-msg"></div>
+        <div id="adm-list" class="list adm-list"></div>
+        <div class="muted small">In-game chat works too: <b>/give name 500</b> · <b>/take name 500</b> · <b>/kick name</b> · <b>/ban name 2h reason</b> (m, h, d, w or perm) · <b>/unban name</b> · owner only: <b>/admin name</b>, <b>/unadmin name</b></div>
       </div>
     </section>
   </main>
 </div>
 
+<div id="notice" class="modal hidden"><div class="modal-box notice-box"><button class="x">✕</button><div class="m-title"></div><div class="nt-body"></div><button class="act nt-ok">OK</button></div></div>
 <div id="dialog" class="hidden"><div class="dl-name"></div><div class="dl-text"></div><div class="dl-choices"></div><div class="dl-next">▼</div></div>
 <div id="shop" class="modal hidden">
   <div class="modal-box shop-box">

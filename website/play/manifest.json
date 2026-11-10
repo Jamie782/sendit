@@ -1,23 +1,23 @@
 {
- "version": "2.1.0",
+ "version": "2.2.0",
  "minShell": "1.5.0",
- "notes": "2.1: get off and walk, shops & food, 7 quests, surfing & treasure islands, skiing, Wood Park, indoor Warehouse park, Rooftop park, punching, dogs, 17 new skins, remappable controls, update log",
+ "notes": "2.2: rides and places unlock as you level up, The Big Bowl, admins (gold, kicks, timed bans), host kicks, cleaner menus, desktop app only",
  "files": [
   {
    "path": "index.html",
-   "sha256": "bbad596fb3a8516a64c4454aa78662d0057f2451599c0c58e43254fe31fec042"
+   "sha256": "b8a98193b6b8ecbb271f7df3b189171845d081443098dfdab71396ad74509ede"
   },
   {
    "path": "style.css",
-   "sha256": "b9feb43b66534b076a5f1a1b666b515aae58f788c066267b3a08334e17349b84"
+   "sha256": "8f7ff8501dbf02823458a9dd8b5e67c2949abcf75086f49eb96e49a96c6a37b3"
   },
   {
    "path": "version.json",
-   "sha256": "c3f8711413043d5b0f28847bf85ceb6b75eb5994476d63e6cde92fe0db92c79f"
+   "sha256": "08e54369e1933bb33a38ea2515d75eeb22c4194d8183ab57a226702b89e240d9"
   },
   {
    "path": "src/game.js",
-   "sha256": "3989292c1babf1a653d0ede19d612a46d94d473f001df08bfb77048ad7df720e"
+   "sha256": "4a1733973b9f5b1118be586d0abdacae82c2207048a0deac4075c3145df82a60"
   },
   {
    "path": "assets/logo-icon.png",
@@ -48,6 +48,10 @@
    "sha256": "e9cea03facec26b1c2139278459a89f25d8271bbb86e87aa1119f240a43d317a"
   },
   {
+   "path": "assets/maps/bigbowl.jpg",
+   "sha256": "5b836dafabd5406f46e58affed1cebcc952e125cf7d94d950c182ce29803a608"
+  },
+  {
    "path": "assets/maps/canyon.jpg",
    "sha256": "d7cf6f3756993d4af8b49aa9eb9faf32d14746cb8f5fd468079c8945589a51da"
   },
@@ -69,7 +73,7 @@
   },
   {
    "path": "assets/maps/islands.jpg",
-   "sha256": "e7aa71514ca704386d079e3cc94425c9f1121277b31c60055a9598d2cad9d29b"
+   "sha256": "1d874694d781d5457b284c820b557a9c4638111ff845e07113cdf86bc5ecc7a8"
   },
   {
    "path": "assets/maps/market.jpg",
@@ -109,7 +113,7 @@
   },
   {
    "path": "assets/maps/woodpark.jpg",
-   "sha256": "e5d7945c445880f28f8079d08c38e00d8e97f069ffac4d79dc9d966924835653"
+   "sha256": "00828f787c3b850aed098a4a6d8cc1beb3376958205abd0484def3b3be15a482"
   },
   {
    "path": "assets/maps/woods.jpg",

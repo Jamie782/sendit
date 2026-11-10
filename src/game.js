@@ -9,6 +9,19 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
+// ───────────────────────── desktop app only ─────────────────────────
+const IS_APP = location.protocol === 'app:' || /Electron/i.test(navigator.userAgent);
+const IS_DEV = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+if (!IS_APP && !IS_DEV) {
+  const phone = matchMedia('(pointer:coarse)').matches && innerWidth < 1000;
+  const REL = 'https://github.com/Jamie782/sendit/releases/latest/download/';
+  document.body.innerHTML = `<div class="gate"><img src="assets/logo-wordmark.svg" alt="SEND IT"><h1>SEND IT IS A DESKTOP GAME</h1>
+    <p>${phone ? "It doesn't run on phones or tablets. Grab it on a Windows PC or a Mac." : 'It only runs in the free app for Windows and Mac now, not in a browser.'}</p>
+    ${phone ? '' : `<div class="gate-btns"><a href="${REL}SendIt-Windows.zip">WINDOWS</a><a href="${REL}SendIt-Mac-AppleSilicon.zip">MAC (M1–M4)</a><a href="${REL}SendIt-Mac-Intel.zip">MAC (INTEL)</a></div>`}
+    <a class="gate-site" href="https://play-sendit.netlify.app/">play-sendit.netlify.app</a></div>`;
+  throw new Error('SEND IT runs in the desktop app');
+}
+
 // ───────────────────────── helpers ─────────────────────────
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -106,6 +119,7 @@ function buildEnv(groundCol = 0x4a463e, blockCol = 0x2c2f35) {
   const s2 = new Sky(); s2.scale.setScalar(1000);
   for (const k in su) s2.material.uniforms[k].value = su[k].value && su[k].value.clone ? su[k].value.clone() : su[k].value;
   if (s2.material.uniforms.showSunDisc) s2.material.uniforms.showSunDisc.value = 0;
+  s2.material.uniforms.mieCoefficient.value *= 0.12; // the sun's glow in reflections washed everything out when you faced the sun
   envScene.add(s2);
   const ground = new THREE.Mesh(new THREE.CircleGeometry(900, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: groundCol }));
   ground.position.y = -5; envScene.add(ground);
@@ -1612,6 +1626,7 @@ const me = makeAvatar();
 const root = me.root, slopeG = me.slopeG, airG = me.airG, wheelieG = me.wheelieG;
 let veh = null, rider = me.rider;
 function equip(kind) {
+  if (!VEH[kind].hidden && !rideOpen(kind)) { lockedRideMsg(kind); return false; }
   player.kind = kind; if (!VEH[kind].hidden) store.set('vehicle', kind);
   setAvatarVehicle(me, kind, paintColor);
   veh = me.veh; veh.cfg = vehCfg(kind);
@@ -3758,6 +3773,31 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
     NEW_ZONES.rooftop = { name: 'ROOFTOP PARK', pos: v3(X, 0, Z - 8), yaw: 0 };
   }
 
+  // ── THE BIG BOWL: a massive 4.5 m deep concrete bowl with a deep end, pockets and a cradle ──
+  {
+    const X = 455, Z = -200, W = 78, D = 50, BH = 4.5;
+    flat(X - 45, X + 45, Z - 30, Z + 42, M.rampTop, 0.02, 6, 'park');
+    pool(X, Z, W, D, BH, (lx, lz) => {
+      const main = sdRoundRect(lx + 6, lz + 1, 25, 16, 9);         // the big room
+      const deep = circ(lx, lz, 24, -3, 12);                        // deep end
+      const pocket = sdRoundRect(lx + 28, lz - 12, 7, 6, 5);        // corner pocket
+      return smin(smin(main, deep, 5), pocket, 4);
+    }, [-6, -1]);
+    // two long banks up to the deck from the north side
+    for (const bx of [X - 22, X + 12]) woodBank(bx, Z + D / 2 + 13, Math.PI, 12, 13, BH);
+    // deck signs, banners and floodlights all round
+    deckSign(X - 30, BH, Z - D / 2 + 1.6, 0, 6, 2.6); deckSign(X, BH, Z - D / 2 + 1.6, 0, 6, 2.6); deckSign(X + 30, BH, Z - D / 2 + 1.6, 0, 6, 2.6);
+    bannerStrip(X, BH * 0.5, Z - D / 2 - 0.01, Math.PI, W - 4, 1.2);
+    for (const sd of [-1, 1]) bannerStrip(X + sd * (W / 2 + 0.01), BH * 0.5, Z, sd * Math.PI / 2, D - 4, 1.2);
+    for (const [lx, lz] of [[X - W / 2 - 2, Z - D / 2 - 2], [X + W / 2 + 2, Z - D / 2 - 2], [X - W / 2 - 2, Z + D / 2 + 2], [X + W / 2 + 2, Z + D / 2 + 2]]) {
+      cyl(0.16, 0.2, 16, M.pole, lx, 8, lz, scene, 8); box(2.2, 0.4, 1, M.darkMetal, lx, 16, lz); lampSpots.push(v3(lx, 15.8, lz)); collide(lx, lz, 0.25, 0.25);
+    }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(14, 2.6), new THREE.MeshStandardMaterial({ map: billboardTex('THE BIG BOWL'), roughness: 0.5, emissive: 0xffffff, emissiveMap: billboardTex('THE BIG BOWL'), emissiveIntensity: 0.3 }));
+    sign.position.set(X - 5, 9, Z + D / 2 + 16); sign.rotation.y = Math.PI; scene.add(sign);
+    for (const sx of [-6.5, 6.5]) { cyl(0.12, 0.12, 9, M.pole, X - 5 + sx, 4.5, Z + D / 2 + 16.1, scene, 8); collide(X - 5 + sx, Z + D / 2 + 16.1, 0.2, 0.2); }
+    NEW_ZONES.bigbowl = { name: 'THE BIG BOWL', pos: v3(X - 14, 0, Z + D / 2 - 1.2), yaw: Math.PI };
+  }
+
   // ── the old skatepark gets deck signs and banners ──
   {
     deckSign(57, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4); deckSign(73, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4);
@@ -4027,7 +4067,7 @@ const stars = (() => {
 const moon = new THREE.Mesh(new THREE.SphereGeometry(28, 24, 16), new THREE.MeshBasicMaterial({ color: 0xe8eeff, fog: false }));
 moon.visible = false; scene.add(moon);
 const TOD = {
-  day: { el: 48, az: 200, sun: 0xfff2e0, si: 4.2, hs: 0xb9d0f2, hg: 0x6a5b48, hi: 1.0, exp: 0.82, fog: 0xc8d4de, fd: 0.0009, tur: 2.6, ray: 1.1, mie: 0.004, mieG: 0.8, win: 0.12, lamp: 0.5, night: 0, env: 0.75, cloud: 0.42, car: 0.25 },
+  day: { el: 48, az: 200, sun: 0xfff2e0, si: 4.2, hs: 0xb9d0f2, hg: 0x6a5b48, hi: 1.55, exp: 0.82, fog: 0xc8d4de, fd: 0.0009, tur: 1.8, ray: 1.1, mie: 0.0012, mieG: 0.72, win: 0.12, lamp: 0.5, night: 0, env: 0.3, cloud: 0.42, car: 0.25 },
   sunset: { el: 6.5, az: 238, sun: 0xffa868, si: 3.8, hs: 0x93a2c8, hg: 0x5a4535, hi: 0.72, exp: 0.95, fog: 0xd9b59c, fd: 0.0012, tur: 6.5, ray: 2.6, mie: 0.009, mieG: 0.92, win: 0.75, lamp: 3.0, night: 0, env: 0.55, cloud: 0.5, car: 1.2 },
   night: { el: -14, az: 238, sun: 0x9db4ff, si: 0.55, hs: 0x22304e, hg: 0x0c0c12, hi: 0.45, exp: 1.05, fog: 0x0e1424, fd: 0.0016, tur: 2, ray: 0.6, mie: 0.002, mieG: 0.8, win: 1.7, lamp: 7, night: 1, env: 0.22, cloud: 0.25, car: 4 },
 };
@@ -4284,7 +4324,7 @@ const net = (() => {
     const helmet = m.helmet ?? COLORS[m.color % COLORS.length];
     if (!r) {
       const A = makeAvatar(riderOpts(m.outfit || 'classic', m.av));
-      r = { id, A, buf: [], name: m.name, kind: null, color: m.color, helmet, score: 0, bailT: 0, outfit: m.outfit || 'classic', avKey: JSON.stringify(m.av || {}) };
+      r = { id, A, buf: [], name: m.name, verified: !!m.verified, kind: null, color: m.color, helmet, score: 0, bailT: 0, outfit: m.outfit || 'classic', avKey: JSON.stringify(m.av || {}) };
       r.tag = nameTag(m.name, helmet); A.root.add(r.tag); r.tag.position.y = 2.35;
       remotes.set(id, r);
       addFeed(`<b>${esc(m.name)}</b> joined`);
@@ -4300,6 +4340,7 @@ const net = (() => {
     scene.remove(r.A.root); remotes.delete(id); addFeed(`<b>${esc(r.name)}</b> left`); renderRoom(); renderLine();
   }
   function renderRoom() {
+    renderServerPlayers();
     const rows = [[myName() + ' (you)', score], ...[...remotes.values()].map(r => [r.name, r.score])].sort((a, b) => b[1] - a[1]);
     elList.innerHTML = rows.map(([n, s]) => `<div><span>${esc(n)}</span><span>${(s || 0).toLocaleString()}</span></div>`).join('');
   }
@@ -4349,6 +4390,9 @@ const net = (() => {
     trick(name, pts) { send({ t: 'trick', name, pts }); },
     punch(to, dx, dz) { send({ t: 'punch', to, dx: +dx.toFixed(2), dz: +dz.toFixed(2) }); },
     get myId() { return myId; },
+    get isHost() { return isHost; }, myName,
+    players() { return [...remotes.values()].map(r => ({ id: r.id, name: r.name, verified: r.verified })); },
+    kickPeer(id, why) { if (!isHost) return; const c = conns.get(id); if (!c) return; try { c.send({ t: 'kick', why }); } catch { } setTimeout(() => { try { c.close(); } catch { } }, 300); },
     chat(text) { send({ t: 'chat', text }); addFeed(`<b>You:</b> ${esc(text)}`); },
     renderRoom,
   };
@@ -4624,7 +4668,7 @@ function renderGarage() {
   renderCash();
   document.querySelectorAll('#garage-tabs button').forEach(b => b.classList.toggle('sel', b.dataset.t === gTab));
   const k = player.kind;
-  const gr = document.getElementById('g-ride'); if (gr) gr.innerHTML = gTab === 'up' ? VEH_KEYS.map(v => `<button data-ride="${v}" class="${v === k ? 'sel' : ''}">${VEH[v].label}</button>`).join('') : '';
+  const gr = document.getElementById('g-ride'); if (gr) gr.innerHTML = gTab === 'up' ? VEH_KEYS.map(v => `<button data-ride="${v}" class="${v === k ? 'sel' : ''}${rideOpen(v) ? '' : ' locked'}" title="${rideOpen(v) ? '' : 'Unlocks at level ' + RIDE_LVL[v]}">${VEH[v].label}</button>`).join('') : '';
   if (gTab === 'up') {
     el.innerHTML = `<div class="g-note">Upgrades for your <b>${VEH[k].label}</b>. Each ride has its own upgrades — switch ride at the top right.</div>` + UPGRADES.map(u => {
       const lv = upgLevel(k, u.id), cost = UPG_COST[lv];
@@ -4637,10 +4681,12 @@ function renderGarage() {
       return `<div class="g-card ${on ? 'on' : ''}"><div class="sw sw-${p.id}" style="--c:#${COLORS[paintColor].toString(16).padStart(6, '0')}"></div><b>${p.n}</b>` + (own ? `<button data-eq="p:${p.id}">${on ? 'EQUIPPED' : 'EQUIP'}</button>` : `<button data-buy="p:${p.id}" ${cash < p.price ? 'class="poor"' : ''}>${coinHTML(p.price)}</button>`) + `</div>`;
     }).join('') + `</div><div class="g-note">Pick the colour on the PLAY tab. Paint jobs work on every ride.</div>`;
   } else if (gTab === 'avatar') { renderAvatarEditor(el); } else {
-    el.innerHTML = `<div class="g-grid">` + OUTFITS.map(o => {
+    const card = o => {
       const own = owned.includes('o:' + o.id), on = outfitId === o.id, h = x => '#' + x.toString(16).padStart(6, '0');
       return `<div class="g-card ${on ? 'on' : ''}${o.quest ? ' quest' : ''}"><div class="fit"><i style="background:${h(o.helmet)}"></i><i style="background:${h(o.top)}"></i><i style="background:${h(o.pants)}"></i></div><b>${o.n}</b>${o.hatK ? '<small>' + (o.cape != null ? 'hat + cape' : 'hat') + '</small>' : ''}` + (own ? `<button data-eq="o:${o.id}">${on ? 'WEARING' : 'WEAR'}</button>` : o.quest ? `<button disabled title="Finish the quest to unlock">QUEST REWARD</button>` : `<button data-buy="o:${o.id}" ${cash < o.price ? 'class="poor"' : ''}>${coinHTML(o.price)}</button>`) + `</div>`;
-    }).join('') + `</div>`;
+    };
+    el.innerHTML = `<div class="p-head">SHOP <span class="muted">buy with coins</span></div><div class="g-grid">${OUTFITS.filter(o => !o.quest).map(card).join('')}</div>` +
+      `<div class="p-head">QUEST REWARDS <span class="muted">finish quests to unlock these</span></div><div class="g-grid">${OUTFITS.filter(o => o.quest).map(card).join('')}</div>`;
   }
 }
 function garageClick(e) {
@@ -4783,14 +4829,15 @@ const online = (() => {
   const ERR = {
     bad_username: 'Usernames are 3–16 letters, numbers or _', bad_password: 'Passwords need at least 6 characters', username_taken: 'That username is taken',
     wrong_login: 'Wrong username or password', not_logged_in: 'Please sign in again', no_such_user: 'No player with that username', thats_you: "That's you!",
+    not_admin: 'Only admins can do that', not_allowed: "You can't do that to this player", bad_amount: 'Type an amount first',
     no_such_server: 'That server has closed', not_friends: 'You can only invite friends', not_in_server: 'Join or host a server first', bad_avatar: "That picture can't be used", friends_only: "That server is friends only", server_full: 'That server is full', code_taken: 'Try hosting again',
   };
-  const nice = e => { const m = String(e && e.message || e); for (const k in ERR) if (m.includes(k)) return ERR[k]; return /fetch|network|Failed/i.test(m) ? "Can't reach the game servers — check your internet" : m; };
+  const nice = e => { const m = String(e && e.message || e); if (m.startsWith('banned|')) return `You're banned from online play until ${fmtUntil(m.split('|')[1])}`; for (const k in ERR) if (m.includes(k)) return ERR[k]; return /fetch|network|Failed/i.test(m) ? "Can't reach the game servers — check your internet" : m; };
   async function rpc(fn, args = {}) {
     if (!ON) throw new Error('Online play is not set up in this build');
     const r = await fetch(`${ONLINE_CFG.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: ONLINE_CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
     const txt = await r.text(); let j = null; try { j = txt ? JSON.parse(txt) : null; } catch { j = txt; }
-    if (!r.ok) { const e = new Error((j && j.message) || 'HTTP ' + r.status); if (String(e.message).includes('not_logged_in')) signedOut(); throw e; }
+    if (!r.ok) { const e = new Error((j && j.message) || 'HTTP ' + r.status); if (String(e.message).includes('not_logged_in')) signedOut(); if (String(e.message).startsWith('banned|')) { signedOut(); showBan(e.message); } throw e; }
     return j;
   }
   const emit = () => listeners.forEach(f => { try { f(); } catch (e) { console.warn(e); } });
@@ -4832,7 +4879,7 @@ const online = (() => {
   }
   async function beat() {
     clearTimeout(beatT); if (!me) return;
-    try { const r = await rpc('si_heartbeat', { p_token: token, p_room: net.code || null }); requests = r.requests | 0; invites = r.invites || []; emit(); renderInvites(); } catch { }
+    try { const r = await rpc('si_heartbeat', { p_token: token, p_room: net.code || null }); requests = r.requests | 0; invites = r.invites || []; if (me && (me.role || null) !== (r.role || null)) me.role = r.role || null; if (r.gold) adminGift(r.gold | 0); if (r.kicked) kickedByAdmin(); emit(); renderInvites(); } catch { }
     beatT = setTimeout(beat, 15000);
   }
   let requests = 0, invites = [];
@@ -4893,6 +4940,8 @@ function setTab(t) {
   if (t === 'online') { renderAccount(); refreshServers(); refreshFriends(); }
   if (t === 'ranks') { renderBoards(); loadBoard(); renderGoals(); }
   if (t === 'tricks') renderTrickBook();
+  if (t === 'admin') { admRefresh(); renderAdmin(); }
+  if (t === 'online') renderServerPlayers();
 }
 document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { setTab(b.dataset.tab); sfx.init(); } });
 function renderMe() {
@@ -5041,14 +5090,14 @@ async function refreshFriends() {
 let lbBoard = 'combo', lbScope = 'all';
 function renderBoards() {
   const el = document.getElementById('lb-boards');
-  el.innerHTML = BOARDS.map(b => `<button data-b="${b.id}" class="${b.id === lbBoard ? 'sel' : ''}">${b.n.toUpperCase()}</button>`).join('');
+  el.innerHTML = BOARD_GROUPS.map(([g, ids]) => `<div class="lbg"><small>${g}</small>` + ids.map(id => { const b = BOARDS.find(x => x.id === id); return b ? `<button data-b="${b.id}" class="${b.id === lbBoard ? 'sel' : ''}">${b.n}</button>` : ''; }).join('') + `</div>`).join('');
 }
 document.getElementById('lb-boards').onclick = e => { const b = e.target.closest('button'); if (!b) return; lbBoard = b.dataset.b; renderBoards(); loadBoard(); };
 document.getElementById('lb-scope').onclick = e => { const b = e.target.closest('button'); if (!b) return; lbScope = b.dataset.v; document.querySelectorAll('#lb-scope button').forEach(x => x.classList.toggle('sel', x === b)); loadBoard(); };
 async function loadBoard() {
   const el = document.getElementById('lb-list'), meEl = document.getElementById('lb-me'), note = document.getElementById('lb-note');
   const B = BOARDS.find(b => b.id === lbBoard);
-  note.textContent = { combo: 'biggest single combo', attack: 'best 2-minute score', hill: 'fastest Hill Bomb run', air: 'longest time in the air', coins: 'coins earned all-time' }[lbBoard];
+  note.textContent = BOARD_NOTE[lbBoard] || '';
   meEl.innerHTML = '';
   if (!online.ON) { el.innerHTML = `<div class="empty">Leaderboards need the online build.</div>`; return; }
   if (lbScope === 'friends' && !online.me) { el.innerHTML = `<div class="empty">Sign in to compare with your friends.</div>`; return; }
@@ -5103,7 +5152,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.1.0';
+const GAME_VERSION = '2.2.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -5245,8 +5294,8 @@ function buildMenu() {
   for (const [t, n, ti] of [['day', 'DAY', 'Always daytime'], ['sunset', 'SUNSET', 'Always sunset'], ['night', 'NIGHT', 'Always night'], ['cycle', 'DAY/NIGHT CYCLE', 'An 8-minute day that turns to night and back']]) { const b = document.createElement('button'); b.textContent = n; b.title = ti; b.className = todName === t ? 'sel' : ''; b.onclick = () => { applyTimeOfDay(t); buildMenu(); }; ts.appendChild(b); }
   const es = document.getElementById('easy-seg'); es.innerHTML = '';
   for (const [v, n] of [[true, 'EASY'], [false, 'PRO']]) { const b = document.createElement('button'); b.textContent = n; b.className = settings.easy === v ? 'sel' : ''; b.title = v ? 'Forgiving landings, auto-balanced grinds and wheelies' : 'Real balance and strict landings'; b.onclick = () => { settings.easy = v; store.set('easy', v); buildMenu(); }; es.appendChild(b); }
-  renderGoals();
-  if (IS_TOUCH) document.getElementById('controls-lbl').textContent = 'Left stick: ride & steer (in air: flips & spins) · buttons: hop, wheelie, tricks';
+  renderGoals(); renderQuestCard(); renderAdminTab();
+  document.getElementById('controls-lbl').innerHTML = `<b>${keyName('up')}/${keyName('down')}</b> ride · <b>${keyName('left')}/${keyName('right')}</b> steer · <b>${keyName('jump')}</b> hop · <b>${keyName('getoff')}</b> get off · <b>${keyName('map')}</b> map · change keys in Settings`;
   const ms = document.getElementById('music-seg'); ms.innerHTML = '';
   music.STATIONS.forEach((st, i) => { const b = document.createElement('button'); b.textContent = st.name; b.title = st.genre; b.className = music.on && music.station === i ? 'sel' : ''; b.onclick = () => { if (!music.on) music.toggle(true); music.set(i); music.start(); buildMenu(); }; ms.appendChild(b); });
   { const b = document.createElement('button'); b.textContent = 'OFF'; b.className = music.on ? '' : 'sel'; b.onclick = () => { music.toggle(false); buildMenu(); }; ms.appendChild(b); }
@@ -5272,13 +5321,14 @@ const ZONE_INFO = {
   woods: ['Woods', 'Forest downhill with tables, drops and logs', 'NEW'],
   market: ['Market Street', 'DcMonalds, Kurger Bings, Barstucks, Ocset and the pub', 'NEW'], mountain: ['Peak Run', 'Snowy mountain: ski hut, chairlift and a ski run', 'NEW'],
   islands: ['Islands', 'Surf out to five islands with treasure chests', 'NEW'],
-  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'],
+  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'], bigbowl: ['The Big Bowl', 'A massive concrete bowl, 4.5 m deep', 'NEW'],
 };
-const ZONE_ORDER = ['auto', 'woodpark', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
+const ZONE_ORDER = ['auto', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
 const zoneThumb = k => `assets/maps/${k}.jpg`;
 function renderRidePicker() {
   const el = document.getElementById('ride-picker'); if (!el) return;
-  el.innerHTML = VEH_KEYS.map(k => `<button data-ride="${k}" class="${k === player.kind ? 'sel' : ''}" title="${VEH[k].label}">${RIDE_ICON[k] || ''}<span>${VEH[k].label}</span></button>`).join('');
+  el.innerHTML = VEH_KEYS.map(k => rideOpen(k) ? `<button data-ride="${k}" class="${k === player.kind ? 'sel' : ''}" title="${VEH[k].label}">${RIDE_ICON[k] || ''}<span>${VEH[k].label}</span></button>`
+    : `<button data-ride="${k}" class="locked" title="Unlocks at level ${RIDE_LVL[k]}">${RIDE_ICON[k] || ''}<span>LEVEL ${RIDE_LVL[k]}</span><i class="lock"></i></button>`).join('');
   const c = VEH[player.kind], lv = UPGRADES.reduce((t, u) => t + upgLevel(player.kind, u.id), 0);
   document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>${c.label}</b>${lv ? `<small>UPGRADES ${lv}/25</small>` : ''}</div><div class="ri-desc">${c.desc}</div>` +
     ['SPEED', 'TRICKS', 'WHEELIES'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${c.stats[i] * 100}%"></i></div></div>`).join('');
@@ -5295,7 +5345,8 @@ function openZonePicker() {
   g.innerHTML = ZONE_ORDER.map(k => {
     const auto = k === 'auto', real = auto ? ({ bike: 'dirt', ebike: 'mega', scooter: 'park', escooter: 'street', skate: 'downtown' })[player.kind] : k;
     const info = auto ? ['Best for your ride', 'Starts you where your ride shines', ''] : ZONE_INFO[k];
-    return `<button data-zone="${k}" class="zp-card${player.zone === k ? ' sel' : ''}" style="--img:url(${zoneThumb(real)})"><div class="zp-img"></div><div class="zp-t">${info[2] ? `<small class="${info[2] === 'NEW' ? 'new' : ''}">${info[2]}</small>` : ''}<b>${info[0]}</b><span>${info[1]}</span></div></button>`;
+    const lock = !auto && !placeOpen(k);
+    return `<button data-zone="${k}" class="zp-card${player.zone === k ? ' sel' : ''}${lock ? ' locked' : ''}" style="--img:url(${zoneThumb(real)})"><div class="zp-img"></div>${lock ? `<div class="zp-lock"><i class="lock"></i>LEVEL ${PLACE_LVL[k]}<span>or ride there yourself</span></div>` : ''}<div class="zp-t">${info[2] && !lock ? `<small class="${info[2] === 'NEW' ? 'new' : ''}">${info[2]}</small>` : ''}<b>${info[0]}</b><span>${info[1]}</span></div></button>`;
   }).join('');
   document.getElementById('zone-picker').classList.remove('hidden');
 }
@@ -5306,6 +5357,7 @@ function openZonePicker() {
   document.getElementById('zone-picker').addEventListener('click', e => {
     if (e.target.id === 'zone-picker') return e.target.classList.add('hidden');
     const b = e.target.closest('[data-zone]'); if (!b) return;
+    if (b.classList.contains('locked')) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return; }
     player.zone = b.dataset.zone; store.set('zone', player.zone); spawn(zoneFor()); document.getElementById('zone-picker').classList.add('hidden'); buildMenu();
   });
   document.getElementById('map-open-menu').onclick = () => openMap();
@@ -5319,7 +5371,7 @@ const SKATE_COMBOS = [['Varial Kickflip', 'Kickflip + pop shove-it'], ['Varial H
 let tbRide = null;
 function renderTrickBook() {
   const k = tbRide || player.kind, TK = TRICKS[k], C = VEH[k];
-  document.getElementById('tb-rides').innerHTML = VEH_KEYS.map(v => `<button data-tb="${v}" class="${v === k ? 'sel' : ''}">${VEH[v].label}</button>`).join('');
+  document.getElementById('tb-rides').innerHTML = [...VEH_KEYS, 'surf', 'ski'].map(v => `<button data-tb="${v}" class="${v === k ? 'sel' : ''}">${VEH[v].label}</button>`).join('');
   const pts = t => t.t === 'whip' ? WHIP_PTS[t.n] : t.t === 'bar' ? BAR_PTS[t.n] : POSE_PTS[t.p];
   const kind = t => t.t === 'whip' ? (k === 'skate' ? 'board spin' : 'whip') : t.t === 'bar' ? (k === 'skate' ? 'board flip' : 'spin') : 'hold it';
   const rows = TRICK_KEYS.filter(x => TK[x]).map(x => `<div class="tb-row"><kbd>${keyLabel(x)}</kbd><b>${TK[x].n}</b><span>${kind(TK[x])}</span><em>${pts(TK[x]) || ''}</em></div>`).join('');
@@ -5334,7 +5386,7 @@ function renderTrickBook() {
     `<div class="tb-note">Doing the same trick again in one combo scores less each time. Mix it up, land clean (PERFECT +15%), and keep the combo going with manuals and grinds.</div>`;
 }
 document.getElementById('tb-rides').addEventListener('click', e => { const b = e.target.closest('[data-tb]'); if (b) { tbRide = b.dataset.tb; renderTrickBook(); } });
-const zoneFor = () => player.zone !== 'auto' && ZONES[player.zone] ? player.zone : ({ bike: 'dirt', ebike: 'mega', scooter: 'park', escooter: 'street', skate: 'downtown' })[player.kind] || 'beach';
+const zoneFor = () => player.zone !== 'auto' && ZONES[player.zone] && placeOpen(player.zone) ? player.zone : ({ bike: 'dirt', ebike: 'mega', scooter: 'park', escooter: 'street', skate: 'downtown' })[player.kind] || 'beach';
 document.getElementById('vol').oninput = e => music.volume(e.target.value / 100);
 document.getElementById('sfx-vol').value = Math.round(store.get('sfxVol', 0.6) * 100);
 document.getElementById('sfx-vol').oninput = e => sfx.setVolume(e.target.value / 100);
@@ -5349,7 +5401,7 @@ document.getElementById('attack-btn').onclick = () => { startRide(); startAttack
   const chat = document.getElementById('chat'), ci = document.getElementById('chat-input');
   window.openChat = () => { chatOpen = true; chat.classList.remove('hidden'); ci.value = ''; ci.focus(); };
   const closeChat = () => { chatOpen = false; chat.classList.add('hidden'); ci.blur(); };
-  ci.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { const t = ci.value.trim(); if (t) net.chat(t.slice(0, 80)); closeChat(); } else if (e.key === 'Escape') closeChat(); });
+  ci.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { const t = ci.value.trim(); if (t && t[0] === '/') chatCommand(t); else if (t) net.chat(t.slice(0, 80)); closeChat(); } else if (e.key === 'Escape') closeChat(); });
 }
 function spawnLife() { const q = qualityName; spawnTraffic(q === 'low' ? 6 : q === 'medium' ? 10 : 14); spawnPeds(q === 'low' ? 8 : q === 'medium' ? 14 : 22); }
 document.getElementById('ride-btn').onclick = () => startRide();
@@ -5404,7 +5456,7 @@ function addXP(n) {
   const L1 = levelOf(xp);
   if (L1.l > before) { const c = earn(100 + 50 * L1.l); setTimeout(() => { showPopup('LEVEL ' + L1.l, 'good', `LEVEL UP · +${c} COINS`); sfx.ding(); }, 900); addFeed(`<b>Level up!</b> You're level ${L1.l}`); }
   renderLevel(); online.saveSoon();
-  if (L1.l > before) online.submit('xp', xp);
+  if (L1.l > before) { online.submit('xp', xp); announceUnlocks(before, L1.l); }
 }
 // daily challenges: three a day, the same for everyone
 const DAILY_POOL = [
@@ -5515,7 +5567,7 @@ function updateReplay(dt) {
 }
 
 // the full map: every place in the game, click one to go there
-const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
+const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
 let mapPrev = 'play';
 function openMap() {
   if (state === 'map') return closeMap();
@@ -5544,8 +5596,9 @@ function drawMap() {
   g.font = '700 12px Inter, system-ui, sans-serif'; g.textAlign = 'center';
   for (const k of MAP_ZONES) {
     const z = ZONES[k]; if (!z) continue; const [x, y] = P2(z.pos.x, z.pos.z);
-    g.fillStyle = '#ff4d1f'; g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
-    const label = z.name; const tw = g.measureText(label).width + 12;
+    const lk = !placeOpen(k);
+    g.fillStyle = lk ? '#5b5f66' : '#ff4d1f'; g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+    const label = lk ? `${z.name} · LV ${PLACE_LVL[k]}` : z.name; const tw = g.measureText(label).width + 12;
     g.fillStyle = 'rgba(12,13,16,.82)'; g.fillRect(x - tw / 2, y - 30, tw, 18); g.fillStyle = '#fff'; g.fillText(label, x, y - 17);
     mapView.hits.push({ k, x, y });
   }
@@ -5554,9 +5607,9 @@ function drawMap() {
   g.beginPath(); g.moveTo(0, -11); g.lineTo(8, 9); g.lineTo(0, 4); g.lineTo(-8, 9); g.closePath(); g.fill(); g.stroke(); g.restore();
   for (const r of net.remotes.values()) { if (!r.S) continue; const [x, y] = P2(r.S.x, r.S.z); g.fillStyle = '#' + r.helmet.toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
   const list = document.getElementById('map-list');
-  list.innerHTML = MAP_ZONES.filter(k => ZONES[k]).map(k => `<button data-z="${k}">${ZONES[k].name}</button>`).join('');
+  list.innerHTML = MAP_ZONES.filter(k => ZONES[k]).map(k => placeOpen(k) ? `<button data-z="${k}">${ZONES[k].name}</button>` : `<button data-z="${k}" class="locked"><i class="lock"></i>${ZONES[k].name}<small>LV ${PLACE_LVL[k]}</small></button>`).join('');
 }
-function mapGo(k) { spawn(k); showPopup(ZONES[k].name); closeMap(); if (state !== 'play') startRide(); }
+function mapGo(k) { if (!placeOpen(k)) return lockedPlaceMsg(k); spawn(k); showPopup(ZONES[k].name); closeMap(); if (state !== 'play') startRide(); }
 {
   const cv = document.getElementById('map-canvas');
   cv.addEventListener('click', e => {
@@ -5655,6 +5708,7 @@ function swapRide(kind, why) {
 function backToRide() { if (parked) { scene.remove(parked.g); parked = null; } swapRide(prevKind && !VEH[prevKind].hidden ? prevKind : store.get('vehicle', 'bike')); }
 function enterSea(fromAir) {
   const P = player;
+  if (!rideOpen('surf')) { lockedRideMsg('surf'); return splash(fromAir); }
   emitDust(P.pos.clone().add(v3(0, 0.2, 0)), 30, 'water', 2.6); emitDust(P.pos.clone(), 20, 'water', 1.2);
   sfx.splash && sfx.splash();
   const hv = P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
@@ -5775,8 +5829,8 @@ function openChest(c) {
 }
 function updateChests(dt) { for (const c of CHESTS) { const t = c.open ? 1.9 : 0; c.lidP.rotation.x = damp(c.lidP.rotation.x, -t, 4, dt); if (c.open && chestDay()[c.id] !== dayKey()) c.open = 0; } }
 // ski hut + chairlift
-function hireSkis() { const P = player; prevKind = P.kind; P.mode = 'ride'; setVehicleShown(me, true); swapRide('ski', 'SKIS ON'); P.v = 0; goal('skis'); camState.init = false; }
-INTERACT.push({ x: SKI.hut.x, z: SKI.hut.z, r: 3.2, hire: true, walkOnly: true, when: () => player.kind !== 'ski', label: 'Hire skis (free)', fn: hireSkis });
+function hireSkis() { if (!rideOpen('ski')) return lockedRideMsg('ski'); const P = player; prevKind = P.kind; P.mode = 'ride'; setVehicleShown(me, true); swapRide('ski', 'SKIS ON'); P.v = 0; goal('skis'); camState.init = false; }
+INTERACT.push({ x: SKI.hut.x, z: SKI.hut.z, r: 3.2, hire: true, walkOnly: true, when: () => player.kind !== 'ski', label: () => rideOpen('ski') ? 'Hire skis (free)' : `Hire skis (unlocks at level ${RIDE_LVL.ski})`, fn: hireSkis });
 INTERACT.push({ x: SKI.hut.x, z: SKI.hut.z, r: 3.2, when: () => player.kind === 'ski', label: 'Hand the skis back', fn: () => backToRide() });
 INTERACT.push({ x: SKI.lift.x - 4, z: SKI.lift.z, r: 4, label: 'Ride the chairlift to the top', fn: () => { if (player.mode === 'walk') mount(true); spawn('mountain'); showPopup('PEAK RUN', '', 'CHAIRLIFT'); } });
 
@@ -6152,6 +6206,7 @@ function renderQuestLog() {
 // ───────────────────────── v2.1: on foot, punching, people who react, dogs, drivers ─────────────────────────
 // walking: W/S forwards and back, A/D turn, SHIFT run, SPACE jump, J punch
 function walkStep(dt, P) {
+  const px0 = P.pos.x, pz0 = P.pos.z;
   if (P.ko) { P.koT -= dt; P.wspd = 0; if (P.koT <= 0) { P.ko = false; P.hp = 100; showPopup('BACK UP', '', ''); } return; }
   const run = keyDown('run') ? 1 : 0, m = buffMul();
   const want = (input.throttle > 0 ? (run ? 4.8 : 2.0) : input.brake > 0 ? -1.4 : 0) * m;
@@ -6176,7 +6231,8 @@ function walkStep(dt, P) {
   if (P.punchT > 0) P.punchT -= dt;
   if (P.hp < 100 && clock - (P.hurtAt || 0) > 4) P.hp = Math.min(100, P.hp + 6 * dt);
   // walk into the sea and you get your surfboard out
-  if (inWater(P.pos.x, P.pos.z) && !P.wair) { if (parked) { scene.remove(parked.g); parked = null; } P.mode = 'ride'; setVehicleShown(me, true); swapRide('surf', "SURF'S UP"); P.pos.y = SEA_Y; P.v = 1; goal('surf'); }
+  if (inWater(P.pos.x, P.pos.z) && !P.wair && !rideOpen('surf')) { P.pos.x = px0; P.pos.z = pz0; P.wspd = 0; if (!P.seaMsgT || clock - P.seaMsgT > 3) { P.seaMsgT = clock; lockedRideMsg('surf'); } }
+  else if (inWater(P.pos.x, P.pos.z) && !P.wair) { if (parked) { scene.remove(parked.g); parked = null; } P.mode = 'ride'; setVehicleShown(me, true); swapRide('surf', "SURF'S UP"); P.pos.y = SEA_Y; P.v = 1; goal('surf'); }
 }
 // get hurt (on foot): a hit, a fall or a punch from someone you annoyed
 function hurt(n, why) {
@@ -6574,6 +6630,17 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.2.0', d: 'November 2026', t: 'Unlocks, admins and the Big Bowl', items: [
+    'Rides unlock as you level up: skateboard at level 2, e-scooter at 3, e-bike and surfboard at 4, skis at 6',
+    'New places unlock too: Wood Park (3), Islands (4), The Warehouse (5), Peak Run (6), The Big Bowl (7), Rooftop Park (8). Ride there yourself to unlock a place early',
+    'The Big Bowl: a massive 4.5 m deep concrete bowl with a deep end and a corner pocket',
+    'SEND IT is a desktop game now: it runs in the Windows and Mac app only',
+    'Admins: give or take coins, kick anyone from any server, and ban players for a set time',
+    'Hosts can kick players from their own server (Online tab)',
+    'Cleaner menus: leaderboards grouped down the side, goals on their own page, settings split into General, Sound, Controls and About',
+    'Quest card and your next unlock on the PLAY screen',
+    'Skins split into shop skins and quest rewards',
+  ] },
   { v: '2.1.0', d: 'November 2026', t: 'Get off and explore', items: [
     'Get off your ride (F) and walk, run (Shift) and jump anywhere',
     'Market Street: DcMonalds, Kurger Bings, Barstucks, Ocset and The Kickflip Arms, with people working inside',
@@ -6624,7 +6691,7 @@ addNPC({ name: 'Walker', x: -120, z: 9.5, yaw: 0, job: 'walker' });
 
 // the rooftop park's lift
 function rideLift(to) { const P = player; P.pos.copy(to); P.v = 0; P.air = false; P.wspd = 0; P.safe.pos.copy(to); P.hist = []; camState.init = false; showPopup(to.y > 1 ? 'ROOFTOP PARK' : 'GROUND FLOOR', '', 'LIFT'); }
-INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: 'Take the lift to the roof', fn: () => rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)) });
+INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: () => placeOpen('rooftop') || curLevel() >= PLACE_LVL.rooftop ? 'Take the lift to the roof' : `Lift to the roof (unlocks at level ${PLACE_LVL.rooftop})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.rooftop) return lockedPlaceMsg('rooftop'); rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)); } });
 INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
 // ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
 function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
@@ -6688,7 +6755,7 @@ function updateLife(dt) {
   { const p = player.pos, c = camera.position, W = WAREHOUSE, inside = q => q.x > W.x0 && q.x < W.x1 && q.z > W.z0 && q.z < W.z1 && q.y < 13; W.shell.visible = !(inside(p) || inside(c)); }
   updateNPCs(dt); updateBubbles(dt); updateDialog(dt); updateDogs(dt); updateChests(dt); updateWaves();
   if (state !== 'play') { elPrompt.classList.add('hidden'); document.getElementById('hp').classList.add('hidden'); return; }
-  updateInteract(); updateQuests(dt); updateSki(dt);
+  updateInteract(); updateQuests(dt); updateSki(dt); updateVisits(dt);
   lifeT -= dt;
   if (lifeT <= 0) {
     lifeT = 0.25; renderBuffs(); renderQuest();
@@ -6716,6 +6783,220 @@ function drawMiniExtras(k, P) {
   renderControls(); renderHint();
   document.getElementById('quest-log-btn').onclick = () => { toggleQuests(); };
 }
+
+// ───────────────────────── v2.2: rides and places you unlock by levelling up ─────────────────────────
+const RIDE_LVL = { bike: 1, scooter: 1, skate: 2, escooter: 3, ebike: 4, surf: 4, ski: 6 };
+const PLACE_LVL = { woodpark: 3, islands: 4, isle_palm: 4, isle_skull: 4, isle_far: 4, isle_tiny: 4, isle_sandbar: 4, warehouse: 5, mountain: 6, skihut: 6, bigbowl: 7, rooftop: 8 };
+let visited = new Set(store.get('visited', []));
+let unlockAll = store.get('unlockAll', false);
+function curLevel() { return levelOf(xp).l; }
+function rideOpen(k) { return unlockAll || curLevel() >= (RIDE_LVL[k] || 1); }
+function placeOpen(k) {
+  if (unlockAll || curLevel() >= (PLACE_LVL[k] || 1) || visited.has(k)) return true;
+  return (k === 'islands' || k.startsWith('isle_')) && [...visited].some(v => v.startsWith('isle_'));
+}
+const placeName = k => (ZONE_INFO[k] ? ZONE_INFO[k][0] : ZONES[k] ? ZONES[k].name : k);
+function lockedRideMsg(k) { showPopup(`${VEH[k].label} IS LOCKED`, '', `REACH LEVEL ${RIDE_LVL[k]} TO UNLOCK IT`); sfx.thud(); }
+function lockedPlaceMsg(k) { showPopup(`${placeName(k).toUpperCase()} IS LOCKED`, '', `REACH LEVEL ${PLACE_LVL[k]} OR RIDE THERE YOURSELF`); sfx.thud(); }
+let visitT = 0;
+function updateVisits(dt) {
+  visitT -= dt; if (visitT > 0) return; visitT = 1;
+  const P = player.pos;
+  for (const k in PLACE_LVL) {
+    if (visited.has(k)) continue; const z = ZONES[k]; if (!z) continue;
+    if (k === 'rooftop' && P.y < 10) continue;
+    if (Math.hypot(z.pos.x - P.x, z.pos.z - P.z) < 32) {
+      visited.add(k); store.set('visited', [...visited]);
+      if (!unlockAll && curLevel() < PLACE_LVL[k]) { showPopup('PLACE DISCOVERED', 'good', `${placeName(k).toUpperCase()} · YOU CAN WARP HERE NOW`); sfx.ding(); }
+    }
+  }
+}
+function announceUnlocks(from, to) {
+  const rides = Object.keys(RIDE_LVL).filter(k => RIDE_LVL[k] > from && RIDE_LVL[k] <= to).map(k => VEH[k].label);
+  const places = [...new Set(Object.keys(PLACE_LVL).filter(k => !k.startsWith('isle_') && k !== 'skihut' && PLACE_LVL[k] > from && PLACE_LVL[k] <= to).map(placeName))];
+  const all = [...rides, ...places]; if (!all.length) return;
+  setTimeout(() => { showPopup('UNLOCKED', 'good', all.join(' · ').toUpperCase()); sfx.ding(); }, 2600);
+  addFeed(`<b>Unlocked:</b> ${all.map(esc).join(', ')}`);
+  buildMenu();
+}
+// the next thing you'll unlock, for the PLAY screen
+function nextUnlock() {
+  const L = curLevel(); let best = null;
+  for (const [k, l] of Object.entries(RIDE_LVL)) if (l > L && (!best || l < best.l)) best = { l, n: VEH[k].label };
+  for (const [k, l] of Object.entries(PLACE_LVL)) if (l > L && !k.startsWith('isle_') && k !== 'skihut' && !placeOpen(k) && (!best || l < best.l)) best = { l, n: placeName(k) };
+  return best;
+}
+
+// ───────────────────────── v2.2: desktop app only ─────────────────────────
+// (the gate itself runs at the very top of the file, before anything loads)
+
+// ───────────────────────── v2.2: admin ─────────────────────────
+const isAdmin = () => !!(online.me && online.me.role);
+const isOwner = () => !!(online.me && online.me.role === 'owner');
+function renderAdminTab() {
+  const t = document.querySelector('#tabs [data-tab=admin]'); if (t) t.classList.toggle('hidden', !isAdmin());
+  if (!isAdmin() && menuTab === 'admin') setTab('play');
+}
+online.on(renderAdminTab);
+const BAN_LENGTHS = [['10 MIN', 10], ['1 HOUR', 60], ['1 DAY', 1440], ['1 WEEK', 10080], ['30 DAYS', 43200], ['FOREVER', 5256000]];
+let admPlayers = [], admBusy = false;
+function admMsg(t, bad) { const el = document.getElementById('adm-msg'); if (el) { el.innerHTML = t; el.className = bad ? 'bad' : 'good'; } }
+const fmtUntil = s => { const d = new Date(s); return d.getFullYear() > 2100 ? 'forever' : d.toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+async function admRefresh() {
+  if (!isAdmin()) return;
+  const q = document.getElementById('adm-q').value.trim();
+  try { admPlayers = await online.rpc('si_admin_players', { p_token: online.token, p_query: q }); }
+  catch (e) { admMsg(online.nice(e), true); return; }
+  renderAdmin();
+}
+function renderAdmin() {
+  const el = document.getElementById('adm-list'); if (!el) return;
+  const self = online.me ? online.me.username : '';
+  document.getElementById('adm-unlock').textContent = unlockAll ? 'LOCK RIDES & PLACES AGAIN' : 'UNLOCK ALL RIDES & PLACES';
+  document.getElementById('adm-role').textContent = isOwner() ? 'OWNER' : 'ADMIN';
+  el.innerHTML = admPlayers.length ? admPlayers.map(p => {
+    const you = p.username === self, prot = !you && p.role && (!isOwner() || p.role === 'owner');
+    const status = p.banned_until ? `<em class="ban">BANNED until ${fmtUntil(p.banned_until)}${p.ban_reason ? ' · ' + esc(p.ban_reason) : ''}</em>` : p.online ? `<em class="on">ONLINE${p.room ? ' · server ' + esc(p.room) : ''}</em>` : `<em>offline</em>`;
+    return `<div class="adm-row"><div class="adm-who"><b>${esc(p.username)}</b>${p.role ? `<small class="role">${p.role.toUpperCase()}</small>` : ''}${you ? '<small>YOU</small>' : ''}<div>${status}<span class="adm-coins"><i class="coin"></i>${(p.coins | 0).toLocaleString()}</span></div></div>
+      <div class="adm-acts" data-u="${esc(p.username)}">
+        <button data-a="give">GIVE</button><button data-a="take">TAKE</button>
+        ${you || prot ? '' : `<button data-a="kick">KICK</button>${p.banned_until ? '<button data-a="unban">UNBAN</button>' : '<button data-a="ban" class="red">BAN</button>'}`}
+        ${isOwner() && !you && p.role !== 'owner' ? (p.role ? '<button data-a="unadmin">REMOVE ADMIN</button>' : '<button data-a="admin">MAKE ADMIN</button>') : ''}
+      </div></div>`;
+  }).join('') : `<div class="empty">No players found.</div>`;
+}
+async function admDo(action, user, extra = {}) {
+  if (admBusy) return; admBusy = true;
+  const T = online.token;
+  try {
+    if (action === 'give' || action === 'take') {
+      const n = Math.abs(parseInt(extra.amount ?? document.getElementById('adm-amount').value, 10) || 0);
+      if (!n) throw new Error('bad_amount');
+      await online.rpc('si_admin_gold', { p_token: T, p_username: user, p_amount: action === 'give' ? n : -n });
+      admMsg(`${action === 'give' ? 'Gave' : 'Took'} <b>${n.toLocaleString()}</b> coins ${action === 'give' ? 'to' : 'from'} <b>${esc(user)}</b>. It lands within 15 seconds (or next time they sign in).`);
+    } else if (action === 'kick') {
+      await online.rpc('si_admin_kick', { p_token: T, p_username: user });
+      admMsg(`Kicked <b>${esc(user)}</b>. They'll be dropped from their server within 15 seconds.`);
+    } else if (action === 'ban') {
+      const mins = extra.minutes ?? +document.getElementById('adm-len').value, why = extra.reason ?? document.getElementById('adm-why').value;
+      const r = await online.rpc('si_admin_ban', { p_token: T, p_username: user, p_minutes: mins, p_reason: why || '' });
+      admMsg(`Banned <b>${esc(user)}</b> until ${fmtUntil(r.until)}.`);
+    } else if (action === 'unban') {
+      await online.rpc('si_admin_ban', { p_token: T, p_username: user, p_minutes: 0, p_reason: '' });
+      admMsg(`Unbanned <b>${esc(user)}</b>.`);
+    } else if (action === 'admin' || action === 'unadmin') {
+      await online.rpc('si_admin_role', { p_token: T, p_username: user, p_admin: action === 'admin' });
+      admMsg(action === 'admin' ? `<b>${esc(user)}</b> is an admin now.` : `<b>${esc(user)}</b> isn't an admin any more.`);
+    }
+    admRefresh();
+    return true;
+  } catch (e) { admMsg(online.nice(e), true); return false; }
+  finally { admBusy = false; }
+}
+{
+  document.getElementById('adm-list').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (!b) return; const u = b.closest('[data-u]').dataset.u; if (b.dataset.a === 'ban' && !confirmBan(u)) return; admDo(b.dataset.a, u); });
+  document.getElementById('adm-q').addEventListener('input', () => { clearTimeout(admRefresh.t); admRefresh.t = setTimeout(admRefresh, 300); });
+  document.getElementById('adm-refresh').onclick = admRefresh;
+  document.getElementById('adm-len').innerHTML = BAN_LENGTHS.map(([n, m], i) => `<option value="${m}"${i === 2 ? ' selected' : ''}>${n}</option>`).join('');
+  document.getElementById('adm-max').onclick = () => {
+    for (const k of [...VEH_KEYS, 'surf', 'ski']) { upg[k] = upg[k] || {}; for (const u of UPGRADES) upg[k][u.id] = 5; }
+    store.set('upg', upg); veh.cfg = vehCfg(player.kind); online.saveSoon(500); admMsg('All your upgrades are maxed on every ride.'); renderGarage();
+  };
+  document.getElementById('adm-unlock').onclick = () => { unlockAll = !unlockAll; store.set('unlockAll', unlockAll); buildMenu(); renderAdmin(); admMsg(unlockAll ? 'Every ride and place is unlocked for you.' : 'Rides and places follow your level again.'); };
+  document.getElementById('adm-skins').onclick = () => {
+    for (const p of PAINTS) if (!owned.includes('p:' + p.id)) owned.push('p:' + p.id);
+    for (const o of OUTFITS) if (!owned.includes('o:' + o.id)) owned.push('o:' + o.id);
+    store.set('owned', owned); online.saveSoon(500); admMsg('Every paint job and skin is yours.'); renderGarage();
+  };
+}
+// a little "are you sure" before banning, using the reason/length boxes
+function confirmBan(u) { const len = document.getElementById('adm-len'); return confirmBox(`Ban <b>${esc(u)}</b> for ${len.options[len.selectedIndex].text.toLowerCase()}?`); }
+let confirmPending = null;
+function confirmBox(html) {
+  // two-click confirm on the admin message line (no browser pop-ups)
+  const key = html; if (confirmPending === key) { confirmPending = null; return true; }
+  confirmPending = key; admMsg(html + ' Press BAN again to confirm.', true); setTimeout(() => { if (confirmPending === key) confirmPending = null; }, 5000); return false;
+}
+// chat commands for admins: /give name 500, /take name 500, /kick name, /ban name 2h reason, /unban name, /admin name, /unadmin name
+async function chatCommand(t) {
+  const [cmd, user, ...rest] = t.slice(1).split(/\s+/);
+  if (cmd === 'help' || !cmd) { addFeed(isAdmin() ? 'Admin: /give /take name amount · /kick name · /ban name 10m|2h|3d|perm reason · /unban name' + (isOwner() ? ' · /admin /unadmin name' : '') : 'Commands: /help'); return; }
+  if (!isAdmin()) { addFeed("You're not an admin."); return; }
+  if (!user) { addFeed(`Usage: /${cmd} username`); return; }
+  const say = ok => addFeed(ok ? `<b>Done:</b> /${esc(cmd)} ${esc(user)}` : document.getElementById('adm-msg').textContent);
+  if (cmd === 'give' || cmd === 'take') return say(await admDo(cmd, user, { amount: rest[0] }));
+  if (cmd === 'ban') {
+    const m = /^(\d+)([mhdw])$/i.exec(rest[0] || ''), unit = m ? { m: 1, h: 60, d: 1440, w: 10080 }[m[2].toLowerCase()] : 0;
+    const minutes = /^perm/i.test(rest[0] || '') ? 5256000 : m ? +m[1] * unit : 60;
+    return say(await admDo('ban', user, { minutes, reason: rest.slice(m || /^perm/i.test(rest[0] || '') ? 1 : 0).join(' ') }));
+  }
+  if (['kick', 'unban', 'admin', 'unadmin'].includes(cmd)) return say(await admDo(cmd, user));
+  addFeed('Unknown command. Try /help');
+}
+// gold from an admin, being kicked, being banned
+function adminGift(n) {
+  cash = Math.max(0, cash + n); store.set('cash', cash); renderCash(); online.saveSoon(800);
+  showPopup(n > 0 ? `+${n.toLocaleString()} COINS` : `${n.toLocaleString()} COINS`, n > 0 ? 'good' : 'bail', n > 0 ? 'A GIFT FROM AN ADMIN' : 'TAKEN BY AN ADMIN');
+  addFeed(n > 0 ? `An admin gave you <b>${n.toLocaleString()}</b> coins` : `An admin took <b>${(-n).toLocaleString()}</b> coins`);
+}
+function kickedByAdmin() {
+  if (net.code) { net.leave(true); }
+  showNotice('KICKED', 'An admin removed you from the server.');
+}
+function showBan(msg) {
+  const [, until, reason] = String(msg).split('|');
+  net.leave(true);
+  showNotice('BANNED', `You can't play online until <b>${fmtUntil(until)}</b>.${reason ? `<br>Reason: ${esc(reason)}` : ''}<br><span class="muted">You can still ride offline.</span>`);
+}
+function showNotice(title, html) {
+  const el = document.getElementById('notice');
+  el.querySelector('.m-title').textContent = title; el.querySelector('.nt-body').innerHTML = html;
+  el.classList.remove('hidden');
+}
+document.getElementById('notice').addEventListener('click', e => { if (e.target.id === 'notice' || e.target.closest('.x') || e.target.closest('.nt-ok')) document.getElementById('notice').classList.add('hidden'); });
+
+// ── the players in your server (host and admins can kick) ──
+function renderServerPlayers() {
+  const el = document.getElementById('srv-players'); if (!el) return;
+  const list = net.players();
+  el.classList.toggle('hidden', !net.code);
+  if (!net.code) return;
+  el.innerHTML = `<div class="p-head">IN THIS SERVER <span class="muted">${list.length + 1} riding</span></div>` +
+    `<div class="sp-row"><b>${esc(net.myName())}</b><small>YOU${net.isHost ? ' · HOST' : ''}</small></div>` +
+    list.map(p => `<div class="sp-row"><b>${esc(p.name)}</b>${p.verified ? '' : '<small>guest</small>'}${net.isHost || isAdmin() ? `<button class="mini-act" data-kick="${esc(p.id)}" data-name="${esc(p.name)}">KICK</button>` : ''}</div>`).join('');
+}
+document.getElementById('srv-players').addEventListener('click', async e => {
+  const b = e.target.closest('[data-kick]'); if (!b) return;
+  if (net.isHost) { net.kickPeer(b.dataset.kick, 'The host kicked you from the server.'); addFeed(`Kicked <b>${esc(b.dataset.name)}</b>`); renderServerPlayers(); return; }
+  if (isAdmin()) { if (await admDo('kick', b.dataset.name)) addFeed(`Kicked <b>${esc(b.dataset.name)}</b>`); else addFeed(document.getElementById('adm-msg').textContent); }
+});
+
+// ── tidier menus ──
+const BOARD_GROUPS = [['TRICKS', ['combo', 'attack', 'air']], ['RACES', ['hill', 'ski', 'woods']], ['PROGRESS', ['xp', 'coins', 'treasure', 'surf']]];
+const BOARD_NOTE = { combo: 'Biggest single combo', attack: 'Best 2-minute Trick Attack score', hill: 'Fastest Hill Bomb run', air: 'Longest time in the air', coins: 'Coins earned all-time', xp: 'Most XP earned', treasure: 'Treasure chests opened', surf: 'Longest surf in one go', ski: 'Fastest Peak Run on skis', woods: 'Fastest Woods downhill' };
+let ranksView = 'boards', setView = 'general';
+function renderQuestCard() {
+  const el = document.getElementById('quest-card'); if (!el) return;
+  const done = QUESTS.filter(q => questState[q.id] === 'done').length, t = questTarget(), nu = nextUnlock();
+  el.innerHTML = `<div class="d-head">QUESTS <span>${done}/${QUESTS.length}</span></div>` +
+    (t ? `<div class="qc-now"><small>${questState[t.q.id] === 'found' ? 'BRING IT BACK' : 'IN PROGRESS'}</small><b>${esc(t.q.item.n)}</b><span>${esc(t.what)}</span></div>`
+      : `<div class="qc-now"><span>${done === QUESTS.length ? 'All quests done. Legend.' : 'Look for people with a <b>!</b> over their head. Talk to them with ' + keyName('use') + '.'}</span></div>`) +
+    `<button class="act ghost" id="quest-log-btn2">QUEST LOG</button>` +
+    (nu ? `<div class="d-head next">NEXT UNLOCK</div><div class="qc-next"><b>${esc(nu.n)}</b><span>LEVEL ${nu.l}</span></div>` : '');
+  document.getElementById('quest-log-btn2').onclick = () => toggleQuests();
+}
+function renderRanksView() {
+  document.querySelectorAll('#ranks-view button').forEach(b => b.classList.toggle('sel', b.dataset.v === ranksView));
+  document.getElementById('ranks-boards').classList.toggle('hidden', ranksView !== 'boards');
+  document.getElementById('ranks-goals').classList.toggle('hidden', ranksView !== 'goals');
+}
+document.getElementById('ranks-view').onclick = e => { const b = e.target.closest('button'); if (!b) return; ranksView = b.dataset.v; renderRanksView(); };
+function renderSetView() {
+  document.querySelectorAll('#set-view button').forEach(b => b.classList.toggle('sel', b.dataset.v === setView));
+  document.querySelectorAll('[data-setv]').forEach(s => s.classList.toggle('hidden', s.dataset.setv !== setView));
+}
+document.getElementById('set-view').onclick = e => { const b = e.target.closest('button'); if (!b) return; setView = b.dataset.v; renderSetView(); };
+renderRanksView(); renderSetView();
 
 // ───────────────────────── main loop ─────────────────────────
 let last = performance.now(), acc = 0, hintHidden = false, manual = false, clock = 0, timeScale = 1;
@@ -6750,7 +7031,7 @@ function tick(dt, doRender = true) {
     if (walking && hit('punch')) punch();
     if (hit('ride') && !walking) {
       if (VEH[player.kind].hidden) { if (player.kind === 'surf' && inWater(player.pos.x, player.pos.z)) showPopup("YOU'RE IN THE SEA", '', 'SURF BACK TO THE BEACH FIRST'); else backToRide(); }
-      else { const i = (VEH_KEYS.indexOf(player.kind) + 1) % VEH_KEYS.length; const p = player.pos.clone(), y = player.yaw; equip(VEH_KEYS[i]); spawn(zoneFor()); player.pos.copy(p); player.yaw = y; player.safe.pos.copy(p); showPopup(VEH[VEH_KEYS[i]].label); }
+      else { const open = VEH_KEYS.filter(rideOpen), i = (open.indexOf(player.kind) + 1) % open.length; const p = player.pos.clone(), y = player.yaw; equip(open[i]); spawn(zoneFor()); player.pos.copy(p); player.yaw = y; player.safe.pos.copy(p); showPopup(VEH[open[i]].label); }
     }
     ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'downtown'].forEach((z, i) => { if (pressed.has('Digit' + ((i + 1) % 10))) { spawn(z); showPopup(ZONES[z].name); } });
     if (hit('radio')) music.next();
@@ -6810,7 +7091,7 @@ function tick(dt, doRender = true) {
 
 // ───────────────────────── boot ─────────────────────────
 buildComposer();
-equip(VEH[player.kind] ? player.kind : 'bike');
+equip(VEH[player.kind] && !VEH[player.kind].hidden && rideOpen(player.kind) ? player.kind : 'bike');
 spawn(zoneFor());
 mergeStatic();
 spawnLife();
@@ -6847,4 +7128,4 @@ window.__game = {
   fixCam(x, y, z, fov = 50, lx, ly, lz) { camFixed = x == null ? null : { p: v3(x, y, z), fov, l: lx == null ? null : v3(lx, ly, lz) }; if (x == null) camState.init = false; },
   setCam(x, y, z) { camOverride = x == null ? null : v3(x, y, z); },
   player, input, keys, spawn, equip, startRide, togglePause, get state() { return state; }, camState, VEH, veh: () => veh, score: () => score, combo: () => combo,
-  vs: VS, root, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
+  vs: VS, root, rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
