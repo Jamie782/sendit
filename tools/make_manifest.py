@@ -7,7 +7,7 @@ play = os.path.join(site, 'play')
 version = json.load(open(os.path.join(here, 'version.json')))['version']
 MIN_SHELL = '1.5.0'  # raise this only when main.js changes, so older apps are told to re-download
 shutil.rmtree(play, ignore_errors=True); os.makedirs(play)
-for item in ['index.html', 'style.css', 'version.json', 'src', 'vendor', 'assets']:
+for item in ['index.html', 'style.css', 'version.json', 'discord.json', 'src', 'vendor', 'assets']:
     src = os.path.join(here, item)
     (shutil.copytree if os.path.isdir(src) else shutil.copy2)(src, os.path.join(play, item))
 lock = os.path.join(play, 'assets', 'logo-lockup.png')

@@ -1,7 +1,7 @@
 {
   "name": "send-it",
   "productName": "Send It",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Bike, e-bike, scooter and e-scooter stunt game",
   "main": "main.js",
   "author": "Jamie",
@@ -21,6 +21,8 @@
     },
     "files": [
       "main.js",
+      "discord-rpc.js",
+      "discord.json",
       "index.html",
       "style.css",
       "src/**/*",

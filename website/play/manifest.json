@@ -1,8 +1,12 @@
 {
- "version": "2.4.1",
+ "version": "2.5.0",
  "minShell": "1.5.0",
- "notes": "Fixed the game getting stuck on LOADING",
+ "notes": "SEND IT on Discord",
  "files": [
+  {
+   "path": "discord.json",
+   "sha256": "87d53bc188d41182860dc125e4d1dea70236d7b199f09e3cbaedbe92380e32a3"
+  },
   {
    "path": "index.html",
    "sha256": "a93ca19db02d77a4927bdf7461f299c0a8488e95dd4f1fa54c8d43930966ed89"
@@ -13,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "4055582e94fae5335654cbf11fc5543884340069cc5217a8c795138e370d014e"
+   "sha256": "d9d95975fcfb2db50961ac7eb83b0a2b02ff353f349d4b25e8b593837e9dda9a"
   },
   {
    "path": "src/game.js",
-   "sha256": "fb7b310f9f3c5b39a4f596d7a12e189a2c91b13dea34b808df176ca2d120a48d"
+   "sha256": "1355a865e0be38db7b82968f9535781fcb2bc2a0ffae41d54e97af48360bccac"
   },
   {
    "path": "assets/logo-icon.png",

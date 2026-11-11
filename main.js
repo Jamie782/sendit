@@ -4,6 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { pathToFileURL } = require('url');
+const { DiscordPresence } = require('./discord-rpc');
+// Discord Rich Presence: the Application ID lives in discord.json next to the game files, so it can be
+// set or changed with a normal game update.
+const discord = new DiscordPresence(m => console.log(m));
 
 // ── automatic updates ──────────────────────────────────────────────
 // The game files (HTML, CSS, JS) are also published on the website. On start-up and every 30 minutes we
@@ -118,6 +122,11 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(file).toString());
   });
   setTimeout(checkForUpdate, 4000);
+  setInterval(() => {
+    const cfg = readJSON(path.join(gameRoot, 'discord.json')) || readJSON(path.join(__dirname, 'discord.json'));
+    if (cfg && cfg.clientId) discord.start(cfg.clientId);
+    if (win && !win.isDestroyed() && !win.webContents.isLoading()) win.webContents.executeJavaScript('window.__presence ? JSON.stringify(window.__presence) : null').then(j => { if (j) discord.set(JSON.parse(j)); }).catch(() => { });
+  }, 5000);
   setInterval(checkForUpdate, 30 * 60 * 1000);
   if (process.platform !== 'darwin') Menu.setApplicationMenu(null);
   createWindow();

@@ -2,6 +2,18 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.5.0",
+   "date": "November 2026",
+   "title": "SEND IT on Discord",
+   "image": "media/online.jpg",
+   "items": [
+    "Discord now shows you as Playing SEND IT, with where you are riding, your ride and level, and a picture of the place",
+    "When you are in an online server your friends see how many are riding and get a Join my server button",
+    "Turn it off any time in Settings \u2192 General \u2192 Show on Discord",
+    "Needs the newest SEND IT app (update it in the launcher)"
+   ]
+  },
+  {
    "v": "2.4.1",
    "date": "November 2026",
    "title": "Loading fix",

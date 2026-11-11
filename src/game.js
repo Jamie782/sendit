@@ -5618,7 +5618,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.4.1';
+const GAME_VERSION = '2.5.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7234,6 +7234,12 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.5.0', d: 'November 2026', t: 'SEND IT on Discord', items: [
+    'Discord now shows you as Playing SEND IT, with where you are riding, your ride and level, and a picture of the place',
+    'When you are in an online server your friends see how many are riding and get a Join my server button',
+    'Turn it off any time in Settings → General → Show on Discord',
+    'Needs the newest SEND IT app (update it in the launcher)',
+  ] },
   { v: '2.4.1', d: 'November 2026', t: 'Loading fix', items: [
     'Fixed the game getting stuck on LOADING if your rider wore a cap or nothing on their head',
     'If the game ever hits a problem while starting, the loading screen now says what went wrong',
@@ -7330,6 +7336,55 @@ function rideLift(to) { const P = player; P.pos.copy(to); P.v = 0; P.air = false
 INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: () => placeOpen('rooftop') || curLevel() >= PLACE_LVL.rooftop ? 'Take the lift to the roof' : `Lift to the roof (unlocks at level ${PLACE_LVL.rooftop})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.rooftop) return lockedPlaceMsg('rooftop'); rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)); } });
 INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
 INTERACT.push({ x: H100.base.x, z: H100.base.z, r: 4, label: () => unlockAll || curLevel() >= PLACE_LVL.the100 ? 'Take the lift up The 100' : `Lift up The 100 (unlocks at level ${PLACE_LVL.the100})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.the100) return lockedPlaceMsg('the100'); rideLift(H100.top.clone()); showPopup('THE 100', '', '100 M UP'); } });
+// ───────────────────────── v2.5: Discord Rich Presence ─────────────────────────
+// The desktop app reads window.__presence every few seconds and shows it on your Discord profile
+// ("Playing SEND IT", where you are, what you ride, how many are in your server). Turn it off in Settings.
+let discordOn = store.get('discordPresence', true);
+const PRESENCE_START = Date.now();
+const PRES_SITE = 'https://play-sendit.netlify.app/';
+const ZONE_IMG = new Set(['airbag', 'beach', 'bigair', 'bigbowl', 'canyon', 'desert', 'dirt', 'downtown', 'hill', 'islands', 'market', 'mega', 'mountain', 'park', 'plaza', 'rooftop', 'street', 'the100', 'vert', 'warehouse', 'woodpark', 'woods', 'yard']);
+function updatePresence() {
+  if (!discordOn) { window.__presence = { off: true }; return; }
+  const lvl = curLevel(), ride = VEH[player.kind] ? VEH[player.kind].label : 'BIKE';
+  const rideName = ride.charAt(0) + ride.slice(1).toLowerCase();
+  const ICON = PRES_SITE + 'media/icon.png';
+  let details, stateTxt, img = ICON, imgText = 'SEND IT';
+  if (state === 'menu') { details = 'In the menu'; stateTxt = `Level ${lvl}`; }
+  else {
+    const z = nearestZone(), name = z ? placeName(z) : 'Town';
+    details = player.mode === 'walk' ? `Walking around ${name}` : `Riding ${name}`;
+    stateTxt = player.mode === 'walk' ? `Level ${lvl}` : `${rideName} · Level ${lvl}`;
+    if (z && ZONE_IMG.has(z)) { img = `${PRES_SITE}play/assets/maps/${z}.jpg`; imgText = name; }
+  }
+  const p = { details: details.slice(0, 120), state: stateTxt.slice(0, 120), start: PRESENCE_START, large: img, largeText: imgText, small: ICON, smallText: `Level ${lvl} · best combo ${best.toLocaleString()}`, buttons: [{ label: 'Get SEND IT', url: PRES_SITE }] };
+  if (net.connected) {
+    const n = net.remotes.size + 1;
+    p.state = `Online · ${n} rider${n === 1 ? '' : 's'}`; p.party = { id: 'sendit-' + net.code, size: [n, 8] };
+    if (net.code) p.buttons.unshift({ label: 'Join my server', url: `${PRES_SITE}join.html?code=${net.code}` });
+  }
+  window.__presence = p;
+}
+setInterval(updatePresence, 4000); updatePresence();
+// Settings → General → SHOW ON DISCORD
+{
+  const row = document.createElement('div'); row.className = 'set-row';
+  row.innerHTML = '<span>SHOW ON DISCORD</span><div class="seg" id="discord-seg"></div>';
+  document.getElementById('voice-seg').closest('.set-row').after(row);
+  const seg = row.querySelector('#discord-seg');
+  const draw = () => { seg.innerHTML = ''; for (const [v, n] of [[true, 'ON'], [false, 'OFF']]) { const b = document.createElement('button'); b.textContent = n; b.className = discordOn === v ? 'sel' : ''; b.onclick = () => { discordOn = v; store.set('discordPresence', v); draw(); updatePresence(); }; seg.appendChild(b); } };
+  draw();
+}
+// older copies of the app can't talk to Discord yet: say so under the setting
+{
+  const prev = window.__sendItVersion;
+  window.__sendItVersion = v => {
+    if (prev) prev(v);
+    const old = v && v.shell && !(v.shell.split('.').map(Number)[0] > 1 || (v.shell.split('.').map(Number)[0] === 1 && v.shell.split('.').map(Number)[1] >= 6));
+    const row = document.getElementById('discord-seg') && document.getElementById('discord-seg').closest('.set-row');
+    if (row && old && !row.querySelector('.muted')) { const n = document.createElement('div'); n.className = 'muted'; n.style.cssText = 'flex-basis:100%;font-size:12px;margin-top:4px'; n.textContent = 'Needs the newest SEND IT app: update it in the launcher or download it again from the website.'; row.style.flexWrap = 'wrap'; row.appendChild(n); }
+  };
+}
+
 // ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
 function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
 function closeUi() {

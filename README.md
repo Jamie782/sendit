@@ -100,3 +100,13 @@ Needs Node.js (nodejs.org, LTS). In a terminal, in this folder:
 - People (bodies, skeleton, skin weights): MakeHuman / MPFB2 assets, CC0 1.0. See `assets/people/CREDITS.txt`.
 - Fonts: Bebas Neue, Inter and Barlow Condensed, all under the SIL Open Font License (`vendor/fonts`).
 - 3D engine: three.js (MIT).
+
+## Discord Rich Presence
+
+The desktop app (shell 1.6.0+) shows players as **Playing SEND IT** on Discord, with where they ride,
+their ride and level, a picture of the place, and a **Join my server** button when they host online.
+
+It needs a Discord application: create one called **SEND IT** at https://discord.com/developers/applications,
+give it the app icon, then put its Application ID in `discord.json` (`{ "clientId": "..." }`) and ship a
+normal game update. `discord-rpc.js` talks to the Discord app over its local IPC socket; players can turn it
+off in Settings → General → Show on Discord.
