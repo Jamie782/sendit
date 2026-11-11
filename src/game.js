@@ -56,8 +56,8 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.08, 2
 
 const QUALITY = {
   low: { pr: 1, shadow: 1024, shadowSize: 50, bloom: false, samples: 0, ao: false, grass: 6000 },
-  medium: { pr: Math.min(devicePixelRatio, 1.5), shadow: 2048, shadowSize: 70, bloom: true, samples: 4, ao: false, grass: 22000 },
-  high: { pr: Math.min(devicePixelRatio, 2), shadow: 4096, shadowSize: 90, bloom: true, samples: 4, ao: true, grass: 45000 },
+  medium: { pr: Math.min(devicePixelRatio, 1.25), shadow: 2048, shadowSize: 70, bloom: true, samples: 2, ao: false, grass: 16000 },
+  high: { pr: Math.min(devicePixelRatio, 1.5), shadow: 3072, shadowSize: 85, bloom: true, samples: 4, ao: true, grass: 32000 },
 };
 let qualityName = store.get('quality', IS_TOUCH ? 'low' : 'high');
 let composer, bloomPass, aoPass, grassReady = false;
@@ -1722,7 +1722,7 @@ function attachPerson(R, o, mats) {
   R.person = { k, P, skel, m0, m1, gear, chestG, M: Array.from({ length: nb }, () => new THREE.Matrix4()) };
   // three.js calls this once a frame, only while the body is on screen: pose it then
   skel.update = () => {
-    R.group.getWorldPosition(_tmp); const dist = _tmp.distanceTo(camera.position), far = dist > (R === rider ? 40 : 12);
+    R.group.getWorldPosition(_tmp); const dist = _tmp.distanceTo(camera.position), far = dist > (R === rider ? 40 : 9);
     m0.visible = !far; m1.visible = far; m1.castShadow = dist < 45;
     posePerson(R, R === rider && player.mode === 'walk' ? 0.3 : R === rider ? 1.15 : 0.3);
     if (skel.boneTexture) skel.boneTexture.needsUpdate = true;
@@ -1993,17 +1993,17 @@ const player = {
   grind: null, braking: false, dist: 0,
 };
 // trick buttons per vehicle: key → trick
-const TRICK_KEYS = ['J', 'K', 'L', 'I', 'U', 'O', 'SH'];
+const TRICK_KEYS = ['J', 'K', 'L', 'I', 'U', 'O', 'SH', 'Y'];
 const TRICKS = {
-  bike: { J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'superman', n: 'Superman' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'pose', p: 'tabletop', n: 'Tabletop' }, O: { t: 'pose', p: 'cancan', n: 'Can-Can' }, SH: { t: 'pose', p: 'xup', n: 'X-Up' } },
-  ebike: { J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'superman', n: 'Superman' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'pose', p: 'tabletop', n: 'Tabletop' }, O: { t: 'pose', p: 'cancan', n: 'Can-Can' }, SH: { t: 'pose', p: 'xup', n: 'X-Up' } },
-  scooter: { J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'nofooter', n: 'No-Footer' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'whip', n: 'Heelwhip', d: -1 }, O: { t: 'pose', p: 'indy', n: 'Indy Grab' }, SH: { t: 'pose', p: 'nacnac', n: 'Nac-Nac' } },
-  escooter: { J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'kickout', n: 'Kickout' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'whip', n: 'Heelwhip', d: -1 }, O: { t: 'pose', p: 'indy', n: 'Indy Grab' }, SH: { t: 'pose', p: 'cancan', n: 'Can-Can' } },
-  skate: { J: { t: 'bar', n: 'Kickflip', d: 1 }, K: { t: 'bar', n: 'Heelflip', d: -1 }, U: { t: 'whip', n: 'Pop Shove-it', d: 1, a: Math.PI }, L: { t: 'pose', p: 'indy', n: 'Indy Grab' }, I: { t: 'pose', p: 'melon', n: 'Melon' }, O: { t: 'pose', p: 'airwalk', n: 'Airwalk' }, SH: { t: 'pose', p: 'nosegrab', n: 'Nosegrab' } },
+  bike: { Y: { t: 'pose', p: 'overhead', n: 'Bike Overhead' }, J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'superman', n: 'Superman' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'pose', p: 'tabletop', n: 'Tabletop' }, O: { t: 'pose', p: 'cancan', n: 'Can-Can' }, SH: { t: 'pose', p: 'xup', n: 'X-Up' } },
+  ebike: { Y: { t: 'pose', p: 'overhead', n: 'Bike Overhead' }, J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'superman', n: 'Superman' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'pose', p: 'tabletop', n: 'Tabletop' }, O: { t: 'pose', p: 'cancan', n: 'Can-Can' }, SH: { t: 'pose', p: 'xup', n: 'X-Up' } },
+  scooter: { Y: { t: 'pose', p: 'overhead', n: 'Scooter Overhead' }, J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'nofooter', n: 'No-Footer' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'whip', n: 'Heelwhip', d: -1 }, O: { t: 'pose', p: 'indy', n: 'Indy Grab' }, SH: { t: 'pose', p: 'nacnac', n: 'Nac-Nac' } },
+  escooter: { Y: { t: 'pose', p: 'overhead', n: 'Scooter Overhead' }, J: { t: 'whip', n: 'Tailwhip', d: 1 }, K: { t: 'bar', n: 'Barspin' }, L: { t: 'pose', p: 'kickout', n: 'Kickout' }, I: { t: 'pose', p: 'nohand', n: 'No-Hander' }, U: { t: 'whip', n: 'Heelwhip', d: -1 }, O: { t: 'pose', p: 'indy', n: 'Indy Grab' }, SH: { t: 'pose', p: 'cancan', n: 'Can-Can' } },
+  skate: { Y: { t: 'pose', p: 'overhead', n: 'Board Overhead' }, J: { t: 'bar', n: 'Kickflip', d: 1 }, K: { t: 'bar', n: 'Heelflip', d: -1 }, U: { t: 'whip', n: 'Pop Shove-it', d: 1, a: Math.PI }, L: { t: 'pose', p: 'indy', n: 'Indy Grab' }, I: { t: 'pose', p: 'melon', n: 'Melon' }, O: { t: 'pose', p: 'airwalk', n: 'Airwalk' }, SH: { t: 'pose', p: 'nosegrab', n: 'Nosegrab' } },
 };
 const WHIP_PTS = { Tailwhip: 320, Heelwhip: 368, 'Pop Shove-it': 190 };
 const BAR_PTS = { Barspin: 200, Kickflip: 260, Heelflip: 280 };
-const POSE_PTS = { superman: 300, nofooter: 300, kickout: 240, nohand: 220, tabletop: 330, cancan: 260, xup: 240, indy: 260, nacnac: 280, melon: 270, airwalk: 300, nosegrab: 260 };
+const POSE_PTS = { overhead: 440, superman: 300, nofooter: 300, kickout: 240, nohand: 220, tabletop: 330, cancan: 260, xup: 240, indy: 260, nacnac: 280, melon: 270, airwalk: 300, nosegrab: 260 };
 const GRIND_STYLES = {
   bike: { none: 'Double Peg', A: 'Feeble', D: 'Smith', W: 'Icepick', S: 'Luc-E' },
   scooter: { none: '50-50', A: 'Feeble', D: 'Smith', W: 'Nose Grind', S: 'Crooked' },
@@ -2087,7 +2087,7 @@ function readInput() {
   let thr = keyDown('up') ? 1 : 0, brk = keyDown('down') ? 1 : 0;
   let st = (keyDown('left') ? 1 : 0) - (keyDown('right') ? 1 : 0);
   let jump = hit('jump'), wh = keyDown('wheelie');
-  let t1 = keyDown('t1'), t2 = keyDown('t2'), t3 = keyDown('t3'), t4 = keyDown('t4'), t5 = keyDown('t5'), t6 = keyDown('t6');
+  let t1 = keyDown('t1'), t2 = keyDown('t2'), t3 = keyDown('t3'), t4 = keyDown('t4'), t5 = keyDown('t5'), t6 = keyDown('t6'), t7 = keyDown('t7');
   // touch
   if (Math.abs(touch.x) > 0.15) st += -touch.x;
   if (touch.y < -0.25) thr = Math.max(thr, clamp(-touch.y * 1.3, 0, 1));
@@ -2103,14 +2103,14 @@ function readInput() {
     if (Math.abs(lx) > 0.15) st += -lx;
     thr = Math.max(thr, bv(7), ly < -0.3 ? -ly : 0); brk = Math.max(brk, bv(6), ly > 0.3 ? ly : 0);
     if (b(0) && !padPrev[0]) jump = true;
-    wh ||= b(4); t1 ||= b(2); t2 ||= b(3); t3 ||= b(1); t4 ||= b(5); t5 ||= b(12) || b(14); t6 ||= b(13) || b(15);
+    wh ||= b(4); t7 ||= b(10) || b(11); t1 ||= b(2); t2 ||= b(3); t3 ||= b(1); t4 ||= b(5); t5 ||= b(12) || b(14); t6 ||= b(13) || b(15);
     if (b(9) && !padPrev[9]) togglePause();
     if (b(3) && b(2) && !padPrev.r) { } // reserved
     padPrev = {}; p.buttons.forEach((x, i) => padPrev[i] = x.pressed);
     break;
   }
   if (chatOpen || (typeof dlg !== 'undefined' && uiOpen())) { thr = brk = st = 0; jump = wh = t1 = t2 = t3 = t4 = t5 = t6 = false; }
-  Object.assign(input, { throttle: clamp(thr, 0, 1), brake: clamp(brk, 0, 1), steer: clamp(st, -1, 1), jump, wheelie: wh, tr: { J: t1, K: t2, L: t3, I: t4, U: t5, O: t6, SH: wh } });
+  Object.assign(input, { throttle: clamp(thr, 0, 1), brake: clamp(brk, 0, 1), steer: clamp(st, -1, 1), jump, wheelie: wh, tr: { J: t1, K: t2, L: t3, I: t4, U: t5, O: t6, SH: wh, Y: t7 } });
 }
 
 // ───────────────────────── scoring ─────────────────────────
@@ -2217,7 +2217,7 @@ const sfx = (() => {
     ding() { tone(880, 0.25, 0.08); tone(1320, 0.35, 0.06, 0.08); },
     hop() { burst(0.1, 300, 1000, 0.06, 'bandpass'); },
     bark() { tone(420, 0.07, 0.05); tone(300, 0.09, 0.05, 0.05); burst(0.06, 900, 500, 0.03, 'bandpass'); },
-    ctx: () => ctx,
+    ctx: () => ctx, out: () => master,
     setVolume(v) { store.set('sfxVol', v); if (master) master.gain.setTargetAtTime(sfxLevel(), ctx.currentTime, 0.05); },
     toggleMute() { const m = !store.get('muted', false); store.set('muted', m); if (master) master.gain.value = sfxLevel(); return m; },
   };
@@ -2531,6 +2531,7 @@ function airStep(dt, P, C) {
   P.vel.y -= G * dt;
   P.vel.multiplyScalar(1 - 0.004 * dt);
   if (!input.throttle) P.lockW = false; if (!input.brake) P.lockS = false;
+  P.lockT = P.lockT || {};
   for (const k of TRICK_KEYS) if (!input.tr[k]) P.lockT[k] = false;
   const held = k => input.tr[k] && !P.lockT[k];
   if (!input.steer) P.lockSteer = false;
@@ -2767,6 +2768,7 @@ function grindOffset(kind) { return kind === 'bike' ? 0.31 : kind === 'ebike' ? 
 function tryGrind(P, np) {
   const E = settings.easy, off = grindOffset(veh.kind), GR = E ? 0.6 : 0.42;
   for (const r of RAILS) {
+    if (r === P.noRail && P.airTime < 0.7) continue;
     if (Math.abs(np.x - r.cx) > r.rad || Math.abs(np.z - r.cz) > r.rad) continue;
     const t = ((np.x - r.a.x) * r.dh.x + (np.z - r.a.z) * r.dh.z) / r.hlen;
     if (t < 0.02 || t > 0.98) continue;
@@ -2814,7 +2816,11 @@ function grindStep(dt, P) {
   if (Math.random() < 0.7) emitSparks(P.pos.clone().add(v3(0, off, 0)), r.kind === 'ledge' ? 1 : 2, r.kind);
   const hv = g.v * Math.hypot(r.d.x, r.d.z), vy = g.v * rise;
   if (g.t > 1 || g.t < 0) { endGrind(P, true); P.fromGrind = true; launch(P, vy + 1.6, hv, null, 0, true); return; }
-  if (input.jump) { endGrind(P, true); P.fromGrind = true; launch(P, vy + veh.cfg.hop * 0.9, hv, null, 0, true); sfx.hop(); return; }
+  if (input.jump) {
+    endGrind(P, true); P.fromGrind = true; launch(P, vy + veh.cfg.hop * 0.9, hv, null, 0, true); sfx.hop();
+    const side = input.steer > 0.2 ? 1 : -1; P.vel.x += Math.cos(P.yaw) * side * 2.6; P.vel.z -= Math.sin(P.yaw) * side * 2.6;
+    P.noRail = r; return;
+  }
   if (g.v < 0.35) { endGrind(P, true); launch(P, 1.2, 0.6, null, 0, true); return; }
 }
 function endGrind(P, ok) {
@@ -2952,7 +2958,7 @@ function applyAvatar(A, S, dt) {
   const w = S.wheelie;
   if (w >= 0) { A.wheelieG.position.z = V.contactR; V.model.position.z = -V.contactR; } else { A.wheelieG.position.z = V.contactF; V.model.position.z = -V.contactF; }
   A.wheelieG.rotation.x = -w;
-  if (V.board) { V.board.rotation.z = S.bar; V.whip.rotation.y = S.whip; }
+  if (V.board) { V.board.rotation.z = S.bar; V.whip.rotation.y = S.whip; V.whip.position.y = ((S.poses && S.poses.overhead) || 0) * 0.95; }
   else {
     V.steer.rotation.y = S.steer + S.bar + S.xup * Math.PI;
     V.whip.rotation.y = S.whip * (A.kind === 'scooter' || A.kind === 'escooter' ? 1 : -1);
@@ -2999,6 +3005,8 @@ function poseSkater(dt, S, A) {
   if ((PO.melon || 0) > 0.01) { const a = PO.melon; L.hip.y -= 0.22 * a; grab(1, v3(0.02, V.deckTop + 0.03, -0.12), a); }
   if ((PO.nosegrab || 0) > 0.01) { const a = PO.nosegrab; L.hip.y -= 0.16 * a; L.hip.x += 0.12 * a; grab(1, v3(0.37, V.deckTop + 0.06, 0.0), a); }
   if ((PO.airwalk || 0) > 0.01) { const a = PO.airwalk; L.ft[1].lerp(v3(0.32, top + 0.28, 0.36), a); L.ft[0].lerp(v3(-0.32, top + 0.16, -0.3), a); grab(1, v3(0.36, V.deckTop + 0.07, -0.02), a); }
+  { const oh = PO.overhead || 0, h = 1.0 * oh, up = 0.95 * oh; R.group.position.y = -h;
+    if (oh > 0.01) { grab(0, v3(-0.2, V.deckTop + h + up - 0.04, 0.02), oh); grab(1, v3(0.2, V.deckTop + h + up - 0.04, 0.02), oh); L.ft[0].lerp(v3(-0.14, L.hip.y - 0.87, 0.05), oh); L.ft[1].lerp(v3(0.14, L.hip.y - 0.87, -0.04), oh); } }
   const lookDir = v3(0.06 + (PO.nosegrab || 0) * 0.2, 1, 0.14 + crouch * 0.5).normalize();
   L.chest.copy(L.hip).addScaledVector(lookDir, D.torso);
   const sideV = v3(1, 0, 0);
@@ -3047,6 +3055,9 @@ function poseRider(dt, S, A) {
     if (sm.barOff > 0.01) L.ht[s].lerp(v3(side * 0.46, L.ht[s].y + 0.36, L.ht[s].z - 0.14), sm.barOff * 0.9);
     for (const k in S.poses) { const a = S.poses[k]; if (a > 0.01 && POSE_FX[k]) POSE_FX[k](L, a, s, c); }
   }
+  const oh = S.poses.overhead || 0, ohH = (bike ? 1.02 : 1.12) * oh;
+  R.group.position.y = -ohH;
+  if (oh > 0.01) for (let s = 0; s < 2; s++) { const side = s === 0 ? -1 : 1; L.ht[s].y += ohH; L.ht[s].x += side * 0.04 * oh; L.ft[s].lerp(v3(side * 0.13 + (s ? 0.05 : -0.05), L.hip.y - 0.86, L.hip.z + (s ? 0.12 : -0.08)), oh); }
   const sup = S.poses.superman || 0;
   if (sup > 0.01 && bike) { L.hip.z -= sup * 0.3; L.hip.y += sup * 0.08; }
   if ((S.poses.tabletop || 0) > 0.01) L.hip.y -= S.poses.tabletop * 0.08;
@@ -4240,7 +4251,7 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
   }
   // ── a tall drop-in tower with railings on the Big Bowl deck ──
   {
-    const X = 455 + 15, Z = -200 - 17.4, BH = 4.5, R = 7, W = 10, u = R * 0.965, dk = 2, top = BH + qh(R);
+    const X = 445, Z = -217.15, BH = 4.5, R = 6.6, W = 10, u = R * 0.965, dk = 1.5, top = BH + qh(R); // foot right on the coping of the long straight side
     woodQP(X, Z, Math.PI, W, R, dk, BH);
     const zb = Z - u - dk, za = Z - u;
     for (const s of [-1, 1]) { tube(v3(X + s * W / 2, top + 1.1, za), v3(X + s * W / 2, top + 1.1, zb), 0.035, M.pole, scene); for (let k = 0; k <= 4; k++) cyl(0.02, 0.02, 1.1, M.pole, X + s * W / 2, top + 0.55, za + (zb - za) * k / 4, scene, 6); }
@@ -4312,7 +4323,8 @@ function buildGrass() {
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vec4 wp = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
       float sway = sin(uTime * 1.7 + wp.x * 0.35 + wp.z * 0.22) * 0.5 + sin(uTime * 3.1 + wp.x * 0.9) * 0.18;
-      transformed.x += sway * position.y * 0.32; transformed.z += sway * position.y * 0.16;`);
+      transformed.x += sway * position.y * 0.32; transformed.z += sway * position.y * 0.16;
+      transformed *= smoothstep(2.5, 7.0, distance(wp.xz, cameraPosition.xz));`);
     sh.vertexShader = sh.vertexShader.replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n objectNormal = vec3(0.0, 1.0, 0.0);');
   };
   const N = 45000;
@@ -5618,7 +5630,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.5.0';
+const GAME_VERSION = '2.6.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -5670,7 +5682,7 @@ function splash(fromAir) {
 }
 
 // ───────────────────────── trick bar ─────────────────────────
-const KEY_LABEL = { J: 'J', K: 'K', L: 'L', I: 'I', U: 'U', O: 'O', SH: 'SHIFT' };
+const KEY_LABEL = { J: 'J', K: 'K', L: 'L', I: 'I', U: 'U', O: 'O', SH: 'SHIFT', Y: 'Y' };
 let trickBarT = 0;
 function buildTrickBar() {
   const el = document.getElementById('trickbar'); if (!el) return;
@@ -5755,7 +5767,7 @@ function buildMenu() {
   const sw = document.getElementById('swatches'); sw.innerHTML = '';
   COLORS.forEach((c, i) => { const b = document.createElement('button'); b.style.background = '#' + c.toString(16).padStart(6, '0'); b.className = i === paintColor ? 'sel' : ''; b.onclick = () => { paintColor = i; store.set('color', i); applyPaint(veh.paint, paintId, c); net.announce(); online.saveSoon(); buildMenu(); }; sw.appendChild(b); });
   const qs = document.getElementById('quality-seg'); qs.innerHTML = '';
-  for (const q of ['low', 'medium', 'high']) { const b = document.createElement('button'); b.textContent = q.toUpperCase(); b.className = qualityName === q ? 'sel' : ''; b.onclick = () => { qualityName = q; store.set('quality', q); buildComposer(); spawnLife(); buildMenu(); }; qs.appendChild(b); }
+  for (const q of ['low', 'medium', 'high']) { const b = document.createElement('button'); b.textContent = q.toUpperCase(); b.className = qualityName === q ? 'sel' : ''; b.onclick = () => { qualityName = q; store.set('quality', q); store.set('qualityManual', true); buildComposer(); spawnLife(); buildMenu(); }; qs.appendChild(b); }
   const ts = document.getElementById('tod-seg'); ts.innerHTML = '';
   for (const [t, n, ti] of [['day', 'DAY', 'Always daytime'], ['sunset', 'SUNSET', 'Always sunset'], ['night', 'NIGHT', 'Always night'], ['cycle', 'DAY/NIGHT CYCLE', 'An 8-minute day that turns to night and back']]) { const b = document.createElement('button'); b.textContent = n; b.title = ti; b.className = todName === t ? 'sel' : ''; b.onclick = () => { applyTimeOfDay(t); buildMenu(); }; ts.appendChild(b); }
   const es = document.getElementById('easy-seg'); es.innerHTML = '';
@@ -7108,13 +7120,13 @@ function seatDriver(car) {
 // ───────────────────────── v2.1: controls you can change ─────────────────────────
 const BIND_DEF = {
   up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', wheelie: 'ShiftLeft',
-  t1: 'KeyJ', t2: 'KeyK', t3: 'KeyL', t4: 'KeyI', t5: 'KeyU', t6: 'KeyO',
+  t1: 'KeyJ', t2: 'KeyK', t3: 'KeyL', t4: 'KeyI', t5: 'KeyU', t6: 'KeyO', t7: 'KeyY',
   use: 'KeyE', getoff: 'KeyF', punch: 'KeyJ', run: 'ShiftLeft', bag: 'KeyB', quests: 'KeyG',
   ride: 'KeyQ', map: 'KeyM', cam: 'KeyC', reset: 'KeyR', replay: 'KeyV', photo: 'KeyP', radio: 'KeyN', chat: 'KeyT', help: 'KeyH',
 };
 const BIND_GROUPS = [
   ['RIDING', [['up', 'Ride / frontflip'], ['down', 'Brake / reverse / backflip'], ['left', 'Steer left / spin'], ['right', 'Steer right / spin'], ['jump', 'Hop / ollie'], ['wheelie', 'Wheelie / manual']]],
-  ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6']]],
+  ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6'], ['t7', 'Overhead trick']]],
   ['ON FOOT', [['getoff', 'Get off / get on'], ['use', 'Talk / use / open'], ['punch', 'Punch'], ['run', 'Run'], ['bag', 'Bag (food & drink)'], ['quests', 'Quest log']]],
   ['OTHER', [['ride', 'Switch ride'], ['map', 'World map'], ['cam', 'Camera'], ['reset', 'Reset'], ['replay', 'Instant replay'], ['photo', 'Photo mode'], ['radio', 'Next radio station'], ['chat', 'Chat'], ['help', 'Hide help']]],
 ];
@@ -7127,7 +7139,7 @@ function keyName(a) {
   const NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ShiftRight: 'R-SHIFT', ControlLeft: 'CTRL', ControlRight: 'R-CTRL', AltLeft: 'ALT', AltRight: 'R-ALT', Tab: 'TAB', Enter: 'ENTER', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', CapsLock: 'CAPS' };
   return NAMES[c] || c.replace(/^Key|^Digit|^Numpad/, '').replace(/^Arrow/, '').toUpperCase();
 }
-const TK2B = { J: 't1', K: 't2', L: 't3', I: 't4', U: 't5', O: 't6', SH: 'wheelie' };
+const TK2B = { J: 't1', K: 't2', L: 't3', I: 't4', U: 't5', O: 't6', SH: 'wheelie', Y: 't7' };
 const keyLabel = k => keyName(TK2B[k]);
 let bindWait = null;
 addEventListener('keydown', e => {
@@ -7144,7 +7156,7 @@ function renderHint() {
   const el = document.getElementById('hint'); if (!el) return;
   const K = keyName;
   el.innerHTML = `<b>${K('up')}/${K('down')}</b> ride · brake · reverse &nbsp; <b>${K('left')}/${K('right')}</b> steer &nbsp; <b>${K('jump')}</b> hop &nbsp; <b>${K('wheelie')}</b> wheelie<br>` +
-    `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks<br>` +
+    `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks &nbsp; <b>${K('t7')}</b> overhead<br>` +
     `<b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
     `<b>${K('map')}</b> map &nbsp; <b>1-0</b> places &nbsp; <b>${K('ride')}</b> ride &nbsp; <b>${K('cam')}</b> camera &nbsp; <b>${K('replay')}</b> replay &nbsp; <b>${K('photo')}</b> photo &nbsp; <b>${K('reset')}</b> reset &nbsp; <b>${K('chat')}</b> chat &nbsp; <b>${K('help')}</b> hide &nbsp; <b>ESC</b> menu`;
 }
@@ -7234,6 +7246,15 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.6.0', d: 'November 2026', t: 'Smoother, softer, overhead', items: [
+    'Overhead tricks on Y: push your bike, scooter or board up above your head in the air',
+    'Hop off rails: jump while grinding to pop off to the side you steer (right if you do not). You no longer land straight back on the same rail',
+    'The Big Bowl drop-in moved to the middle of the long side, so you drop straight into the bowl',
+    'Quiet sounds of the world: birds in the parks, a far-off traffic hum in town, waves by the sea, a crowd at The 100, footsteps, metal on rails and pavement joints under your wheels',
+    'Less lag: lighter High setting, fewer far-away details, and if the game runs slow it turns the graphics down for you (until you pick a setting yourself)',
+    'Softer menus and HUD with rounded corners',
+    'Grass no longer fills the screen when the camera is right next to it',
+  ] },
   { v: '2.5.0', d: 'November 2026', t: 'SEND IT on Discord', items: [
     'Discord now shows you as Playing SEND IT, with where you are riding, your ride and level, and a picture of the place',
     'When you are in an online server your friends see how many are riding and get a Join my server button',
@@ -7384,6 +7405,103 @@ setInterval(updatePresence, 4000); updatePresence();
     if (row && old && !row.querySelector('.muted')) { const n = document.createElement('div'); n.className = 'muted'; n.style.cssText = 'flex-basis:100%;font-size:12px;margin-top:4px'; n.textContent = 'Needs the newest SEND IT app: update it in the launcher or download it again from the website.'; row.style.flexWrap = 'wrap'; row.appendChild(n); }
   };
 }
+
+// ───────────────────────── v2.5: quiet sounds of the world ─────────────────────────
+// Birds in the parks, a far-off traffic hum in town, waves by the sea, a crowd at The 100, footsteps,
+// metal on rails, joints in the pavement. Everything is kept soft and sits under the music.
+const amb = (() => {
+  let on = false, out, city, cityF, sea, seaF, crowd, crowdF, rail, railF, rail2, ledgeG, ledgeF;
+  let zoneT = 0, kindNow = '', birdT = 2, stepAcc = 0, seamAcc = 0, carT = 0;
+  const ctx = () => sfx.ctx();
+  function init() {
+    const c = ctx(); if (!c || on || !sfx.buf) return; on = true;
+    out = c.createGain(); out.gain.value = 1; out.connect(sfx.out());
+    const loop = (type, f, q) => { const s = c.createBufferSource(); s.buffer = sfx.buf; s.loop = true; s.playbackRate.value = 0.5 + Math.random() * 0.5; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = c.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(out); s.start(); return [g, fl]; };
+    [city, cityF] = loop('lowpass', 140, 0.4);
+    [sea, seaF] = loop('lowpass', 520, 0.5);
+    [crowd, crowdF] = loop('bandpass', 750, 0.9);
+    [rail, railF] = loop('bandpass', 2700, 6);
+    [rail2] = loop('bandpass', 5300, 9);
+    [ledgeG, ledgeF] = loop('lowpass', 700, 0.8);
+  }
+  function blip(dur, f0, f1, gain, type = 'bandpass', q = 1) {
+    const c = ctx(); if (!c) return; const s = c.createBufferSource(); s.buffer = sfx.buf; const fl = c.createBiquadFilter(); fl.type = type; fl.Q.value = q; const g = c.createGain(), t = c.currentTime;
+    fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(out); s.start(t, Math.random()); s.stop(t + dur + 0.05);
+  }
+  function chirp(t0, f, gain) {
+    const c = ctx(), o = c.createOscillator(), g = c.createGain(), t = c.currentTime + t0, d = 0.05 + Math.random() * 0.07;
+    o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * (Math.random() < 0.5 ? 1.35 : 0.75), t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + d + 0.03);
+  }
+  const GREEN = new Set(['park', 'woodpark', 'woods', 'dirt', 'hill', 'islands', 'canyon', 'yard', 'airbag']);
+  const TOWN = new Set(['street', 'downtown', 'market', 'plaza', 'rooftop', 'bigair', 'mega', 'vert']);
+  function update(dt) {
+    if (!on) { init(); if (!on) return; }
+    const c = ctx(), t = c.currentTime, P = player, playing = state === 'play';
+    zoneT -= dt; if (zoneT <= 0) { zoneT = 0.6; kindNow = playing ? (nearestZone() || '') : ''; }
+    const green = GREEN.has(kindNow), town = TOWN.has(kindNow) || kindNow === 'market';
+    // town hum, sea, crowd
+    city.gain.setTargetAtTime(!playing ? 0 : town ? 0.022 : green ? 0.006 : 0.012, t, 1.2);
+    const seaD = Math.abs(P.pos.z - SEA_Z);
+    sea.gain.setTargetAtTime(playing ? Math.max(0, 1 - seaD / 90) * (0.03 + Math.sin(t * 0.45) * 0.012) : 0, t, 0.6);
+    seaF.frequency.setTargetAtTime(420 + Math.sin(t * 0.45) * 160, t, 0.6);
+    const sd = Math.hypot(P.pos.x - (H100.landX + 120), P.pos.z - H100.Z);
+    crowd.gain.setTargetAtTime(playing && kindNow === 'the100' ? Math.max(0, 1 - sd / 260) * 0.03 : 0, t, 0.8);
+    crowdF.frequency.setTargetAtTime(650 + Math.sin(t * 1.3) * 120, t, 0.3);
+    // birds in the green places, now and then
+    birdT -= dt;
+    if (birdT <= 0) { birdT = 2.5 + Math.random() * 6; if (playing && (green || town && Math.random() < 0.3)) { const f = 2600 + Math.random() * 2400, n = 2 + (Math.random() * 4 | 0), gn = green ? 0.008 : 0.004; for (let i = 0; i < n; i++) chirp(i * (0.09 + Math.random() * 0.08), f * (0.9 + Math.random() * 0.2), gn); } }
+    // metal on rails, a dull scrape on ledges
+    const g = playing && P.grind, sp = g ? Math.abs(g.v) : 0, ledge = g && g.r.kind === 'ledge';
+    rail.gain.setTargetAtTime(g && !ledge ? Math.min(0.045, 0.012 + sp * 0.004) : 0, t, 0.03);
+    rail2.gain.setTargetAtTime(g && !ledge ? Math.min(0.018, 0.004 + sp * 0.0015) : 0, t, 0.03);
+    railF.frequency.setTargetAtTime(2300 + sp * 70, t, 0.05);
+    ledgeG.gain.setTargetAtTime(ledge ? Math.min(0.06, 0.02 + sp * 0.005) : 0, t, 0.04);
+    if (!playing) return;
+    // footsteps
+    if (P.mode === 'walk' && !P.ko && Math.abs(P.wspd || 0) > 0.4 && P.pos.y <= heightAt(P.pos.x, P.pos.z) + 0.05) {
+      stepAcc += Math.abs(P.wspd) * dt;
+      if (stepAcc > (Math.abs(P.wspd) > 3 ? 1.05 : 0.72)) { stepAcc = 0; const soft = ['grass', 'dirt', 'sand'].includes(surfaceAt(P.pos.x, P.pos.z)); blip(0.07, soft ? 600 : 1500, soft ? 150 : 300, soft ? 0.025 : 0.03, 'lowpass'); }
+    } else stepAcc = 0;
+    // skate and scooter wheels clack over joints in the concrete
+    if (P.mode !== 'walk' && !P.air && !P.grind && (veh.kind === 'skate' || veh.kind === 'scooter')) {
+      const surf = P.onRamp ? P.onRamp.surface : surfaceAt(P.pos.x, P.pos.z);
+      if (surf !== 'grass' && surf !== 'dirt' && surf !== 'sand' && surf !== 'water') {
+        seamAcc += Math.abs(P.v) * dt;
+        if (seamAcc > 1.6) { seamAcc = 0; const k = Math.min(1, Math.abs(P.v) / 8); blip(0.03, 1400, 500, 0.018 * k + 0.004); setTimeout(() => blip(0.03, 1300, 450, 0.014 * k + 0.003), 1000 * Math.min(0.12, 0.55 / Math.max(1, Math.abs(P.v)))); }
+      }
+    }
+    // a car going past
+    carT -= dt;
+    if (carT <= 0) { carT = 0.25; for (const car of TRAFFIC) { if (car.passT > t) continue; const d = Math.hypot(car.x - P.pos.x, car.z - P.pos.z); if (d < 9 && car.v > 4) { car.passT = t + 4; blip(1.6, 260, 120, 0.045, 'lowpass'); blip(1.2, 900, 400, 0.012); } } }
+  }
+  return { update };
+})();
+
+// ───────────────────────── v2.5: keep it smooth ─────────────────────────
+// If the frame rate stays low for a few seconds while riding, step the graphics down one level and say so.
+// Only until the player picks a quality in Settings themselves.
+const perf = (() => {
+  let last = 0, frames = 0, time = 0, wait = 8;
+  return {
+    tick() {
+      const now = performance.now(), dt = last ? (now - last) / 1000 : 0; last = now;
+      if (manual || state !== 'play' || document.hidden || store.get('qualityManual', false) || qualityName === 'low' || dt > 0.5) { frames = 0; time = 0; return; }
+      if (wait > 0) { wait -= dt; return; }
+      frames++; time += dt;
+      if (time < 5) return;
+      const fps = frames / time; frames = 0; time = 0;
+      if (fps < 42) {
+        qualityName = qualityName === 'high' ? 'medium' : 'low'; store.set('quality', qualityName);
+        buildComposer(); spawnLife();
+        addFeed(`<b>Graphics set to ${qualityName.toUpperCase()}</b> to keep it smooth. You can change it in Settings.`);
+        wait = 10;
+      }
+    },
+  };
+})();
 
 // ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
 function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
@@ -7760,6 +7878,7 @@ function tick(dt, doRender = true) {
     updateVisual(dt);
     sfx.update(0, false, false, 0);
   }
+  amb.update(dt); perf.tick();
   pressed.clear();
   updateCycle(dt);
   const frozen = state === 'photo' || state === 'replay' || state === 'map';
@@ -7820,4 +7939,4 @@ window.__game = {
   fixCam(x, y, z, fov = 50, lx, ly, lz) { camFixed = x == null ? null : { p: v3(x, y, z), fov, l: lx == null ? null : v3(lx, ly, lz) }; if (x == null) camState.init = false; },
   setCam(x, y, z) { camOverride = x == null ? null : v3(x, y, z); },
   player, input, keys, spawn, equip, startRide, togglePause, get state() { return state; }, camState, VEH, veh: () => veh, score: () => score, combo: () => combo,
-  vs: VS, root, H100, scene, camera, get rider() { return rider; }, fullHelmet: (...a) => fullHelmet(...a), THREE, buildRider: o => buildRider(o), riderOpts: (i, a) => riderOpts(i, a), get OUTFITS() { return OUTFITS; }, renderer, TOD, applyTimeOfDay: n => applyTimeOfDay(n), rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
+  vs: VS, root, H100, scene, camera, get rider() { return rider; }, fullHelmet: (...a) => fullHelmet(...a), THREE, RAILS, ZONES, heightAt: (x, z) => heightAt(x, z), buildRider: o => buildRider(o), riderOpts: (i, a) => riderOpts(i, a), get OUTFITS() { return OUTFITS; }, renderer, TOD, applyTimeOfDay: n => applyTimeOfDay(n), rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };

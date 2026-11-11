@@ -2,6 +2,21 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.6.0",
+   "date": "November 2026",
+   "title": "Smoother, softer, overhead",
+   "image": "media/bigbowl.jpg",
+   "items": [
+    "Overhead tricks on Y: push your bike, scooter or board up above your head in the air",
+    "Hop off rails: jump while grinding to pop off to the side you steer (right if you do not). You no longer land straight back on the same rail",
+    "The Big Bowl drop-in moved to the middle of the long side, so you drop straight into the bowl",
+    "Quiet sounds of the world: birds in the parks, a far-off traffic hum in town, waves by the sea, a crowd at The 100, footsteps, metal on rails and pavement joints under your wheels",
+    "Less lag: lighter High setting, fewer far-away details, and if the game runs slow it turns the graphics down for you (until you pick a setting yourself)",
+    "Softer menus and HUD with rounded corners",
+    "Grass no longer fills the screen when the camera is right next to it"
+   ]
+  },
+  {
    "v": "2.5.0",
    "date": "November 2026",
    "title": "SEND IT on Discord",

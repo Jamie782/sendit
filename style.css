@@ -656,3 +656,34 @@ body:not(.touch) .touch-only{display:none}
 #letters i{font-family:var(--sport);font-weight:800;font-style:italic;font-size:19px;border-radius:5px}
 @media (max-width:760px){#speedo{width:120px;height:120px}#speed{font-size:44px}}
 #feed,#room-box,#quest-hud,#buffs,#np,#chat{font-style:normal}
+
+/* ───────── v2.5 theme: softer and rounder (overrides the sharp bits of v2.4) ───────── */
+:root{--r-lg:22px;--r-md:16px;--r-sm:12px;--glow:0 10px 30px rgba(255,77,31,.28)}
+.tabs{background:rgba(12,14,20,.62);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(14px);border-radius:999px;padding:5px;gap:2px}
+.tabs button{border-radius:999px;font-size:21px;padding:7px 18px 8px;color:rgba(255,255,255,.62);box-shadow:none;transition:background .18s,color .18s,box-shadow .18s}
+.tabs button:hover{background:rgba(255,255,255,.07);color:#fff}
+.tabs button.sel{background:linear-gradient(135deg,#ff5a26,#ff8a2a);color:#fff;box-shadow:var(--glow);text-shadow:none}
+.coins,.me-chip{border-radius:999px;backdrop-filter:blur(14px)}
+.panel{border-radius:var(--r-lg);background:linear-gradient(180deg,rgba(26,29,38,.86),rgba(14,16,22,.84));backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.09)}
+.card,.g-row,.g-card,.li{border-radius:var(--r-md)}
+.card{transition:transform .15s,border-color .15s,background .15s}
+.card:hover{transform:translateY(-2px)}
+#ride-btn{clip-path:none;border-radius:18px;font-size:42px;padding:14px 28px;box-shadow:var(--glow)}
+#ride-btn:hover{transform:translateY(-2px)}
+.ghost-big{border-radius:18px}
+.act{border-radius:999px;padding-left:16px;padding-right:16px}
+.seg{border-radius:14px;padding:4px}
+.seg button,.chips button{border-radius:10px}
+.chips button{border-radius:999px}
+.bar,.bar i{border-radius:999px}
+.modal-box{border-radius:24px}
+.modal input,input[type=text],input[type=password],input[type=search],textarea,select{border-radius:12px}
+.p-head{font-style:normal}
+/* HUD: rounded glass cards */
+#score-box{background:rgba(10,12,18,.42);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-lg);padding:12px 18px 14px}
+#score{font-size:58px}
+#minimap{border-radius:26px}
+#trickbar div{border-radius:12px;padding:5px 10px;backdrop-filter:blur(8px)}
+#hint,#timer,#quest-hud,#buffs>*,#feed>*,#goal-toast,#room-box{border-radius:16px}
+#letters i{border-radius:8px}
+#goal-toast{padding:10px 20px;background:rgba(10,12,18,.62);backdrop-filter:blur(10px)}

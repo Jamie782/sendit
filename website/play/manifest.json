@@ -1,7 +1,7 @@
 {
- "version": "2.5.0",
+ "version": "2.6.0",
  "minShell": "1.5.0",
- "notes": "SEND IT on Discord",
+ "notes": "Overhead tricks, rail hops, quiet world sounds, less lag, softer UI",
  "files": [
   {
    "path": "discord.json",
@@ -13,15 +13,15 @@
   },
   {
    "path": "style.css",
-   "sha256": "eb774b5f0c7f866eb5020dc0ebffb58339b11aca9b5da2a3bd01dfd9960d0fd9"
+   "sha256": "31d296df5b290a87b73ef929f8dabaa8727d575c6b55d11ef6c69fe35b696f04"
   },
   {
    "path": "version.json",
-   "sha256": "d9d95975fcfb2db50961ac7eb83b0a2b02ff353f349d4b25e8b593837e9dda9a"
+   "sha256": "893feef3bb34a8fad57e7b1b8b6d53e88a1944862edad65e80254125908231e2"
   },
   {
    "path": "src/game.js",
-   "sha256": "1355a865e0be38db7b82968f9535781fcb2bc2a0ffae41d54e97af48360bccac"
+   "sha256": "2a2fb6b38ced39746cc0d467ffd2722d7ac974a52c956c93d21ca6887c3e5e4e"
   },
   {
    "path": "assets/logo-icon.png",
