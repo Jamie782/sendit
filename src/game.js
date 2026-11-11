@@ -1885,7 +1885,7 @@ function buildRider(o = {}) {
     const hairShown = o.gear === 'none' || o.gear === 'cap' || (o.hatK && !['robot', 'astro', 'knight', 'goldhelm', 'banana'].includes(o.hatK));
     if (hairShown && o.hair !== 'bald') {
       const hair = PEOPLE ? null : new THREE.Mesh(new THREE.SphereGeometry(0.116, 20, 12, 0, Math.PI * 2, 0, Math.PI * (o.hair === 'buzz' ? 0.45 : 0.55)), hc);
-      if (hair) hair.scale.set(o.hair === 'curly' ? 1.08 : 0.96, o.hair === 'curly' ? 1.15 : 1.05, 1.06); hair.position.y = 0.012; hair.rotation.x = -0.25; head.add(hair);
+      if (hair) { hair.scale.set(o.hair === 'curly' ? 1.08 : 0.96, o.hair === 'curly' ? 1.15 : 1.05, 1.06); hair.position.y = 0.012; hair.rotation.x = -0.25; head.add(hair); }
       if (o.hair === 'long') { const back = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.12, 4, 10), hc); back.position.set(0, -0.06, -0.06); back.scale.set(1.3, 1, 0.6); head.add(back); }
       if (o.hair === 'mohawk' && o.gear === 'none') { const mh = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.2), hc); mh.position.set(0, 0.12, -0.01); head.add(mh); }
       if (o.hair === 'bun' && o.gear === 'none') { const bn = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), hc); bn.position.set(0, 0.1, -0.08); head.add(bn); }
@@ -5618,7 +5618,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.4.0';
+const GAME_VERSION = '2.4.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7234,6 +7234,10 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.4.1', d: 'November 2026', t: 'Loading fix', items: [
+    'Fixed the game getting stuck on LOADING if your rider wore a cap or nothing on their head',
+    'If the game ever hits a problem while starting, the loading screen now says what went wrong',
+  ] },
   { v: '2.4.0', d: 'November 2026', t: 'Real people, real places', items: [
     'New riders and people: proper human bodies with real faces, hands that grip the bars and clothes with fabric texture. Built from the free MakeHuman models',
     'Four body types around town, women with longer hair, short and long sleeves, jeans and joggers',
@@ -7761,4 +7765,4 @@ window.__game = {
   fixCam(x, y, z, fov = 50, lx, ly, lz) { camFixed = x == null ? null : { p: v3(x, y, z), fov, l: lx == null ? null : v3(lx, ly, lz) }; if (x == null) camState.init = false; },
   setCam(x, y, z) { camOverride = x == null ? null : v3(x, y, z); },
   player, input, keys, spawn, equip, startRide, togglePause, get state() { return state; }, camState, VEH, veh: () => veh, score: () => score, combo: () => combo,
-  vs: VS, root, H100, scene, camera, get rider() { return rider; }, fullHelmet: (...a) => fullHelmet(...a), THREE, renderer, TOD, applyTimeOfDay: n => applyTimeOfDay(n), rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };
+  vs: VS, root, H100, scene, camera, get rider() { return rider; }, fullHelmet: (...a) => fullHelmet(...a), THREE, buildRider: o => buildRider(o), riderOpts: (i, a) => riderOpts(i, a), get OUTFITS() { return OUTFITS; }, renderer, TOD, applyTimeOfDay: n => applyTimeOfDay(n), rideOpen, placeOpen, setUnlockAll: v => { unlockAll = v; buildMenu(); }, adminGift, showBan, chatCommand, getOff, getOn, punch, openShop, consume, buy, inv: () => inv, quests: () => questState, QUESTS, SHOP_BLDS, NPCS, DOGS, CHESTS, ISLANDS, SKI, openChest, swapRide, backToRide, enterSea, hireSkis: () => INTERACT.find(i => i.hire).fn(), openLog, talkTo, dlg, advanceDialog, closeDialog, BIND, keyName, interact: () => interactNear, useNear, hitPed, xp: () => xp, level: () => levelOf(xp), daily: () => daily, dailyEvent, addXP, openMap, closeMap, mapGo, togglePhoto, startReplay, stopReplay, replayLen: () => replayBuf.length, cycle(t) { cycleT = t; applyTimeOfDay('cycle'); }, endCombo, woods: WOODS_TRAIL };

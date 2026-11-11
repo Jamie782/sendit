@@ -300,6 +300,14 @@
 </div>
 
 <div id="loading">LOADING…</div>
+<script>
+// if the game hits an error while starting, say so on the loading screen instead of hanging
+(function () {
+  function show(msg) { var l = document.getElementById('loading'); if (!l) return; l.innerHTML = 'SOMETHING WENT WRONG<div style="font:13px/1.5 Inter,sans-serif;letter-spacing:0;text-transform:none;opacity:.75;margin-top:10px;max-width:640px;padding:0 20px">' + String(msg).replace(/[<&]/g, '') + '<br><br>Please send a screenshot of this to Jamie.</div>'; l.style.textAlign = 'center'; }
+  window.addEventListener('error', function (e) { show(e.message || e.error); });
+  window.addEventListener('unhandledrejection', function (e) { show(e.reason && (e.reason.stack || e.reason.message) || e.reason); });
+})();
+</script>
 <!--PEER--><script src="vendor/peerjs/peerjs.min.js"></script><!--/PEER-->
 <script type="module" src="src/game.js"></script>
 </body>

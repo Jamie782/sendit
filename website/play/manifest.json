@@ -1,11 +1,11 @@
 {
- "version": "2.4.0",
+ "version": "2.4.1",
  "minShell": "1.5.0",
- "notes": "Real people, leafy trees, new lighting, a proper pub and cleaner menus",
+ "notes": "Fixed the game getting stuck on LOADING",
  "files": [
   {
    "path": "index.html",
-   "sha256": "b8a98193b6b8ecbb271f7df3b189171845d081443098dfdab71396ad74509ede"
+   "sha256": "a93ca19db02d77a4927bdf7461f299c0a8488e95dd4f1fa54c8d43930966ed89"
   },
   {
    "path": "style.css",
@@ -13,11 +13,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "d26146ff6ddee2dbaa6438378d8a3232e1d6edb0eb875a99d4a44cac985d174c"
+   "sha256": "4055582e94fae5335654cbf11fc5543884340069cc5217a8c795138e370d014e"
   },
   {
    "path": "src/game.js",
-   "sha256": "7a1f6b7534f3d4c68e13af84741f6f880e42e4307d047b0aaeb2cf879c8e05a1"
+   "sha256": "fb7b310f9f3c5b39a4f596d7a12e189a2c91b13dea34b808df176ca2d120a48d"
   },
   {
    "path": "assets/logo-icon.png",
