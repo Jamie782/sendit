@@ -587,3 +587,72 @@ body:not(.touch) .touch-only{display:none}
 .adm-acts button{border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;font:800 11px var(--body);letter-spacing:1px;padding:6px 10px;border-radius:8px;cursor:pointer}
 .adm-acts button:hover{background:rgba(255,255,255,.12)}
 .adm-acts button.red{border-color:rgba(255,80,80,.5);background:rgba(255,60,60,.14);color:#ff9a9a}
+
+/* ───────── v2.4 theme: bigger type, solid panels, cleaner HUD ───────── */
+@font-face{font-family:"Barlow Condensed";src:url(vendor/fonts/barlow-condensed-latin-700-italic.woff2) format("woff2");font-weight:700;font-style:italic}
+@font-face{font-family:"Barlow Condensed";src:url(vendor/fonts/barlow-condensed-latin-800-italic.woff2) format("woff2");font-weight:800;font-style:italic}
+@font-face{font-family:"Barlow Condensed";src:url(vendor/fonts/barlow-condensed-latin-600-normal.woff2) format("woff2");font-weight:600;font-style:normal}
+@font-face{font-family:"Barlow Condensed";src:url(vendor/fonts/barlow-condensed-latin-700-normal.woff2) format("woff2");font-weight:700;font-style:normal}
+:root{
+  --sport:"Barlow Condensed","Bebas Neue",Impact,sans-serif;
+  --panel:linear-gradient(180deg,rgba(24,27,36,.94),rgba(13,15,21,.93));
+  --line:rgba(255,255,255,.1);
+  --glass:rgba(14,16,22,.78);
+}
+/* menu frame: darker on the left so text reads over any scene */
+#menu{background:linear-gradient(90deg,rgba(5,6,10,.9) 0%,rgba(5,6,10,.62) 34%,rgba(5,6,10,.08) 64%),linear-gradient(180deg,rgba(5,6,10,.7),rgba(5,6,10,0) 16%),linear-gradient(0deg,rgba(5,6,10,.55),rgba(5,6,10,0) 22%)}
+.topbar{padding:18px 34px 10px;gap:30px}
+.tb-logo{height:52px}
+.tabs{background:transparent;border:0;backdrop-filter:none;padding:0;gap:6px}
+.tabs button{font-family:var(--sport);font-weight:800;font-style:italic;text-transform:uppercase;font-size:25px;letter-spacing:1.2px;padding:8px 14px 10px;border-radius:0;color:rgba(255,255,255,.55);transition:color .15s}
+.tabs button:hover{background:transparent;color:#fff}
+.tabs button.sel{background:transparent;color:#fff;box-shadow:inset 0 -4px 0 var(--accent);text-shadow:0 0 22px rgba(255,77,31,.45)}
+.coins,.me-chip{background:rgba(14,16,22,.8);border-color:rgba(255,255,255,.12);border-radius:12px}
+.panes{padding:10px 34px 28px}
+.panel{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-top-color:rgba(255,255,255,.16);border-radius:18px;padding:22px 24px 24px;box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04);font-size:14.5px}
+.panel{width:min(560px,100%)}
+.panel.wide{width:min(840px,100%)}
+.panel.xwide{width:min(1080px,100%)}
+.p-head{font-family:var(--sport);font-weight:700;font-style:normal;text-transform:uppercase;font-size:15px;letter-spacing:2.5px;color:rgba(255,255,255,.5);margin:20px 0 10px}
+.p-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.12),transparent)}
+.card{border-radius:14px;background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08)}
+.card.sel{border-color:var(--accent);background:linear-gradient(160deg,rgba(255,77,31,.22),rgba(255,77,31,.06));box-shadow:0 10px 26px rgba(255,77,31,.18)}
+.card .nm{font-family:var(--sport);font-weight:800;font-style:italic;text-transform:uppercase;font-size:28px;letter-spacing:.5px}
+.stat{font-size:11px}
+.bar{height:7px}
+#ride-btn{font-family:var(--sport);font-weight:800;font-style:italic;text-transform:uppercase;font-size:46px;letter-spacing:3px;border-radius:12px;clip-path:polygon(4% 0,100% 0,96% 100%,0 100%);padding:12px 28px;background:linear-gradient(100deg,#ff3d14,#ff7a1f 70%,#ffa63d);box-shadow:none;transition:transform .12s,filter .12s}
+#ride-btn:hover{transform:translateY(-1px) scale(1.01);filter:brightness(1.08)}
+.ghost-big{border-radius:12px;font-family:var(--sport);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:1px;font-size:20px}
+.act{font-family:var(--sport);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:1px;font-size:18px;border-radius:9px}
+.chips button,.seg button{font-family:var(--sport);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:1px;font-size:17px}
+.seg{background:rgba(255,255,255,.04)}
+.li{border-radius:11px;padding:10px 12px}
+.li .t{font-size:14.5px}
+.g-row{padding:12px 14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.g-row b,.g-card b{font-family:var(--sport);font-weight:800;font-style:italic;text-transform:uppercase;font-size:22px;letter-spacing:.5px}
+.g-card{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.06)}
+.controls-lbl{font-size:12px}
+/* HUD */
+#hud{font-family:var(--sport);font-style:italic;font-weight:800}
+#score-box{top:22px;left:28px}
+#score-box .lbl{font-family:var(--sport);font-weight:700;font-style:normal;font-size:15px;letter-spacing:3px;opacity:.7}
+#score{font-size:64px;letter-spacing:0;text-shadow:0 3px 18px rgba(0,0,0,.55)}
+#combo-names{font-size:32px;letter-spacing:.5px;text-transform:uppercase}
+#combo-score{font-size:28px}
+#popup{font-size:72px;letter-spacing:1px;text-transform:uppercase}
+#popup .sub{font-size:24px;font-weight:700}
+#goal-toast{font-size:32px;text-transform:uppercase}
+#speedo{right:30px;bottom:26px;width:170px;height:170px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(circle closest-side,rgba(12,14,20,.88) 84%,transparent 85%),conic-gradient(from 225deg,var(--accent) 0 calc(var(--spd,0)*270deg),rgba(255,255,255,.12) 0 270deg,transparent 0)}
+#speed{font-size:64px;line-height:.85}
+#speedo .lbl{font-family:var(--sport);font-weight:700;font-style:normal;font-size:13px;letter-spacing:3px}
+#veh-name{font-size:17px;letter-spacing:2px;margin-top:2px}
+#minimap{border:2px solid rgba(255,255,255,.22);box-shadow:0 8px 30px rgba(0,0,0,.45)}
+#trickbar{bottom:20px;gap:5px;opacity:.85}
+#trickbar div{background:rgba(10,12,18,.62);border-color:rgba(255,255,255,.08);border-radius:7px;font-size:11.5px;font-family:var(--body);font-style:normal;font-weight:600}
+#trickbar b{font-family:var(--sport);font-weight:800;font-style:italic;font-size:15px}
+#hint{border-radius:12px;background:rgba(12,14,20,.75);border-color:rgba(255,255,255,.08);font-family:var(--body);font-style:normal;font-weight:400}
+#timer{font-family:var(--sport);font-weight:800;font-style:italic;border-radius:12px;background:rgba(12,14,20,.7)}
+#letters i{font-family:var(--sport);font-weight:800;font-style:italic;font-size:19px;border-radius:5px}
+@media (max-width:760px){#speedo{width:120px;height:120px}#speed{font-size:44px}}
+#feed,#room-box,#quest-hud,#buffs,#np,#chat{font-style:normal}

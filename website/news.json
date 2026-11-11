@@ -2,6 +2,22 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.4.0",
+   "date": "November 2026",
+   "title": "Real people, real places",
+   "image": "media/v24.jpg",
+   "items": [
+    "New riders and people: proper human bodies with real faces, hands that grip the bars and clothes with fabric texture. Built from the free MakeHuman models",
+    "Four body types around town, women with longer hair, short and long sleeves, jeans and joggers",
+    "New full-face helmet with an eye port, goggles, a peak and a painted design, and a hood and drawstrings on your hoodie",
+    "Leafy trees with real branches instead of the old blobs",
+    "New lighting: filmic colour, a deeper sky and stronger sunlight",
+    "The Kickflip Arms is a proper pub now: two storeys of brick, sash windows, a slate roof with chimneys, a hanging sign, flower baskets and benches outside. It is at the far end of Market Street",
+    "Shops have window frames, awnings and roof details",
+    "Cleaner menus and HUD: bigger text, solid panels and a speed dial"
+   ]
+  },
+  {
    "v": "2.3.0",
    "date": "November 2026",
    "title": "The 100",

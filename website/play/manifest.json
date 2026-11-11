@@ -1,7 +1,7 @@
 {
- "version": "2.3.0",
+ "version": "2.4.0",
  "minShell": "1.5.0",
- "notes": "The 100: a 100 m roll-in in a stadium, pro scooter redesign, drop-in tower at the Big Bowl, foam pit, full update log",
+ "notes": "Real people, leafy trees, new lighting, a proper pub and cleaner menus",
  "files": [
   {
    "path": "index.html",
@@ -9,15 +9,15 @@
   },
   {
    "path": "style.css",
-   "sha256": "8f7ff8501dbf02823458a9dd8b5e67c2949abcf75086f49eb96e49a96c6a37b3"
+   "sha256": "eb774b5f0c7f866eb5020dc0ebffb58339b11aca9b5da2a3bd01dfd9960d0fd9"
   },
   {
    "path": "version.json",
-   "sha256": "5544be91f7266f0ae68d3b9ecbc69c6126d0fada1799b8c19c93fcdef752573a"
+   "sha256": "d26146ff6ddee2dbaa6438378d8a3232e1d6edb0eb875a99d4a44cac985d174c"
   },
   {
    "path": "src/game.js",
-   "sha256": "cd1efa9b6e5ec190d9c230856d5ec019c7644dcff6382d2c5407548e3e1341cb"
+   "sha256": "7a1f6b7534f3d4c68e13af84741f6f880e42e4307d047b0aaeb2cf879c8e05a1"
   },
   {
    "path": "assets/logo-icon.png",
@@ -128,6 +128,18 @@
    "sha256": "80084bb1d6275df6e2bd8414f352cf935048c2d4acd233f26b9d850b9146bc39"
   },
   {
+   "path": "assets/people/CREDITS.txt",
+   "sha256": "9d7769537f13156e8c3826caee1c6a40245a7efc56ce15d2c728baa43bb744d7"
+  },
+  {
+   "path": "assets/people/people.bin",
+   "sha256": "87bec5edf87b5e5a15762ce4f1b506c0a199205484372be6523d91885224b9f7"
+  },
+  {
+   "path": "assets/people/people.json",
+   "sha256": "f363bd5e54017272adde59179853fd7befd32820acf9edf3ad8c89c04f5f1048"
+  },
+  {
    "path": "vendor/peerjs/LICENSE",
    "sha256": "9407807dba7f47a79bfb3ac55759d63d77c9371ebd0616d5a093e97d3e810397"
   },
@@ -220,8 +232,36 @@
    "sha256": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea"
   },
   {
+   "path": "vendor/fonts/BARLOW-OFL.txt",
+   "sha256": "10b0e6bb43166a50fbe7cde2895bd7f703738a5da843acb5c97c95dc9ea26817"
+  },
+  {
    "path": "vendor/fonts/OFL-LICENSE.txt",
    "sha256": "66c436339f7490c1a99e4f6a7b8aef5c176676edfd071a31638e7d54c1b0aeda"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-600-italic.woff2",
+   "sha256": "e020fe384e6b7ca4629d67540ea087125f55bd43864f3caf2263e889a33d9203"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-600-normal.woff2",
+   "sha256": "0b281bf2f4179c06ba68f0a427f2341287c41eacc2ce9d534c6f5c513ac633fb"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-700-italic.woff2",
+   "sha256": "aeb1b16ad1d9bf8d2654c0eca63f5c6b28b9d0e903f110971082b437cd8b190e"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-700-normal.woff2",
+   "sha256": "8320299532b4b81498d5b3714d49c9d5938883b55f4c2a1efe6f105bf4a942bd"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-800-italic.woff2",
+   "sha256": "32f1f20a0581659cb453205948c8826a28819723130d3466729597ab06ba1037"
+  },
+  {
+   "path": "vendor/fonts/barlow-condensed-latin-800-normal.woff2",
+   "sha256": "8beab59bb49ab049063f8ffe199da96fc4c1ae44799eb4bb999ca7ee07d075bd"
   },
   {
    "path": "vendor/fonts/bebas-neue-latin-400-normal.woff2",

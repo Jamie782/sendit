@@ -1,0 +1,9 @@
+SEND IT people models
+=====================
+The bodies, skeleton and skin weights in people.bin / people.json are built from the
+MakeHuman base mesh, macro targets and "game_engine" rig published in the MPFB2 project
+(https://github.com/makehumancommunity/mpfb2). Those assets are released under CC0 1.0
+(public domain) by Data Collection AB, Joel Palmius and Jonas Hauquier.
+
+They were rebuilt for the game by tools/people_build.py (shaped into four body types,
+clothes regions, a lighter far-away version of each).

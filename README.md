@@ -1,7 +1,5 @@
 # SEND IT
 
-**Download:** https://play-sendit.netlify.app · **Play in your browser:** https://play-sendit.netlify.app/play/
-
 3D stunt riding game — bike, e-bike, scooter and e-scooter. Desktop app for Windows and Mac (Electron + Three.js). Everything is procedural, no asset downloads.
 
 ## What's new in v1.5.1
@@ -92,10 +90,13 @@ Needs Node.js (nodejs.org, LTS). In a terminal, in this folder:
 - Discord sign-in runs through the `si-discord` edge function (`server/si-discord/`). See `server/README.md` to switch it on.
 
 ## Files
-- `website/` — the play-sendit.netlify.app site (Netlify publish directory)
-- `server/` — the online backend (Supabase SQL + Discord edge function)
-- `tools/make_manifest.py` — copies the game into `website/play` and writes the update manifest
 - `main.js` — Electron window (serves the game from a local `app://` protocol)
 - `index.html`, `style.css` — HUD and menus
 - `src/game.js` — the whole game
 - `vendor/` — Three.js (MIT), PeerJS (MIT) and fonts (OFL), bundled so it works offline
+
+## Credits
+
+- People (bodies, skeleton, skin weights): MakeHuman / MPFB2 assets, CC0 1.0. See `assets/people/CREDITS.txt`.
+- Fonts: Bebas Neue, Inter and Barlow Condensed, all under the SIL Open Font License (`vendor/fonts`).
+- 3D engine: three.js (MIT).
