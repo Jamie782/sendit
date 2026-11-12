@@ -1,7 +1,7 @@
 {
- "version": "2.6.1",
+ "version": "2.7.0",
  "minShell": "1.5.0",
- "notes": "Discord is live",
+ "notes": "Share clips and photos to the SEND IT Discord",
  "files": [
   {
    "path": "discord.json",
@@ -9,19 +9,19 @@
   },
   {
    "path": "index.html",
-   "sha256": "a93ca19db02d77a4927bdf7461f299c0a8488e95dd4f1fa54c8d43930966ed89"
+   "sha256": "3350013f2dfa9780848752f80a40533dbe36c25e0140066c62f818d707a1d26f"
   },
   {
    "path": "style.css",
-   "sha256": "31d296df5b290a87b73ef929f8dabaa8727d575c6b55d11ef6c69fe35b696f04"
+   "sha256": "c010861eca3ef128a7765936d656a68018a33dd0a30105fc09403c70c0f2476a"
   },
   {
    "path": "version.json",
-   "sha256": "fb32cc1d59c485ecac9eca08bfb13149a3208bc3fc7ceddf5c278b2a1acd0d6b"
+   "sha256": "7d19fd46cdbf24e4bdd5cf3bc07a286f94bcef8b2d690f7874e55fd4ab78de37"
   },
   {
    "path": "src/game.js",
-   "sha256": "5958cade18351d4996b2311182feba16b12a26634cb66865339e52de707569f4"
+   "sha256": "f82b8ffa0366272bb0d799963b9b0810232851facf7382e47f3f6b45ca81c410"
   },
   {
    "path": "assets/logo-icon.png",

@@ -2,6 +2,17 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.7.0",
+   "date": "November 2026",
+   "title": "Share to Discord",
+   "image": "media/v24.jpg",
+   "items": [
+    "Share your best moments to the SEND IT Discord: open a replay (V) and press X. The replay is recorded as a video with the music and posted in #clips",
+    "In photo mode (P) press X to post the photo",
+    "Clips have a SEND IT watermark with your name and where you were riding. You need to be signed in, and can share once every 90 seconds"
+   ]
+  },
+  {
    "v": "2.6.1",
    "date": "November 2026",
    "title": "Discord is live",

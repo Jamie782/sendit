@@ -5040,6 +5040,8 @@ const music = (() => {
   }
   return {
     STATIONS, start, render,
+    tap() { if (!ctx) return null; const d = ctx.createMediaStreamDestination(); master.connect(d); return d; },
+    untap(d) { try { master.disconnect(d); } catch { } },
     get station() { return station; }, get on() { return on; }, get vol() { return vol; },
     next() { station = (station + 1) % STATIONS.length; store.set('station', station); if (ctx && timer) { newBus(); nowPlaying(); } else start(); },
     set(i) { station = i; store.set('station', i); if (ctx && timer) { newBus(); nowPlaying(); } },
@@ -5630,7 +5632,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.6.1';
+const GAME_VERSION = '2.7.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -6029,11 +6031,11 @@ function startReplay() {
   state = 'replay'; replay = { f: 0, frames: replayBuf.slice(), yaw: camState.yaw + 2.2 };
   elHUD.classList.add('hidden'); document.getElementById('replay-ui').classList.remove('hidden');
 }
-function stopReplay() { if (state !== 'replay') return; state = 'play'; replay = null; elHUD.classList.remove('hidden'); document.getElementById('replay-ui').classList.add('hidden'); camState.init = false; }
+function stopReplay() { if (state !== 'replay') return; cancelClip(); state = 'play'; replay = null; elHUD.classList.remove('hidden'); document.getElementById('replay-ui').classList.add('hidden'); camState.init = false; }
 function updateReplay(dt) {
   const R = replay, fast = keys.ShiftLeft || keys.ShiftRight;
-  R.f += dt * 60 * (fast ? 1 : 0.4);
-  if (R.f >= R.frames.length - 1) R.f = 0;
+  R.f += dt * 60 * (R.rec ? 0.65 : fast ? 1 : 0.4);
+  if (R.f >= R.frames.length - 1) { R.f = 0; if (R.rec) clipFinish(); }
   const fr = R.frames[Math.floor(R.f)];
   applyAvatar(me, fr, dt * (fast ? 1 : 0.4));
   R.yaw += dt * 0.3;
@@ -7227,6 +7229,7 @@ function capeMesh(col) {
 // ───────────────────────── v2.1: more goals & leaderboards ─────────────────────────
 GOALS.push(
   ['the100', 'Clear the gap on The 100'], ['foampit', 'Land in the foam pit'],
+  ['shareclip', 'Share a clip or photo to the SEND IT Discord'],
   ['walk', 'Get off and walk around'], ['reverse', 'Ride backwards for 10 m'], ['shop', 'Go into a shop'], ['allshops', 'Visit all five shops on Market Street (the pub is at the far end)'],
   ['buy', 'Buy food or a drink'], ['eat', 'Eat or drink something'], ['eat10', 'Eat or drink 10 things'],
   ['surf', 'Ride into the sea and surf'], ['surf200', 'Surf 200 m in one go'], ['waveair', 'Get air off a wave'],
@@ -7246,6 +7249,11 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.7.0', d: 'November 2026', t: 'Share to Discord', items: [
+    'Share your best moments to the SEND IT Discord: open a replay (V) and press X. The replay is recorded as a video with the music and posted in #clips',
+    'In photo mode (P) press X to post the photo',
+    'Clips have a SEND IT watermark with your name and where you were riding. You need to be signed in, and can share once every 90 seconds',
+  ] },
   { v: '2.6.1', d: 'November 2026', t: 'Discord is live', items: [
     'SEND IT is now connected to its own Discord app: with the newest SEND IT app, your Discord profile shows Playing SEND IT with where you ride',
   ] },
@@ -7505,6 +7513,104 @@ const perf = (() => {
     },
   };
 })();
+
+// ───────────────────────── v2.7: share clips and photos to the SEND IT Discord ─────────────────────────
+// In a replay press X (or the button): the replay plays once at a cinematic speed while it is recorded to a 720p
+// video with the music, then it's posted to #clips. In photo mode X posts the photo. You need to be signed in.
+const CLIP_FN = ONLINE_CFG.url + '/functions/v1/si-clip';
+let clipRec = null, clipBusy = false;
+const clipStatus = (() => { const el = document.createElement('div'); el.id = 'clip-status'; el.className = 'hidden'; document.body.appendChild(el); return el; })();
+function clipSay(html, ms = 0) { clipStatus.innerHTML = html; clipStatus.classList.remove('hidden'); clearTimeout(clipSay.t); if (ms) clipSay.t = setTimeout(() => clipStatus.classList.add('hidden'), ms); }
+function clipInfo() {
+  const z = nearestZone();
+  return { place: z ? placeName(z) : 'Town', ride: VEH[player.kind] ? VEH[player.kind].label : '', combo: Math.round(best || 0) };
+}
+function clipWatermark(g, W, H, info) {
+  g.save();
+  g.font = '800 italic 44px "Barlow Condensed", Impact, sans-serif'; g.textBaseline = 'alphabetic';
+  const tw = g.measureText('SEND IT').width;
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.roundRect(W - tw - 52, H - 78, tw + 32, 54, 14); g.fill();
+  g.fillStyle = '#ff5a26'; g.fillText('SEND IT', W - tw - 36, H - 36);
+  if (online.me) {
+    g.font = '700 26px "Barlow Condensed", Inter, sans-serif';
+    const t = `${online.me.username}  ·  ${info.place}`, w = g.measureText(t).width;
+    g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.roundRect(20, H - 70, w + 28, 46, 12); g.fill();
+    g.fillStyle = '#fff'; g.fillText(t, 34, H - 38);
+  }
+  g.restore();
+}
+// copy the frame we just rendered into the 1280×720 clip canvas
+function drawClipFrame() {
+  if (!clipRec) return;
+  const src = renderer.domElement, g = clipRec.g, W = 1280, H = 720;
+  let sw = src.width, sh = src.height, sx = 0, sy = 0;
+  if (sw / sh > W / H) { sw = sh * W / H; sx = (src.width - sw) / 2; } else { sh = sw * H / W; sy = (src.height - sh) / 2; }
+  g.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
+  clipWatermark(g, W, H, clipRec.info);
+  const pc = replay ? replay.f / (replay.frames.length - 1) : 0;
+  clipSay(`<b>● RECORDING CLIP</b> <i style="--p:${(pc * 100).toFixed(1)}%"></i>`);
+}
+function needSignIn() { if (online.me) return false; showPopup('SIGN IN TO SHARE', '', 'SO PEOPLE KNOW IT WAS YOU'); return true; }
+function shareClip() {
+  if (clipBusy || clipRec || state !== 'replay' || needSignIn()) return;
+  if (!window.MediaRecorder) return clipSay('This version can’t record video.', 4000);
+  const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;
+  const stream = cv.captureStream(30), tap = music.tap && music.tap();
+  if (tap) for (const t of tap.stream.getAudioTracks()) stream.addTrack(t);
+  const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_200_000, audioBitsPerSecond: 96_000 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => { if (tap) music.untap(tap); stream.getTracks().forEach(t => t.stop()); uploadShare('clip', new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] }), clipRec_info); };
+  const clipRec_info = clipInfo();
+  clipRec = { rec, tap, stream, g: cv.getContext('2d'), info: clipRec_info, t0: performance.now() };
+  replay.f = 0; replay.rec = true;
+  rec.start(500);
+}
+function clipFinish() {
+  if (!clipRec) return;
+  const r = clipRec; clipRec = null; if (replay) replay.rec = false;
+  clipBusy = true; clipSay('<b>Getting your clip ready…</b>');
+  r.rec.stop();
+}
+function sharePhoto() {
+  if (clipBusy || state !== 'photo' || needSignIn()) return;
+  composer.render();
+  const info = clipInfo(), src = renderer.domElement, W = Math.min(1920, src.width), H = Math.round(W * src.height / src.width);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  g.drawImage(src, 0, 0, W, H); clipWatermark(g, W, H, info);
+  clipBusy = true;
+  cv.toBlob(b => b ? uploadShare('photo', b, info) : (clipBusy = false), 'image/jpeg', 0.9);
+}
+const SHARE_ERR = { slow_down: 'Wait a minute before sharing again.', too_big: 'That one is too big for Discord.', not_signed_in: 'Sign in again to share.', banned: 'Your account can’t share right now.', not_set_up: 'Sharing to Discord isn’t switched on yet.', bad_file: 'That file didn’t work. Try again.' };
+function uploadShare(kind, blob, info) {
+  clipBusy = true;
+  const fd = new FormData();
+  fd.append('token', online.token); fd.append('kind', kind); fd.append('place', info.place); fd.append('ride', info.ride); fd.append('combo', String(info.combo));
+  fd.append('file', blob, kind === 'clip' ? 'clip.webm' : 'photo.jpg');
+  const x = new XMLHttpRequest();
+  x.open('POST', CLIP_FN); x.setRequestHeader('apikey', ONLINE_CFG.key); x.setRequestHeader('Authorization', 'Bearer ' + ONLINE_CFG.key);
+  x.upload.onprogress = e => { if (e.lengthComputable) clipSay(`<b>Posting to Discord…</b> ${Math.round(e.loaded / e.total * 100)}%`); };
+  x.onload = () => {
+    clipBusy = false; let r = {}; try { r = JSON.parse(x.responseText); } catch { }
+    if (r.ok) { clipSay(`<b>${kind === 'clip' ? 'Clip' : 'Photo'} posted</b> to #clips on the SEND IT Discord`, 5000); sfx.ding(); goal('shareclip'); }
+    else clipSay(SHARE_ERR[r.error] || (r.wait ? `Wait ${r.wait}s before sharing again.` : 'Couldn’t post it. Try again.'), 5000);
+  };
+  x.onerror = () => { clipBusy = false; clipSay('Couldn’t reach the server. Check your internet.', 5000); };
+  x.send(fd);
+}
+// buttons in the replay and photo bars
+{
+  const rb = document.createElement('button'); rb.className = 'share-btn'; rb.innerHTML = '<b>X</b> SHARE TO DISCORD'; rb.onclick = () => shareClip();
+  document.getElementById('replay-ui').appendChild(rb);
+  const pb = document.createElement('button'); pb.className = 'share-btn'; pb.innerHTML = '<b>X</b> SHARE TO DISCORD'; pb.onclick = () => sharePhoto();
+  document.getElementById('photo-ui').appendChild(pb);
+}
+function cancelClip() {
+  if (!clipRec) return; const r = clipRec; clipRec = null;
+  r.rec.onstop = () => { if (r.tap) music.untap(r.tap); r.stream.getTracks().forEach(t => t.stop()); };
+  r.rec.stop(); clipSay('Clip cancelled', 2500);
+}
 
 // ───────────────────────── v2.1: per-frame town & HUD bits ─────────────────────────
 function uiOpen() { return dlg.open || !document.getElementById('shop').classList.contains('hidden') || !document.getElementById('bag').classList.contains('hidden') || !document.getElementById('quest-modal').classList.contains('hidden'); }
@@ -7870,9 +7976,11 @@ function tick(dt, doRender = true) {
   } else if (state === 'photo') {
     if (pressed.has('KeyP')) togglePhoto();
     if (pressed.has('Enter') || pressed.has('KeyF')) savePhoto();
+    if (pressed.has('KeyX')) sharePhoto();
     sfx.update(0, false, false, 0);
   } else if (state === 'replay') {
     if (pressed.has('KeyV')) stopReplay();
+    if (pressed.has('KeyX')) shareClip();
     sfx.update(0, false, false, 0);
   } else if (state === 'map') {
     if (pressed.has('KeyM')) closeMap();
@@ -7900,7 +8008,7 @@ function tick(dt, doRender = true) {
   sun.position.copy(root.position).addScaledVector(sunDir, 150); sun.target.position.copy(root.position); sun.target.updateMatrixWorld();
   if (su.time) su.time.value += dt;
   grassTime.value += dt;
-  if (doRender) composer.render();
+  if (doRender) { composer.render(); if (clipRec) drawClipFrame(); }
 }
 
 // ───────────────────────── boot ─────────────────────────
