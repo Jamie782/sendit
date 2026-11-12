@@ -1,11 +1,11 @@
 {
- "version": "2.6.0",
+ "version": "2.6.1",
  "minShell": "1.5.0",
- "notes": "Overhead tricks, rail hops, quiet world sounds, less lag, softer UI",
+ "notes": "Discord is live",
  "files": [
   {
    "path": "discord.json",
-   "sha256": "87d53bc188d41182860dc125e4d1dea70236d7b199f09e3cbaedbe92380e32a3"
+   "sha256": "e33a9e0508255f1920de02de01563e52377ebe5bb4e30c09b981784b8f2deb9d"
   },
   {
    "path": "index.html",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "893feef3bb34a8fad57e7b1b8b6d53e88a1944862edad65e80254125908231e2"
+   "sha256": "fb32cc1d59c485ecac9eca08bfb13149a3208bc3fc7ceddf5c278b2a1acd0d6b"
   },
   {
    "path": "src/game.js",
-   "sha256": "2a2fb6b38ced39746cc0d467ffd2722d7ac974a52c956c93d21ca6887c3e5e4e"
+   "sha256": "5958cade18351d4996b2311182feba16b12a26634cb66865339e52de707569f4"
   },
   {
    "path": "assets/logo-icon.png",

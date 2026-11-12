@@ -4,9 +4,9 @@
 // record the result against the state. The game is polling that state and picks the result up.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const CID = Deno.env.get("DISCORD_CLIENT_ID") ?? "";
+const CID = Deno.env.get("DISCORD_CLIENT_ID") || "1570333669124472903"; // SEND IT Discord application (public ID)
 const SECRET = Deno.env.get("DISCORD_CLIENT_SECRET") ?? "";
-const SITE = (Deno.env.get("SITE_URL") ?? "").replace(/\/$/, "");
+const SITE = (Deno.env.get("SITE_URL") || "https://play-sendit.netlify.app").replace(/\/$/, "");
 const BASE = Deno.env.get("SUPABASE_URL")!;
 const SELF = `${BASE}/functions/v1/si-discord`;
 const db = createClient(BASE, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });

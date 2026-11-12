@@ -2,6 +2,15 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.6.1",
+   "date": "November 2026",
+   "title": "Discord is live",
+   "image": "media/online.jpg",
+   "items": [
+    "SEND IT is now connected to its own Discord app: with the newest SEND IT app, your Discord profile shows Playing SEND IT with where you ride"
+   ]
+  },
+  {
    "v": "2.6.0",
    "date": "November 2026",
    "title": "Smoother, softer, overhead",

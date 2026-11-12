@@ -5630,7 +5630,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.6.0';
+const GAME_VERSION = '2.6.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7246,6 +7246,9 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.6.1', d: 'November 2026', t: 'Discord is live', items: [
+    'SEND IT is now connected to its own Discord app: with the newest SEND IT app, your Discord profile shows Playing SEND IT with where you ride',
+  ] },
   { v: '2.6.0', d: 'November 2026', t: 'Smoother, softer, overhead', items: [
     'Overhead tricks on Y: push your bike, scooter or board up above your head in the air',
     'Hop off rails: jump while grinding to pop off to the side you steer (right if you do not). You no longer land straight back on the same rail',
