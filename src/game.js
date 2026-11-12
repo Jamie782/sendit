@@ -5632,7 +5632,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.7.0';
+const GAME_VERSION = '2.7.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7249,6 +7249,11 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.7.1', d: 'November 2026', t: 'Discord status fix', items: [
+    'Your Discord status timer no longer resets when you move to another place, open the map or a menu, change ride or level up. It counts from when you opened the game',
+    'Your Discord status now shows your level on every screen, plus what you are doing: riding, walking, watching a replay, taking photos or looking at the map',
+    'The place on your status only changes once you have been somewhere new for a few seconds, so it no longer flickers between two areas',
+  ] },
   { v: '2.7.0', d: 'November 2026', t: 'Share to Discord', items: [
     'Share your best moments to the SEND IT Discord: open a replay (V) and press X. The replay is recorded as a video with the music and posted in #clips',
     'In photo mode (P) press X to post the photo',
@@ -7372,31 +7377,51 @@ INTERACT.push({ x: H100.base.x, z: H100.base.z, r: 4, label: () => unlockAll || 
 // The desktop app reads window.__presence every few seconds and shows it on your Discord profile
 // ("Playing SEND IT", where you are, what you ride, how many are in your server). Turn it off in Settings.
 let discordOn = store.get('discordPresence', true);
-const PRESENCE_START = Date.now();
+// One start time for the whole time the game is open, so the "elapsed" timer on Discord keeps counting when you
+// move between places, open menus, change ride or level up. Kept in sessionStorage so a reload doesn't reset it.
+// Sent in seconds, the unit Discord's own Rich Presence libraries use.
+const PRESENCE_START = (() => {
+  let t = 0;
+  try { t = Number(sessionStorage.getItem('si_pres_start')) || 0; } catch { }
+  if (!t || t > Date.now() + 60000) { t = Date.now(); try { sessionStorage.setItem('si_pres_start', String(t)); } catch { } }
+  return Math.floor(t / 1000);
+})();
 const PRES_SITE = 'https://play-sendit.netlify.app/';
 const ZONE_IMG = new Set(['airbag', 'beach', 'bigair', 'bigbowl', 'canyon', 'desert', 'dirt', 'downtown', 'hill', 'islands', 'market', 'mega', 'mountain', 'park', 'plaza', 'rooftop', 'street', 'the100', 'vert', 'warehouse', 'woodpark', 'woods', 'yard']);
+// the place shown only changes once you've been somewhere new for a few seconds, so riding along the edge of
+// two areas doesn't flicker your status
+const presPlace = { z: null, cand: null, since: 0 };
+function presenceZone() {
+  const z = nearestZone(), now = performance.now();
+  if (presPlace.z === null) presPlace.z = z;
+  if (z === presPlace.z) presPlace.cand = null;
+  else if (z !== presPlace.cand) { presPlace.cand = z; presPlace.since = now; }
+  else if (now - presPlace.since > 6000) { presPlace.z = z; presPlace.cand = null; }
+  return presPlace.z;
+}
 function updatePresence() {
   if (!discordOn) { window.__presence = { off: true }; return; }
   const lvl = curLevel(), ride = VEH[player.kind] ? VEH[player.kind].label : 'BIKE';
   const rideName = ride.charAt(0) + ride.slice(1).toLowerCase();
   const ICON = PRES_SITE + 'media/icon.png';
-  let details, stateTxt, img = ICON, imgText = 'SEND IT';
-  if (state === 'menu') { details = 'In the menu'; stateTxt = `Level ${lvl}`; }
-  else {
-    const z = nearestZone(), name = z ? placeName(z) : 'Town';
-    details = player.mode === 'walk' ? `Walking around ${name}` : `Riding ${name}`;
-    stateTxt = player.mode === 'walk' ? `Level ${lvl}` : `${rideName} · Level ${lvl}`;
-    if (z && ZONE_IMG.has(z)) { img = `${PRES_SITE}play/assets/maps/${z}.jpg`; imgText = name; }
-  }
-  const p = { details: details.slice(0, 120), state: stateTxt.slice(0, 120), start: PRESENCE_START, large: img, largeText: imgText, small: ICON, smallText: `Level ${lvl} · best combo ${best.toLocaleString()}`, buttons: [{ label: 'Get SEND IT', url: PRES_SITE }] };
+  const z = state === 'menu' ? null : presenceZone(), name = z ? placeName(z) : 'Town';
+  let details, img = ICON, imgText = 'SEND IT';
+  if (state === 'menu') details = 'In the menu';
+  else if (state === 'map') details = `Looking at the map · ${name}`;
+  else if (state === 'replay') details = `Watching a replay · ${name}`;
+  else if (state === 'photo') details = `Taking photos · ${name}`;
+  else details = player.mode === 'walk' ? `Walking around ${name}` : `Riding ${name}`;
+  if (state !== 'menu' && z && ZONE_IMG.has(z)) { img = `${PRES_SITE}play/assets/maps/${z}.jpg`; imgText = name; }
+  let stateTxt = player.mode === 'walk' || state === 'menu' ? `Level ${lvl}` : `Level ${lvl} · ${rideName}`;
+  const p = { details: details.slice(0, 120), state: stateTxt.slice(0, 120), start: PRESENCE_START, large: img, largeText: imgText, small: ICON, smallText: `SEND IT ${GAME_VERSION} · best combo ${Math.round(best).toLocaleString()}`, buttons: [{ label: 'Get SEND IT', url: PRES_SITE }] };
   if (net.connected) {
     const n = net.remotes.size + 1;
-    p.state = `Online · ${n} rider${n === 1 ? '' : 's'}`; p.party = { id: 'sendit-' + net.code, size: [n, 8] };
+    p.state = `Level ${lvl} · Online, ${n} rider${n === 1 ? '' : 's'}`; p.party = { id: 'sendit-' + net.code, size: [n, 8] };
     if (net.code) p.buttons.unshift({ label: 'Join my server', url: `${PRES_SITE}join.html?code=${net.code}` });
   }
   window.__presence = p;
 }
-setInterval(updatePresence, 4000); updatePresence();
+setInterval(updatePresence, 4000); setTimeout(updatePresence, 0);
 // Settings → General → SHOW ON DISCORD
 {
   const row = document.createElement('div'); row.className = 'set-row';

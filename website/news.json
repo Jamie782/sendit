@@ -2,6 +2,17 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.7.1",
+   "date": "November 2026",
+   "title": "Discord status fix",
+   "image": "media/online.jpg",
+   "items": [
+    "Your Discord status timer no longer resets when you move to another place, open the map or a menu, change ride or level up. It counts from when you opened the game",
+    "Your Discord status now shows your level on every screen, plus what you are doing: riding, walking, watching a replay, taking photos or looking at the map",
+    "The place on your status only changes once you have been somewhere new for a few seconds, so it no longer flickers between two areas"
+   ]
+  },
+  {
    "v": "2.7.0",
    "date": "November 2026",
    "title": "Share to Discord",
@@ -44,7 +55,7 @@
    "items": [
     "Discord now shows you as Playing SEND IT, with where you are riding, your ride and level, and a picture of the place",
     "When you are in an online server your friends see how many are riding and get a Join my server button",
-    "Turn it off any time in Settings \u2192 General \u2192 Show on Discord",
+    "Turn it off any time in Settings → General → Show on Discord",
     "Needs the newest SEND IT app (update it in the launcher)"
    ]
   },
@@ -192,7 +203,7 @@
    "items": [
     "Fixed a scoring exploit where spamming trick buttons stacked dozens of whips for millions of points",
     "Repeating a trick in the same combo pays less each time",
-    "The combo multiplier tops out at \u00d712 and one combo pays at most 2,500 coins",
+    "The combo multiplier tops out at ×12 and one combo pays at most 2,500 coins",
     "A whip only counts if it is nearly finished when you land"
    ]
   },
@@ -215,7 +226,7 @@
    "items": [
     "Quieter, smoother ride sounds with no more buzzing",
     "Separate Music and Sound effects sliders",
-    "Traffic drives faster (about 55\u201375 km/h)",
+    "Traffic drives faster (about 55–75 km/h)",
     "Ride into someone fast and you knock them flat; they get back up a few seconds later"
    ]
   },

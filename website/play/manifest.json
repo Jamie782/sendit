@@ -1,7 +1,7 @@
 {
- "version": "2.7.0",
+ "version": "2.7.1",
  "minShell": "1.5.0",
- "notes": "Share clips and photos to the SEND IT Discord",
+ "notes": "2.7.1: Discord status timer keeps counting between places; status shows level and activity",
  "files": [
   {
    "path": "discord.json",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "7d19fd46cdbf24e4bdd5cf3bc07a286f94bcef8b2d690f7874e55fd4ab78de37"
+   "sha256": "25ff00901a8bc825df3416c1d85fad20835bbc70c69384ab3ac1c0ca5842df44"
   },
   {
    "path": "src/game.js",
-   "sha256": "f82b8ffa0366272bb0d799963b9b0810232851facf7382e47f3f6b45ca81c410"
+   "sha256": "2072d32154bb157988e9b1ae7898e8dfe76ca2c6f5777f855df32bec243a4fda"
   },
   {
    "path": "assets/logo-icon.png",
