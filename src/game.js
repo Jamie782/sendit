@@ -5365,9 +5365,9 @@ const online = (() => {
   let requests = 0, invites = [];
   // Discord: get a one-time state, open the browser, then wait for the result
   let discordPoll = null;
-  async function discord(link) {
+  async function discord(link, join) {
     const r = await rpc('si_discord_begin', { p_token: link ? token : null });
-    window.open(`${ONLINE_CFG.url}/functions/v1/si-discord?start=${r.state}`, '_blank');
+    window.open(`${ONLINE_CFG.url}/functions/v1/si-discord?start=${r.state}${join ? '&join=1' : ''}`, '_blank');
     clearInterval(discordPoll);
     return new Promise((resolve, reject) => {
       const t0 = Date.now();
@@ -5466,11 +5466,16 @@ function openAuth(mode) {
 for (const id of ['srv-name', 'mp-code', 'fr-name']) document.getElementById(id).addEventListener('keydown', e => e.stopPropagation());
 
 const DISCORD_ICON = '<svg class="dci" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18 18 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.7.2 18.2a19.8 19.8 0 0 0 6 3l1.3-2a12.8 12.8 0 0 1-2-.9l.5-.4a14 14 0 0 0 12 0l.5.4c-.6.4-1.3.7-2 .9l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.8-3.5-13.8ZM8.3 15.4c-1.2 0-2.1-1-2.1-2.3s.9-2.3 2.1-2.3 2.2 1 2.1 2.3c0 1.3-.9 2.3-2.1 2.3Zm7.4 0c-1.2 0-2.1-1-2.1-2.3s.9-2.3 2.1-2.3 2.2 1 2.1 2.3c0 1.3-.9 2.3-2.1 2.3Z"/></svg>';
+// "Also join the SEND IT Discord server" tick box, remembered between sign-ins
+const dcJoinWanted = () => store.get('dcJoin', true);
+function dcJoinBox() { return `<label class="dc-join"><input type="checkbox" class="dc-join-cb"${dcJoinWanted() ? ' checked' : ''}> Also join the SEND IT Discord server</label>`; }
+addEventListener('change', e => { if (e.target.classList && e.target.classList.contains('dc-join-cb')) { store.set('dcJoin', e.target.checked); document.querySelectorAll('.dc-join-cb').forEach(c => c.checked = e.target.checked); } });
+document.querySelectorAll('.dc-join-cb').forEach(c => c.checked = dcJoinWanted());
 async function discordFlow(fromModal, btn) {
   const msg = fromModal ? document.getElementById('auth-err') : document.getElementById('dc-msg');
   if (msg) msg.textContent = 'Finish signing in with Discord in your browser…';
   if (btn) btn.disabled = true;
-  try { await online.discord(false); document.getElementById('auth').classList.add('hidden'); showPopup('SIGNED IN', 'good', online.me.username.toUpperCase()); }
+  try { await online.discord(false, dcJoinWanted()); document.getElementById('auth').classList.add('hidden'); showPopup('SIGNED IN', 'good', online.me.username.toUpperCase()); }
   catch (e) { if (msg) msg.textContent = online.nice(e); }
   if (btn) btn.disabled = false;
 }
@@ -5478,10 +5483,10 @@ function renderAccount() {
   const el = document.getElementById('acct'), m = online.me;
   if (!online.ON) { el.innerHTML = `<div class="signin-card"><div><div class="t">ONLINE IS OFF IN THIS BUILD</div><div class="d">You can still host and join servers with a code.</div></div></div>`; return; }
   if (!m) {
-    el.innerHTML = `<div class="signin-card"><span class="av lg">${avatarSVG(AV, outfitId)}</span><div><div class="t">PLAY ONLINE</div><div class="d">Sign in to save your coins and unlocks, add friends, host friends-only servers and get on the leaderboards.</div><div id="dc-msg" class="d"></div></div><div class="sp"></div><div class="acct-btns"><button class="act dc" data-a="discord">${DISCORD_ICON}DISCORD</button><button class="act ghost" data-a="up">CREATE ACCOUNT</button><button class="act" data-a="in">SIGN IN</button></div></div>`;
+    el.innerHTML = `<div class="signin-card"><span class="av lg">${avatarSVG(AV, outfitId)}</span><div><div class="t">PLAY ONLINE</div><div class="d">Sign in to save your coins and unlocks, add friends, host friends-only servers and get on the leaderboards.</div><div id="dc-msg" class="d"></div>${dcJoinBox()}</div><div class="sp"></div><div class="acct-btns"><button class="act dc" data-a="discord">${DISCORD_ICON}DISCORD</button><button class="act ghost" data-a="up">CREATE ACCOUNT</button><button class="act" data-a="in">SIGN IN</button></div></div>`;
   } else {
     const joined = new Date(m.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-    const dc = m.discord ? `<span class="dc-pill">${DISCORD_ICON}${esc(m.discord.name || 'Discord')}</span> <a class="lnk" data-a="unlink">unlink</a>` : `<button class="act dc" data-a="link">${DISCORD_ICON}LINK DISCORD</button>`;
+    const dc = m.discord ? `<span class="dc-pill">${DISCORD_ICON}${esc(m.discord.name || 'Discord')}</span> <a class="lnk" data-a="joindc">join the SEND IT Discord</a> · <a class="lnk" data-a="unlink">unlink</a>` : `<button class="act dc" data-a="link">${DISCORD_ICON}LINK DISCORD</button>${dcJoinBox()}`;
     el.innerHTML = `<div class="acct-card"><span class="av lg">${avatarSVG(AV, outfitId)}</span><div><div class="nm">${esc(m.username)}</div><div class="sub"><span class="price"><i class="coin"></i>${(m.coins_total || 0).toLocaleString()} coins earned</span> · rider since ${joined}</div><div class="sub dc-row">${dc}</div><div id="dc-msg" class="sub"></div></div><div class="sp"></div><div class="acct-btns"><button class="act ghost" data-a="avatar">EDIT AVATAR</button><button class="act ghost" data-a="pw">${m.discord ? 'SET PASSWORD' : 'NEW PASSWORD'}</button><button class="act ghost" data-a="out">SIGN OUT</button></div></div>
       <div class="pw-row hidden" id="pw-row"><input id="pw-new" type="password" maxlength="72" placeholder="New password (6+ characters)" autocomplete="new-password"><button class="act" data-a="pwsave">SAVE</button><span id="pw-msg" class="muted small"></span></div>`;
     document.getElementById('pw-new').addEventListener('keydown', e => e.stopPropagation());
@@ -5490,7 +5495,8 @@ function renderAccount() {
     const b = e.target.closest('button,a'); if (!b) return; const a = b.dataset.a, msg = document.getElementById('dc-msg');
     if (a === 'in' || a === 'up') openAuth(a); if (a === 'out') online.logout(); if (a === 'avatar') { gTab = 'avatar'; setTab('garage'); }
     if (a === 'discord') discordFlow(false, b);
-    if (a === 'link') { msg.textContent = 'Finish linking in your browser…'; try { await online.discord(true); showPopup('DISCORD LINKED', 'good'); } catch (err) { msg.textContent = online.nice(err); } }
+    if (a === 'link') { msg.textContent = 'Finish linking in your browser…'; try { await online.discord(true, dcJoinWanted()); showPopup('DISCORD LINKED', 'good'); } catch (err) { msg.textContent = online.nice(err); } }
+    if (a === 'joindc') { msg.textContent = 'Say yes in your browser to join the server…'; try { await online.discord(true, true); msg.textContent = 'Done. Check your Discord, the SEND IT server should be in your list.'; } catch (err) { msg.textContent = online.nice(err); } }
     if (a === 'unlink') { await online.unlinkDiscord(); }
     if (a === 'pw') document.getElementById('pw-row').classList.toggle('hidden');
     if (a === 'pwsave') { const pm = document.getElementById('pw-msg'); try { await online.rpc('si_set_password', { p_token: online.token, p_password: document.getElementById('pw-new').value }); pm.textContent = 'Password saved — you can sign in with your username now.'; document.getElementById('pw-new').value = ''; } catch (err) { pm.textContent = online.nice(err); } }
@@ -5632,7 +5638,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.7.1';
+const GAME_VERSION = '2.7.2';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7249,6 +7255,13 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.7.2', d: 'November 2026', t: 'Captions and pings', items: [
+    'When you share a clip or photo, a box now pops up with a preview so you can add a caption (optional) before it posts',
+    'If you have linked Discord, the SEND IT bot pings you in #clips when it posts your clip, so your friends know it was you',
+    'Changed your mind? Press EDIT CAPTION after posting and the post in #clips updates straight away',
+    'Captions are cleaned up before they post: links and @mentions are taken out and swear words are blanked',
+    'Signing in or linking with Discord can now add you to the SEND IT Discord server too. Untick the box if you don\'t want that. Already linked? Press "join the SEND IT Discord" in the Online tab',
+  ] },
   { v: '2.7.1', d: 'November 2026', t: 'Discord status fix', items: [
     'Your Discord status timer no longer resets when you move to another place, open the map or a menu, change ride or level up. It counts from when you opened the game',
     'Your Discord status now shows your level on every screen, plus what you are doing: riding, walking, watching a replay, taking photos or looking at the map',
@@ -7541,7 +7554,9 @@ const perf = (() => {
 
 // ───────────────────────── v2.7: share clips and photos to the SEND IT Discord ─────────────────────────
 // In a replay press X (or the button): the replay plays once at a cinematic speed while it is recorded to a 720p
-// video with the music, then it's posted to #clips. In photo mode X posts the photo. You need to be signed in.
+// video with the music. In photo mode X takes the photo. Then a box lets you add a caption (optional) before the
+// SEND IT bot posts it in #clips, pinging you if you've linked Discord. You can edit the caption afterwards.
+// You need to be signed in.
 const CLIP_FN = ONLINE_CFG.url + '/functions/v1/si-clip';
 let clipRec = null, clipBusy = false;
 const clipStatus = (() => { const el = document.createElement('div'); el.id = 'clip-status'; el.className = 'hidden'; document.body.appendChild(el); return el; })();
@@ -7586,7 +7601,7 @@ function shareClip() {
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_200_000, audioBitsPerSecond: 96_000 });
   const chunks = [];
   rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  rec.onstop = () => { if (tap) music.untap(tap); stream.getTracks().forEach(t => t.stop()); uploadShare('clip', new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] }), clipRec_info); };
+  rec.onstop = () => { if (tap) music.untap(tap); stream.getTracks().forEach(t => t.stop()); readyShare('clip', new Blob(chunks, { type: (mime || 'video/webm').split(';')[0] }), clipRec_info); };
   const clipRec_info = clipInfo();
   clipRec = { rec, tap, stream, g: cv.getContext('2d'), info: clipRec_info, t0: performance.now() };
   replay.f = 0; replay.rec = true;
@@ -7605,24 +7620,101 @@ function sharePhoto() {
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
   g.drawImage(src, 0, 0, W, H); clipWatermark(g, W, H, info);
   clipBusy = true;
-  cv.toBlob(b => b ? uploadShare('photo', b, info) : (clipBusy = false), 'image/jpeg', 0.9);
+  cv.toBlob(b => b ? readyShare('photo', b, info) : (clipBusy = false), 'image/jpeg', 0.9);
 }
-const SHARE_ERR = { slow_down: 'Wait a minute before sharing again.', too_big: 'That one is too big for Discord.', not_signed_in: 'Sign in again to share.', banned: 'Your account can’t share right now.', not_set_up: 'Sharing to Discord isn’t switched on yet.', bad_file: 'That file didn’t work. Try again.' };
-function uploadShare(kind, blob, info) {
+const SHARE_ERR = { slow_down: 'Wait a minute before sharing again.', too_big: 'That one is too big for Discord.', not_signed_in: 'Sign in again to share.', banned: 'Your account can’t share right now.', not_set_up: 'Sharing to Discord isn’t switched on yet.', bad_file: 'That file didn’t work. Try again.', edit_expired: 'That post is too old to edit now.', gone: 'That post was deleted on Discord.' };
+const CAP_MAX = 140;
+let lastShare = null; // { kind, edit, caption } for "Edit caption"
+// the caption box: shows a preview of the clip or photo, an optional caption, and who gets pinged
+const capBox = (() => {
+  const el = document.createElement('div'); el.id = 'cap-box'; el.className = 'hidden';
+  el.innerHTML = `<div class="cap-card"><div class="cap-t"></div><div class="cap-prev"></div>
+    <div class="cap-in-row"><input id="cap-in" maxlength="${CAP_MAX}" autocomplete="off" spellcheck="true" placeholder="Add a caption (optional)"><span class="cap-n"></span></div>
+    <div class="cap-note"></div>
+    <div class="cap-row"><button class="ghost" data-a="cancel">CANCEL</button><button class="share-btn" data-a="send"></button></div></div>`;
+  document.body.appendChild(el); return el;
+})();
+const capIn = capBox.querySelector('#cap-in'), capN = capBox.querySelector('.cap-n');
+let capDone = null, capURL = null;
+capIn.addEventListener('input', () => { capN.textContent = `${capIn.value.length}/${CAP_MAX}`; });
+capIn.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') closeCaption(capIn.value); else if (e.key === 'Escape') closeCaption(null); });
+capBox.addEventListener('mousedown', e => { if (e.target === capBox) closeCaption(null); });
+capBox.querySelector('[data-a=cancel]').onclick = () => closeCaption(null);
+capBox.querySelector('[data-a=send]').onclick = () => closeCaption(capIn.value);
+function closeCaption(v) {
+  if (!capDone) return;
+  capBox.classList.add('hidden'); capIn.blur();
+  const v2 = capBox.querySelector('video'); if (v2) v2.pause();
+  if (capURL) { URL.revokeObjectURL(capURL); capURL = null; }
+  const f = capDone; capDone = null; f(v == null ? null : String(v).trim().slice(0, CAP_MAX));
+}
+function askCaption(kind, blob, start, editing) {
+  return new Promise(res => {
+    capDone = res;
+    capBox.querySelector('.cap-t').textContent = editing ? 'EDIT YOUR CAPTION' : `SHARE YOUR ${kind === 'clip' ? 'CLIP' : 'PHOTO'} TO #CLIPS`;
+    capBox.querySelector('[data-a=send]').innerHTML = editing ? 'SAVE CAPTION' : `${DISCORD_ICON}POST`;
+    const prev = capBox.querySelector('.cap-prev'); prev.innerHTML = '';
+    if (blob) {
+      capURL = URL.createObjectURL(blob);
+      const m = document.createElement(kind === 'clip' ? 'video' : 'img'); m.src = capURL;
+      if (kind === 'clip') { m.muted = true; m.loop = true; m.autoplay = true; m.playsInline = true; }
+      prev.appendChild(m);
+    }
+    prev.classList.toggle('hidden', !blob);
+    const dc = online.me && online.me.discord;
+    capBox.querySelector('.cap-note').innerHTML = editing ? 'Your post in #clips updates straight away.'
+      : (dc ? `The SEND IT bot posts it and pings you (<b>@${esc(dc.name || 'you')}</b>).` : `The SEND IT bot posts it as <b>${esc(online.me ? online.me.username : 'you')}</b>. Link Discord in <b>Online</b> to get pinged.`)
+        + ' Links and @mentions are taken out of captions.';
+    capIn.value = start || ''; capN.textContent = `${capIn.value.length}/${CAP_MAX}`;
+    capBox.classList.remove('hidden');
+    for (const k in keys) keys[k] = false;
+    setTimeout(() => capIn.focus(), 30);
+  });
+}
+async function readyShare(kind, blob, info) {
+  clipBusy = true; clipStatus.classList.add('hidden');
+  const caption = await askCaption(kind, blob, '');
+  if (caption == null) { clipBusy = false; clipSay(`${kind === 'clip' ? 'Clip' : 'Photo'} not shared`, 2500); return; }
+  uploadShare(kind, blob, info, caption);
+}
+function shareReq(fd, onDone, onProgress) {
+  const x = new XMLHttpRequest();
+  x.open('POST', CLIP_FN); x.setRequestHeader('apikey', ONLINE_CFG.key); x.setRequestHeader('Authorization', 'Bearer ' + ONLINE_CFG.key);
+  if (onProgress) x.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+  x.onload = () => { let r = {}; try { r = JSON.parse(x.responseText); } catch { } onDone(r); };
+  x.onerror = () => onDone({ ok: false, error: 'net' });
+  x.send(fd);
+}
+function sharedSay(kind, edited) {
+  clipSay(`<b>${edited ? 'Caption updated' : (kind === 'clip' ? 'Clip posted' : 'Photo posted')}</b> in #clips on the SEND IT Discord <button class="cs-edit">EDIT CAPTION</button>`, 15000);
+  const b = clipStatus.querySelector('.cs-edit'); if (b) b.onclick = () => editCaption();
+}
+function uploadShare(kind, blob, info, caption) {
   clipBusy = true;
   const fd = new FormData();
   fd.append('token', online.token); fd.append('kind', kind); fd.append('place', info.place); fd.append('ride', info.ride); fd.append('combo', String(info.combo));
+  fd.append('caption', caption || '');
   fd.append('file', blob, kind === 'clip' ? 'clip.webm' : 'photo.jpg');
-  const x = new XMLHttpRequest();
-  x.open('POST', CLIP_FN); x.setRequestHeader('apikey', ONLINE_CFG.key); x.setRequestHeader('Authorization', 'Bearer ' + ONLINE_CFG.key);
-  x.upload.onprogress = e => { if (e.lengthComputable) clipSay(`<b>Posting to Discord…</b> ${Math.round(e.loaded / e.total * 100)}%`); };
-  x.onload = () => {
-    clipBusy = false; let r = {}; try { r = JSON.parse(x.responseText); } catch { }
-    if (r.ok) { clipSay(`<b>${kind === 'clip' ? 'Clip' : 'Photo'} posted</b> to #clips on the SEND IT Discord`, 5000); sfx.ding(); goal('shareclip'); }
-    else clipSay(SHARE_ERR[r.error] || (r.wait ? `Wait ${r.wait}s before sharing again.` : 'Couldn’t post it. Try again.'), 5000);
-  };
-  x.onerror = () => { clipBusy = false; clipSay('Couldn’t reach the server. Check your internet.', 5000); };
-  x.send(fd);
+  clipSay('<b>Posting to Discord…</b>');
+  shareReq(fd, r => {
+    clipBusy = false;
+    if (r.ok) { lastShare = { kind, edit: r.edit || null, caption: r.caption != null ? r.caption : caption }; sharedSay(kind); sfx.ding(); goal('shareclip'); }
+    else clipSay(r.error === 'net' ? 'Couldn’t reach the server. Check your internet.' : SHARE_ERR[r.error] || (r.wait ? `Wait ${r.wait}s before sharing again.` : 'Couldn’t post it. Try again.'), 5000);
+  }, p => clipSay(`<b>Posting to Discord…</b> ${Math.round(p * 100)}%`));
+}
+async function editCaption() {
+  if (!lastShare || !lastShare.edit || clipBusy || !online.me) return;
+  clipStatus.classList.add('hidden');
+  const caption = await askCaption(lastShare.kind, null, lastShare.caption, true);
+  if (caption == null || caption === lastShare.caption) return;
+  const fd = new FormData();
+  fd.append('action', 'edit'); fd.append('token', online.token); fd.append('edit', lastShare.edit); fd.append('caption', caption);
+  clipBusy = true; clipSay('<b>Updating your caption…</b>');
+  shareReq(fd, r => {
+    clipBusy = false;
+    if (r.ok) { lastShare.caption = r.caption != null ? r.caption : caption; sharedSay(lastShare.kind, true); }
+    else clipSay(r.error === 'net' ? 'Couldn’t reach the server. Check your internet.' : SHARE_ERR[r.error] || 'Couldn’t update it. Try again.', 5000);
+  });
 }
 // buttons in the replay and photo bars
 {

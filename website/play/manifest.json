@@ -1,7 +1,7 @@
 {
- "version": "2.7.1",
+ "version": "2.7.2",
  "minShell": "1.5.0",
- "notes": "2.7.1: Discord status timer keeps counting between places; status shows level and activity",
+ "notes": "2.7.2: captions, pings and caption edits for clips shared to Discord; join the SEND IT Discord when you sign in",
  "files": [
   {
    "path": "discord.json",
@@ -9,19 +9,19 @@
   },
   {
    "path": "index.html",
-   "sha256": "3350013f2dfa9780848752f80a40533dbe36c25e0140066c62f818d707a1d26f"
+   "sha256": "48e24d13ca87bb1e7c7a2aea3e76fd3525284b94f4d5e1c0bfcd68fead8340f0"
   },
   {
    "path": "style.css",
-   "sha256": "c010861eca3ef128a7765936d656a68018a33dd0a30105fc09403c70c0f2476a"
+   "sha256": "05481e862773ab32838f8cc2bdf183f7838a7aa6558247f36cb75a4f680d7667"
   },
   {
    "path": "version.json",
-   "sha256": "25ff00901a8bc825df3416c1d85fad20835bbc70c69384ab3ac1c0ca5842df44"
+   "sha256": "54bebcda604ad5655568a1ee37dccb53ec10905e682f01f1d07d651bc0b32a5b"
   },
   {
    "path": "src/game.js",
-   "sha256": "2072d32154bb157988e9b1ae7898e8dfe76ca2c6f5777f855df32bec243a4fda"
+   "sha256": "50b6e9f1f7a8139fcdcd1452e7de4d91696846353ca7d5ec8102e58b755a254a"
   },
   {
    "path": "assets/logo-icon.png",

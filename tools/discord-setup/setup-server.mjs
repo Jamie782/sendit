@@ -161,12 +161,15 @@ const hUpd = await hook(upd, 'SEND IT Updates');
 const inv = await api('POST', `/channels/${welcome.id}/invites`, { max_age: 0, max_uses: 0, unique: false });
 
 console.log('\n────────────────────────────────────────────');
-console.log('Done! Three things to copy:\n');
+console.log('Done! Four things to copy:\n');
 console.log('1) Clips webhook — put this in Supabase as the secret DISCORD_CLIPS_WEBHOOK:');
 console.log(`   https://discord.com/api/webhooks/${hClips.id}/${hClips.token}\n`);
 console.log('2) Update-log webhook — keep it for automatic update posts (add it to GitHub later):');
 console.log(`   https://discord.com/api/webhooks/${hUpd.id}/${hUpd.token}\n`);
-console.log('3) Invite link — send this one to Claude for the game and website:');
+console.log('3) Server ID — put this in Supabase as the secret DISCORD_GUILD_ID (lets players join from the game):');
+console.log(`   ${G}\n`);
+console.log('   …and put the bot token you just pasted in as the secret DISCORD_BOT_TOKEN.\n');
+console.log('4) Invite link — send this one to Claude for the game and website:');
 console.log(`   https://discord.gg/${inv.code}\n`);
 console.log('Keep the two webhook links private: anyone who has them can post in those channels.');
 console.log('────────────────────────────────────────────');

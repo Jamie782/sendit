@@ -2,6 +2,19 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.7.2",
+   "date": "November 2026",
+   "title": "Captions and pings",
+   "image": "media/online.jpg",
+   "items": [
+    "When you share a clip or photo, a box now pops up with a preview so you can add a caption (optional) before it posts",
+    "If you have linked Discord, the SEND IT bot pings you in #clips when it posts your clip, so your friends know it was you",
+    "Changed your mind? Press EDIT CAPTION after posting and the post in #clips updates straight away",
+    "Captions are cleaned up before they post: links and @mentions are taken out and swear words are blanked",
+    "Signing in or linking with Discord can now add you to the SEND IT Discord server too. Untick the box if you don't want that. Already linked? Press \"join the SEND IT Discord\" in the Online tab"
+   ]
+  },
+  {
    "v": "2.7.1",
    "date": "November 2026",
    "title": "Discord status fix",

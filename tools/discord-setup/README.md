@@ -25,8 +25,11 @@ Roles: **Dev** (admin), **Mod**, **Clip of the Week**, **Pro Rider**, **Tester**
    <https://discord.com/oauth2/authorize?client_id=1570333669124472903&scope=bot&permissions=8>
 4. In a terminal, go to this folder: `cd SendIt/tools/discord-setup`
 5. Run it: `node setup-server.mjs`, then paste the bot token when it asks.
-6. Copy the three things it prints at the end:
-   - the **clips webhook** → Supabase (ReelRoom org → jamiesmp56@gmail.com's Project → Edge Functions → Secrets) as `DISCORD_CLIPS_WEBHOOK`
+6. Copy the four things it prints at the end. The Supabase secrets go in: ReelRoom org → jamiesmp56@gmail.com's Project →
+   Edge Functions → Secrets.
+   - the **clips webhook** → secret `DISCORD_CLIPS_WEBHOOK` (the SEND IT bot posts clips with it)
+   - the **server ID** → secret `DISCORD_GUILD_ID`, plus your **bot token** → secret `DISCORD_BOT_TOKEN`
+     (these let players tick "Also join the SEND IT Discord server" when they sign in with Discord)
    - the **update-log webhook** → keep it for automatic update posts
    - the **invite link** → send it to Claude to put in the game and on the website
 7. Give yourself the **Dev** role: Server Settings → Members → your name → **+** → Dev.
