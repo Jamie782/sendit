@@ -1,50 +1,44 @@
-// SEND IT Discord server setup — run once:  node setup-server.mjs
-// Builds the roles, channels and permissions for the SEND IT community server, posts the welcome and rules
-// messages, sets the server icon and the bot's name and picture, and makes a permanent invite link. The game's clips
-// are posted by the SEND IT bot itself (no webhooks). Safe to run again: anything that already exists is left alone.
-//
-// You need: Node 18 or newer, and the SEND IT bot added to your server with the "Administrator" permission.
-// The bot token is asked for when the script runs. It is not saved anywhere.
-import { createInterface } from 'node:readline/promises';
-import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+// @ts-nocheck
+// SEND IT: the bot builds the SEND IT Discord server. Open the setup page on the website,
+//   https://play-sendit.netlify.app/discord-setup.html?key=<setup key>
+// press BUILD MY SERVER, and the SEND IT bot (DISCORD_BOT_TOKEN secret) sets up the server it was added to: roles, channels, permissions,
+// the welcome / rules / clips messages, the server icon, its own name and picture, and a permanent invite link.
+// Nothing to install or host. Safe to open again: it renames and updates instead of making duplicates.
+// Bots aren't allowed to create a server themselves (Discord removed that), so you make an empty one and add the bot.
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const API = 'https://discord.com/api/v10';
-const SITE = 'https://play-sendit.netlify.app';
+const BOT = (Deno.env.get("DISCORD_BOT_TOKEN") ?? "").trim();
+const GUILD_SET = (Deno.env.get("DISCORD_GUILD_ID") ?? "").trim();
+const CID = Deno.env.get("DISCORD_CLIENT_ID") || "1570333669124472903";
+const KEY_HASH = "3eff26dcf2677862cae623da141107c741852f1e333d3c79b0f0f292d4a35f72"; // sha256 of the setup key
+const API = "https://discord.com/api/v10";
+const SITE = "https://play-sendit.netlify.app";
 const ORANGE = 0xff5a26;
+const ZW = String.fromCharCode(0x200b); // an invisible spacer line under the embed text
+const ADD_BOT = `https://discord.com/oauth2/authorize?client_id=${CID}&scope=bot&permissions=8`;
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const TOKEN = (process.env.BOT_TOKEN || (await rl.question('Paste the SEND IT bot token and press Enter: '))).trim();
-if (!TOKEN) { console.log('No token, stopping.'); process.exit(1); }
-
-async function api(method, path, body, reason = 'SEND IT setup') {
+async function api(method, path, body, reason = "SEND IT setup") {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const r = await fetch(API + path, { method, headers: { Authorization: `Bot ${TOKEN}`, 'Content-Type': 'application/json', 'X-Audit-Log-Reason': reason }, body: body ? JSON.stringify(body) : undefined });
-    if (r.status === 429) { const j = await r.json(); await new Promise(res => setTimeout(res, (j.retry_after || 1) * 1000 + 250)); continue; }
+    const r = await fetch(API + path, { method, headers: { Authorization: `Bot ${BOT}`, "Content-Type": "application/json", "X-Audit-Log-Reason": reason }, body: body ? JSON.stringify(body) : undefined });
+    if (r.status === 429) { const j = await r.json().catch(() => ({})); await new Promise((res) => setTimeout(res, (j.retry_after || 1) * 1000 + 250)); continue; }
     if (r.status === 204) return null;
     const j = await r.json().catch(() => null);
     if (!r.ok) throw new Error(`${method} ${path} failed (${r.status}): ${JSON.stringify(j)}`);
     return j;
   }
-  throw new Error('Discord kept rate-limiting, try again in a minute.');
+  throw new Error("Discord kept rate-limiting, open the link again in a minute.");
+}
+async function sha256(s) { return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+async function iconData() {
+  const r = await fetch(`${SITE}/media/discord-icon.png`).catch(() => null);
+  if (!r?.ok) return null;
+  const b = new Uint8Array(await r.arrayBuffer()); let s = "";
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return "data:image/png;base64," + btoa(s);
 }
 
-// ── which server? ──
-const me = await api('GET', '/users/@me').catch(e => { console.log('\nThat token did not work. Copy it again from the Bot page (Reset Token) and retry.'); process.exit(1); });
-const guilds = await api('GET', '/users/@me/guilds');
-if (!guilds.length) { console.log(`\n${me.username} isn't in any server yet. Add it with the invite link from the guide, then run this again.`); process.exit(1); }
-let guild = guilds[0];
-if (guilds.length > 1) {
-  guilds.forEach((g, i) => console.log(`  ${i + 1}. ${g.name}`));
-  const n = Number(await rl.question('Which server should I set up? Type the number: '));
-  guild = guilds[n - 1]; if (!guild) process.exit(1);
-}
-rl.close();
-const G = guild.id;
-console.log(`\nSetting up "${guild.name}" as ${me.username}…\n`);
-
+async function build(G, me, log) {
 // ── permissions (Discord bit flags) ──
 const P = { VIEW: 1n << 10n, SEND: 1n << 11n, SEND_THREADS: 1n << 38n, THREADS: 1n << 35n, REACT: 1n << 6n, ATTACH: 1n << 15n, EMBED: 1n << 14n, HISTORY: 1n << 16n, CONNECT: 1n << 20n, SPEAK: 1n << 21n, MANAGE_MSG: 1n << 13n, KICK: 1n << 1n, BAN: 1n << 2n, TIMEOUT: 1n << 40n, MANAGE_THREADS: 1n << 34n, MOVE: 1n << 24n, MUTE: 1n << 22n, ADMIN: 1n << 3n, MENTION_ALL: 1n << 17n };
 const bits = (...k) => k.reduce((a, x) => a | P[x], 0n).toString();
@@ -58,14 +52,14 @@ const roles = await api('GET', `/guilds/${G}/roles`);
 async function role(name, color, opts = {}) {
   const have = roles.find(r => bare(r.name) === bare(name));
   if (have) {
-    if (have.name !== name) { await api('PATCH', `/guilds/${G}/roles/${have.id}`, { name }); console.log(`  role ${name} — renamed`); }
-    else console.log(`  role ${name} — already there`);
+    if (have.name !== name) { await api('PATCH', `/guilds/${G}/roles/${have.id}`, { name }); log(`  role ${name} — renamed`); }
+    else log(`  role ${name} — already there`);
     return have;
   }
   const r = await api('POST', `/guilds/${G}/roles`, { name, color, hoist: !!opts.hoist, mentionable: !!opts.mentionable, permissions: opts.perms || '0' });
-  roles.push(r); console.log(`  role ${name} — made`); return r;
+  roles.push(r); log(`  role ${name} — made`); return r;
 }
-console.log('Roles');
+log('Roles');
 const R = {
   dev: await role('👑 Dev', ORANGE, { hoist: true, perms: bits('ADMIN') }),
   mod: await role('🛡️ Mod', 0x5865f2, { hoist: true, perms: bits('MANAGE_MSG', 'KICK', 'BAN', 'TIMEOUT', 'MANAGE_THREADS', 'MOVE', 'MUTE') }),
@@ -88,17 +82,17 @@ async function chan(name, type, parent, opts = {}) {
     const moved = parent && have.parent_id !== parent.id;
     if (have.name !== name || moved || (opts.topic && have.topic !== opts.topic)) {
       await api('PATCH', `/channels/${have.id}`, { name, ...(moved ? { parent_id: parent.id } : {}), ...(type !== T.CAT && type !== T.VOICE && opts.topic ? { topic: opts.topic } : {}) });
-      have.name = name; if (moved) have.parent_id = parent.id; console.log(`  ${label} — updated`);
-    } else console.log(`  ${label} — already there`);
+      have.name = name; if (moved) have.parent_id = parent.id; log(`  ${label} — updated`);
+    } else log(`  ${label} — already there`);
     return have;
   }
   const body = { name, type, parent_id: parent ? parent.id : undefined, topic: opts.topic, rate_limit_per_user: opts.slow, permission_overwrites: opts.perms, available_tags: opts.tags };
   let c;
   try { c = await api('POST', `/guilds/${G}/channels`, body); }
   catch (e) { if (type === T.NEWS || type === T.FORUM) { c = await api('POST', `/guilds/${G}/channels`, { ...body, type: T.TEXT, available_tags: undefined }); } else throw e; }
-  chans.push(c); console.log(`  ${label} — made`); return c;
+  chans.push(c); log(`  ${label} — made`); return c;
 }
-console.log('\nChannels');
+log('\nChannels');
 const catInfo = await chan('── 📌 START HERE ──', T.CAT, null);
 const welcome = await chan('👋┃welcome', T.TEXT, catInfo, { topic: '👋 Start here', perms: readOnly });
 const rules = await chan('📜┃rules', T.TEXT, catInfo, { topic: '📜 Be decent', perms: readOnly });
@@ -135,19 +129,19 @@ async function postOnce(ch, payload) {
   const last = await api('GET', `/channels/${ch.id}/messages?after=0&limit=20`); // the oldest messages in the channel
   const title = bare(payload.embeds[0].title);
   const mine = last.find(m => m.author && m.author.id === me.id && m.embeds && m.embeds[0] && bare(m.embeds[0].title) === title);
-  if (mine) { await api('PATCH', `/channels/${ch.id}/messages/${mine.id}`, payload); return console.log(`  ${ch.name} — updated`); }
-  if (last.length) return console.log(`  ${ch.name} already has messages — skipped`);
-  await api('POST', `/channels/${ch.id}/messages`, payload); console.log(`  ${ch.name} — posted`);
+  if (mine) { await api('PATCH', `/channels/${ch.id}/messages/${mine.id}`, payload); return log(`  ${ch.name} — updated`); }
+  if (last.length) return log(`  ${ch.name} already has messages — skipped`);
+  await api('POST', `/channels/${ch.id}/messages`, payload); log(`  ${ch.name} — posted`);
 }
 const linkBtn = (label, url, emoji) => ({ type: 2, style: 5, label, url, emoji: { name: emoji } });
 const FOOT = { text: 'SEND IT · see you on the ramps', icon_url: `${SITE}/media/icon.png` };
-console.log('\nMessages');
+log('\nMessages');
 await postOnce(welcome, {
   embeds: [{
     color: ORANGE,
     author: { name: 'SEND IT', icon_url: `${SITE}/media/icon.png`, url: SITE },
     title: '🛹  Welcome to SEND IT',
-    description: '**The free stunt-riding game.** Bikes, scooters, skateboards, skis and surfboards, a whole town to ride, and online servers with your mates.\n​',
+    description: '**The free stunt-riding game.** Bikes, scooters, skateboards, skis and surfboards, a whole town to ride, and online servers with your mates.\n' + ZW,
     fields: [
       { name: '🎮  Get the game', value: `[play-sendit.netlify.app](${SITE})\nWindows and Mac`, inline: true },
       { name: '📜  Read the rules', value: `<#${rules.id}>\nTwo minutes, promise`, inline: true },
@@ -175,7 +169,7 @@ await postOnce(rules, {
   embeds: [{
     color: ORANGE,
     title: '📜  Rules',
-    description: 'Short and simple. Break them and it goes **⚠️ warning → ⏳ timeout → 🔨 ban**.\n​',
+    description: 'Short and simple. Break them and it goes **⚠️ warning → ⏳ timeout → 🔨 ban**.\n' + ZW,
     fields: RULES.map(([e, t, d]) => ({ name: `${e}  ${t}`, value: d })),
     footer: { text: "Discord's own rules apply too · discord.com/guidelines", icon_url: `${SITE}/media/icon.png` },
   }],
@@ -189,38 +183,65 @@ await postOnce(clips, {
   }],
 });
 
-// ── server icon ──
-const icon = join(HERE, 'icon.png');
-if (existsSync(icon)) {
-  try { await api('PATCH', `/guilds/${G}`, { icon: 'data:image/png;base64,' + readFileSync(icon).toString('base64'), system_channel_id: welcome.id }); console.log('\nServer icon — set'); }
-  catch (e) { console.log('\nServer icon — skipped (' + e.message.slice(0, 80) + ')'); }
-}
-
-// ── the bot's own name and picture (it posts clips as itself, so there are no webhook links to leak) ──
-if (existsSync(icon)) {
-  const want = { avatar: 'data:image/png;base64,' + readFileSync(icon).toString('base64') };
+// ── server icon, and the bot's own name and picture (it posts clips as itself, so there are no webhook links) ──
+const icon = await iconData();
+if (icon) {
+  try { await api('PATCH', `/guilds/${G}`, { icon, system_channel_id: welcome.id }); log('Server icon — set'); }
+  catch (e) { log('Server icon — skipped (' + e.message.slice(0, 80) + ')'); }
+  const want = { avatar: icon };
   if (me.username !== 'SEND IT') want.username = 'SEND IT';
-  try { await api('PATCH', '/users/@me', want); console.log('Bot name and picture — set'); }
-  catch (e) { console.log('Bot name and picture — skipped (' + e.message.slice(0, 80) + ')'); }
+  try { await api('PATCH', '/users/@me', want); log('Bot name and picture — set'); }
+  catch (e) { log('Bot name and picture — skipped (' + e.message.slice(0, 80) + ')'); }
 }
 
-// ── remove the old webhooks if an earlier version of this script made them ──
+// ── remove the old webhooks if an earlier version made them ──
 for (const ch of [clips, upd]) {
   for (const w of await api('GET', `/channels/${ch.id}/webhooks`)) {
-    if (w.name === 'SEND IT Clips' || w.name === 'SEND IT Updates') { await api('DELETE', `/webhooks/${w.id}`); console.log(`  old webhook in #${ch.name} — removed`); }
+    if (w.name === 'SEND IT Clips' || w.name === 'SEND IT Updates') { await api('DELETE', `/webhooks/${w.id}`); log(`  old webhook in #${ch.name} — removed`); }
   }
 }
 
 // ── invite ──
 const inv = await api('POST', `/channels/${welcome.id}/invites`, { max_age: 0, max_uses: 0, unique: false });
+return { invite: `https://discord.gg/${inv.code}`, clips: clips.id };
+}
 
-console.log('\n────────────────────────────────────────────');
-console.log('Done! Three things to copy:\n');
-console.log('1) Server ID — put this in Supabase as the secret DISCORD_GUILD_ID:');
-console.log(`   ${G}\n`);
-console.log('2) Your bot token (the one you just pasted) — put it in Supabase as the secret DISCORD_BOT_TOKEN.');
-console.log('   With these two, the bot posts clips in #clips and adds players who tick "Also join the SEND IT Discord server".\n');
-console.log('3) Invite link — send this one to Claude for the game and website:');
-console.log(`   https://discord.gg/${inv.code}\n`);
-console.log('Keep the bot token private. If it ever leaks, press Reset Token on the Bot page and update the Supabase secret.');
-console.log('────────────────────────────────────────────');
+// ── the reply: one JSON object per line, streamed, read by play-sendit.netlify.app/discord-setup.html ──
+// (Supabase won't serve web pages from functions, so the page lives on the SEND IT website.)
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "content-type" };
+const HDR = { ...CORS, "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" };
+const one = (o) => new Response(JSON.stringify(o) + "\n", { headers: HDR });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  const u = new URL(req.url);
+  if (await sha256(u.searchParams.get("key") || "") !== KEY_HASH) return one({ t: "need", what: "key" });
+  if (!BOT) return one({ t: "need", what: "token" });
+  let me;
+  try { me = await api("GET", "/users/@me"); } catch { return one({ t: "need", what: "bad_token" }); }
+  const guilds = await api("GET", "/users/@me/guilds");
+  if (!guilds.length) return one({ t: "need", what: "add_bot", url: ADD_BOT });
+  const pick = u.searchParams.get("guild") || GUILD_SET || (guilds.length === 1 ? guilds[0].id : "");
+  const guild = guilds.find((g) => g.id === pick);
+  if (!guild) return one({ t: "pick", guilds: guilds.map((g) => ({ id: g.id, name: g.name })) });
+  if (u.searchParams.get("check") === "1") return one({ t: "ready", server: guild.name, bot: me.username });
+
+  // build it, and stream the progress so the page can show it happening
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(ctl) {
+      const send = (o) => ctl.enqueue(enc.encode(JSON.stringify(o) + "\n"));
+      const log = (s) => send({ t: "log", s: String(s).replace(/^\n+/, "") });
+      log(`Setting up "${guild.name}" as ${me.username}…`);
+      try {
+        const res = await build(guild.id, me, log);
+        try { await db.from("si_settings").upsert([{ key: "discord_invite", value: res.invite }, { key: "discord_guild", value: guild.id }]); } catch { /* the page still shows it */ }
+        send({ t: "done", invite: res.invite, server: guild.name });
+      } catch (e) {
+        send({ t: "error", s: String(e?.message || e).slice(0, 400) });
+      }
+      ctl.close();
+    },
+  });
+  return new Response(stream, { headers: HDR });
+});

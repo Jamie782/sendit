@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SEND IT · Discord setup</title>
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="site.css">
+<style>
+  .setup{max-width:720px;margin:0 auto;padding:40px 16px 80px}
+  .setup .logo{width:220px;display:block;margin-bottom:8px}
+  .setup h1{font-family:var(--display);font-weight:400;font-style:italic;font-size:clamp(40px,7vw,64px);letter-spacing:2px;line-height:.95;margin:0 0 8px}
+  .setup .lead{margin:0 0 28px}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 18px 18px 16px;margin-bottom:14px;transition:border-color .2s}
+  .step .n{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--display);font-size:24px;background:rgba(255,255,255,.07)}
+  .step.ok{border-color:rgba(125,255,160,.35)} .step.ok .n{background:#1f7a45;font-size:0} .step.ok .n::after{content:"✓";font-size:22px;font-family:var(--body);font-weight:800}
+  .step.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .step h3{margin:6px 0 6px;font-size:18px}
+  .step p,.step li{color:var(--mute);margin:0 0 8px;font-size:15px}
+  .step ol{margin:0 0 10px;padding-left:20px}
+  .step b{color:var(--ink)}
+  .step code{background:rgba(255,255,255,.08);border-radius:6px;padding:2px 7px;font-size:14px;color:var(--ink)}
+  .step .btn{font-size:19px;padding:10px 18px;margin:4px 8px 0 0}
+  .state{font-size:14px;font-weight:600;margin-top:6px}
+  .state.good{color:#7dffa0} .state.bad{color:#ff8a70} .state.wait{color:var(--accent2)}
+  #log{display:none;margin-top:14px;background:#06070a;border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-height:340px;overflow:auto;font:13px/1.65 ui-monospace,Menlo,Consolas,monospace;color:#c9cdd6;white-space:pre-wrap}
+  #done{display:none;margin-top:14px;padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(255,77,31,.18),rgba(88,101,242,.18));border:1px solid var(--line)}
+  #done h2{margin:0 0 6px;font-size:38px}
+  #pick{margin-top:8px}
+</style>
+</head>
+<body>
+<main class="setup">
+  <img class="logo" src="media/logo-wordmark.svg" alt="SEND IT">
+  <h1>DISCORD SETUP</h1>
+  <p class="lead">Four steps and the SEND IT bot builds the whole server for you: channels, roles, rules, the welcome message and an invite link. Nothing to install.</p>
+
+  <div class="step" id="s1"><div class="n">1</div><div>
+    <h3>Make an empty server</h3>
+    <p>Discord doesn't let bots create servers, so this bit is yours. In Discord press <b>+</b> → <b>Create My Own</b> → <b>For me and my friends</b>, name it <b>SEND IT</b>. Leave it empty.</p>
+  </div></div>
+
+  <div class="step" id="s2"><div class="n">2</div><div>
+    <h3>Give Supabase the bot token</h3>
+    <ol>
+      <li>Open the bot page, press <b>Reset Token</b> and copy it. Keep it private, don't paste it anywhere else.</li>
+      <li>In Supabase go to <b>Edge Functions → Secrets</b>, add a secret called <code>DISCORD_BOT_TOKEN</code> and paste it as the value.</li>
+    </ol>
+    <a class="btn ghost" href="https://discord.com/developers/applications/1570333669124472903/bot" target="_blank" rel="noopener">BOT PAGE ↗</a>
+    <a class="btn ghost" href="https://supabase.com/dashboard/project/jmrgxreacfnakwsbwjyk/functions/secrets" target="_blank" rel="noopener">SUPABASE SECRETS ↗</a>
+    <div class="state" id="st2"></div>
+  </div></div>
+
+  <div class="step" id="s3"><div class="n">3</div><div>
+    <h3>Add the bot to your server</h3>
+    <p>Pick the <b>SEND IT</b> server and press <b>Authorise</b>. It asks for Administrator so it can make the channels and roles.</p>
+    <a class="btn dc" id="addbot" href="https://discord.com/oauth2/authorize?client_id=1570333669124472903&scope=bot&permissions=8" target="_blank" rel="noopener">ADD THE BOT ↗</a>
+    <div class="state" id="st3"></div>
+    <div id="pick"></div>
+  </div></div>
+
+  <div class="step" id="s4"><div class="n">4</div><div>
+    <h3>Build it</h3>
+    <p>The bot makes everything in about a minute. Safe to press again later: it updates instead of making copies.</p>
+    <button class="btn" id="build" disabled>BUILD MY SERVER</button>
+    <button class="btn ghost" id="recheck">CHECK AGAIN</button>
+    <div class="state" id="st4"></div>
+    <div id="log"></div>
+    <div id="done"></div>
+  </div></div>
+</main>
+<script>
+  const FN = 'https://jmrgxreacfnakwsbwjyk.supabase.co/functions/v1/si-discord-setup';
+  const q = new URLSearchParams(location.search), key = q.get('key') || '';
+  let guild = q.get('guild') || '';
+  const $ = id => document.getElementById(id);
+  const say = (id, cls, txt) => { const e = $(id); e.className = 'state ' + cls; e.textContent = txt; };
+  const mark = (done, now) => { for (let i = 1; i <= 4; i++) { $('s' + i).classList.toggle('ok', i <= done); $('s' + i).classList.toggle('now', i === now); } };
+  const url = extra => `${FN}?key=${encodeURIComponent(key)}${guild ? '&guild=' + guild : ''}${extra || ''}`;
+
+  // read the function's reply one line at a time, as it arrives
+  async function lines(u, onLine) {
+    const r = await fetch(u, { cache: 'no-store' });
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (l) onLine(JSON.parse(l)); }
+    }
+    if (buf.trim()) onLine(JSON.parse(buf));
+  }
+
+  function show(o) {
+    $('pick').innerHTML = ''; $('build').disabled = true;
+    if (o.t === 'need' && o.what === 'key') { mark(0, 0); say('st4', 'bad', 'This page needs the full setup link (with ?key=… on the end). Use the link Claude gave you.'); return; }
+    if (o.t === 'need' && o.what === 'token') { mark(1, 2); say('st2', 'wait', 'Waiting for the DISCORD_BOT_TOKEN secret. Add it, then press CHECK AGAIN.'); say('st3', '', ''); say('st4', '', ''); return; }
+    if (o.t === 'need' && o.what === 'bad_token') { mark(1, 2); say('st2', 'bad', 'Discord didn\'t accept that token. Reset it again, paste the new one into the secret, then CHECK AGAIN.'); return; }
+    say('st2', 'good', 'Bot token found ✓');
+    if (o.t === 'need' && o.what === 'add_bot') { mark(2, 3); if (o.url) $('addbot').href = o.url; say('st3', 'wait', 'The bot isn\'t in a server yet. Add it, then press CHECK AGAIN.'); return; }
+    if (o.t === 'pick') {
+      mark(2, 3); say('st3', 'wait', 'The bot is in more than one server. Which one is SEND IT?');
+      for (const g of o.guilds) { const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = g.name; b.onclick = () => { guild = g.id; check(); }; $('pick').appendChild(b); }
+      return;
+    }
+    if (o.t === 'ready') { mark(3, 4); say('st3', 'good', `The bot is in "${o.server}" ✓`); say('st4', '', ''); $('build').disabled = false; }
+  }
+  async function check() {
+    say('st4', 'wait', 'Checking…');
+    try { await lines(url('&check=1'), show); }
+    catch { say('st4', 'bad', 'Couldn\'t reach the SEND IT server. Check your internet and press CHECK AGAIN.'); }
+  }
+  $('recheck').onclick = check;
+  $('build').onclick = async () => {
+    $('build').disabled = true; $('recheck').disabled = true;
+    const log = $('log'); log.style.display = 'block'; log.textContent = ''; $('done').style.display = 'none';
+    say('st4', 'wait', 'Building… keep this tab open.');
+    let finished = false;
+    try {
+      await lines(url(), o => {
+        if (o.t === 'log') { log.textContent += o.s + '\n'; log.scrollTop = log.scrollHeight; }
+        else if (o.t === 'done') {
+          finished = true; mark(4, 0); say('st4', 'good', 'All done ✓');
+          const d = $('done'); d.style.display = 'block';
+          d.innerHTML = `<h2>YOUR SERVER IS READY 🎉</h2><p>Invite link: <a href="${o.invite}" target="_blank" rel="noopener">${o.invite}</a></p>
+            <p class="note">The bot now posts clips in 🎬┃clips and adds players who tick "Also join the SEND IT Discord server". The website picks up the invite link by itself.<br>Last thing: give yourself the <b>👑 Dev</b> role (Server Settings → Members → your name → + → 👑 Dev).</p>
+            <a class="btn dc" href="${o.invite}" target="_blank" rel="noopener">OPEN THE SERVER ↗</a>`;
+        }
+        else if (o.t === 'error') { finished = true; say('st4', 'bad', 'Something went wrong: ' + o.s + ' Press BUILD again to carry on; anything already made is kept.'); }
+        else show(o);
+      });
+      if (!finished) say('st4', 'bad', 'The connection stopped before it finished. Press BUILD again to carry on; anything already made is kept.');
+    } catch { say('st4', 'bad', 'Couldn\'t reach the SEND IT server. Press BUILD again.'); }
+    $('build').disabled = false; $('recheck').disabled = false;
+  };
+  check();
+</script>
+</body>
+</html>

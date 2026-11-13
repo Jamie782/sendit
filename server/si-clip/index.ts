@@ -2,7 +2,7 @@
 // The game posts multipart form data (token, kind, place, ride, combo, caption, file). We check the player is signed in
 // and not banned, keep people to one share every 90 seconds, then the SEND IT bot posts it in #clips as itself, using the
 // DISCORD_BOT_TOKEN secret (it never reaches players, and there is no webhook link that could leak). It finds #clips in
-// the server named by DISCORD_GUILD_ID (or DISCORD_CLIPS_CHANNEL if set). If the player has linked Discord the post pings
+// the server si-discord-setup set up (or DISCORD_GUILD_ID / DISCORD_CLIPS_CHANNEL if those are set). If the player has linked Discord the post pings
 // them. The reply carries a signed "edit" ticket so the player can change the caption afterwards
 // (action=edit), for up to 24 hours, without us having to store anything.
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -74,11 +74,17 @@ async function discord(method: string, path: string, body?: BodyInit, json = fal
     await new Promise((res) => setTimeout(res, Math.min(5, Number(j?.retry_after) || 1) * 1000 + 100));
   }
 }
-let clipsChan = /^\d{5,25}$/.test(CHAN_SET) ? CHAN_SET : "";
+let clipsChan = /^\d{5,25}$/.test(CHAN_SET) ? CHAN_SET : "", guildId = /^\d{5,25}$/.test(GUILD) ? GUILD : "";
+async function findGuild() {
+  if (guildId) return guildId;
+  try { const { data } = await db.from("si_settings").select("value").eq("key", "discord_guild").maybeSingle(); if (/^\d{5,25}$/.test(String(data?.value || ""))) guildId = String(data!.value); } catch { /* not set up yet */ }
+  return guildId;
+}
 async function findClips() {
   if (clipsChan) return clipsChan;
-  if (!/^\d{5,25}$/.test(GUILD)) return "";
-  const r = await discord("GET", `/guilds/${GUILD}/channels`).catch(() => null);
+  const g = await findGuild();
+  if (!g) return "";
+  const r = await discord("GET", `/guilds/${g}/channels`).catch(() => null);
   if (!r?.ok) return "";
   const list = await r.json().catch(() => []) as { id: string; name: string; type: number }[];
   // "🎬┃clips" or plain "clips" (not "clip-of-the-week")
@@ -95,7 +101,7 @@ async function whoIs(token: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
-  if (!BOT || !/^\d{5,25}$/.test(CHAN_SET || GUILD)) return json({ ok: false, error: "not_set_up" });
+  if (!BOT) return json({ ok: false, error: "not_set_up" });
   if (Number(req.headers.get("content-length") || 0) > MAX + 300_000) return json({ ok: false, error: "too_big" });
 
   let form: FormData;

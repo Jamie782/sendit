@@ -145,7 +145,11 @@
   document.querySelectorAll('.ver').forEach(e => e.textContent = C.version);
   document.querySelectorAll('[data-dl]').forEach(a => a.href = C.downloads[a.dataset.dl]);
   document.getElementById('yr').textContent = new Date().getFullYear();
-  if (C.discord) document.getElementById('dc-link').innerHTML = ` · <a href="${C.discord}">Discord</a>`;
+  const dcLink = u => { if (/^https:\/\/discord\.(gg|com)\//.test(u || '')) document.getElementById('dc-link').innerHTML = ` · <a href="${u}">Discord</a>`; };
+  // the invite link the SEND IT bot saved when it set up the server (or the one in config.js)
+  if (C.discord) dcLink(C.discord);
+  else fetch('https://jmrgxreacfnakwsbwjyk.supabase.co/rest/v1/rpc/si_discord_invite', { method: 'POST', headers: { apikey: 'sb_publishable_dT28MOtEkXkeXclJnqzcvQ_xTSOJqlX', 'Content-Type': 'application/json' }, body: '{}' })
+    .then(r => r.ok ? r.json() : null).then(dcLink).catch(() => {});
   // put the right download first
   const mac = /Mac/.test(navigator.platform) || /Mac OS X/.test(navigator.userAgent);
   const box = document.getElementById(mac ? 'dl-mac' : 'dl-win'); if (box) box.classList.add('rec');

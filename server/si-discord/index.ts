@@ -3,19 +3,25 @@
 // we bounce to Discord, Discord sends the player back here with a code, we look the player up with Discord and
 // record the result against the state. The game is polling that state and picks the result up.
 // With &join=1 (the "Also join the SEND IT Discord server" tick box) we also ask Discord for permission to add the
-// player to the SEND IT server, and the SEND IT bot adds them. That needs the DISCORD_BOT_TOKEN and DISCORD_GUILD_ID
-// secrets; without them the tick box is ignored.
+// player to the SEND IT server, and the SEND IT bot adds them. That needs the DISCORD_BOT_TOKEN secret and the server
+// that si-discord-setup set up (or DISCORD_GUILD_ID); without them the tick box is ignored.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CID = Deno.env.get("DISCORD_CLIENT_ID") || "1570333669124472903"; // SEND IT Discord application (public ID)
 const SECRET = Deno.env.get("DISCORD_CLIENT_SECRET") ?? "";
 const SITE = (Deno.env.get("SITE_URL") || "https://play-sendit.netlify.app").replace(/\/$/, "");
 const BOT = Deno.env.get("DISCORD_BOT_TOKEN") ?? "";
-const GUILD = (Deno.env.get("DISCORD_GUILD_ID") ?? "").trim();
-const CAN_JOIN = !!BOT && /^\d{5,25}$/.test(GUILD);
+const GUILD_SET = (Deno.env.get("DISCORD_GUILD_ID") ?? "").trim();
 const BASE = Deno.env.get("SUPABASE_URL")!;
 const SELF = `${BASE}/functions/v1/si-discord`;
 const db = createClient(BASE, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+let guildId = /^\d{5,25}$/.test(GUILD_SET) ? GUILD_SET : "";
+async function findGuild() {
+  if (guildId || !BOT) return guildId;
+  try { const { data } = await db.from("si_settings").select("value").eq("key", "discord_guild").maybeSingle(); if (/^\d{5,25}$/.test(String(data?.value || ""))) guildId = String(data!.value); } catch { /* not set up yet */ }
+  return guildId;
+}
 
 function finish(ok: boolean, msg: string) {
   // the website shows a nice page if SITE_URL is set; otherwise a plain message
@@ -30,7 +36,7 @@ Deno.serve(async (req) => {
   const start = u.searchParams.get("start");
   if (start) {
     if (!/^[a-f0-9]{48}$/.test(start)) return finish(false, "That link is broken. Try again from the game.");
-    const join = CAN_JOIN && u.searchParams.get("join") === "1";
+    const join = u.searchParams.get("join") === "1" && !!(await findGuild());
     // the state goes to Discord and back; ".j" on the end remembers that they asked to join the server
     const q = new URLSearchParams({ client_id: CID, response_type: "code", scope: join ? "identify guilds.join" : "identify", redirect_uri: SELF, state: join ? start + ".j" : start, prompt: "consent" });
     return Response.redirect(`https://discord.com/oauth2/authorize?${q}`, 302);
@@ -56,7 +62,8 @@ Deno.serve(async (req) => {
     if (error) return finish(false, "The game server had a problem. Try again.");
     if (!data.ok) return finish(false, data.error === "discord_in_use" ? "That Discord account is already linked to another SEND IT account." : "That sign-in link expired. Try again from the game.");
     let joined = "";
-    if (wantJoin && CAN_JOIN && String(tok.scope || "").split(" ").includes("guilds.join")) {
+    const GUILD = wantJoin ? await findGuild() : "";
+    if (GUILD && String(tok.scope || "").split(" ").includes("guilds.join")) {
       try {
         const j = await fetch(`https://discord.com/api/v10/guilds/${GUILD}/members/${me.id}`, {
           method: "PUT", headers: { Authorization: `Bot ${BOT}`, "Content-Type": "application/json" }, body: JSON.stringify({ access_token: tok.access_token }),
