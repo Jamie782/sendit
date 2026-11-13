@@ -1,7 +1,7 @@
 {
- "version": "2.7.2",
+ "version": "2.7.3",
  "minShell": "1.5.0",
- "notes": "2.7.2: captions, pings and caption edits for clips shared to Discord; join the SEND IT Discord when you sign in",
+ "notes": "2.7.3: overhead whips",
  "files": [
   {
    "path": "discord.json",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "54bebcda604ad5655568a1ee37dccb53ec10905e682f01f1d07d651bc0b32a5b"
+   "sha256": "ca514bcfbc1d71c7b3e758533fa98277f80b613ed10a45c48db069e0791f4766"
   },
   {
    "path": "src/game.js",
-   "sha256": "50b6e9f1f7a8139fcdcd1452e7de4d91696846353ca7d5ec8102e58b755a254a"
+   "sha256": "1e058f6c9a3aa8b8be1973caa48c02111a95b7b722c70dbd9a178687df6c8a6e"
   },
   {
    "path": "assets/logo-icon.png",

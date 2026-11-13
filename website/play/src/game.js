@@ -2575,13 +2575,27 @@ function airStep(dt, P, C) {
     if (t.t === 'whip') { if (held(key) && P.whipLeft <= 0.001) { P.whipAmt = P.whipLeft = t.a || Math.PI * 2; P.whipDir = t.d; P.whipName = t.n; P.whipKey = key; sfx.whoosh(); } }
     else if (t.t === 'bar') { if (held(key) && P.barLeft <= 0.001) { P.barAmt = P.barLeft = t.a || Math.PI * 2; P.barDir = t.d || 1; P.barName = t.n; P.barKey = key; sfx.whoosh(); } }
     else {
-      let target = held(key) ? 1 : 0;
+      let target = held(key) || (t.p === 'overhead' && P.ohSpin > 0) ? 1 : 0;   // an overhead whip finishes its turn first
       if (E && tl < 0.24) target = 0;            // easy mode: hands and feet go back on in time
       P.poses[t.p] = damp(P.poses[t.p] || 0, target, 10, dt);
       if (P.poses[t.p] > 0.8) airTricks.poseTime[t.n] = (airTricks.poseTime[t.n] || 0) + dt;
     }
   }
   const boost = E ? 1.2 : 1;
+  // overhead whip: when the ride is up over your head it whips round while you hold the key;
+  // let go and it finishes the turn it's on before it comes back down
+  {
+    const ohKey = TRICK_KEYS.find(k => TK[k] && TK[k].p === 'overhead'), TURN = Math.PI * 2, cur = P.ohSpin || 0;
+    const keep = !!ohKey && held(ohKey) && !(E && tl < 0.24);
+    if (ohKey && ((keep && (P.poses.overhead || 0) > 0.6) || cur > 0)) {
+      let st = TURN / 0.6 * boost * dt;
+      if (!keep) st = Math.min(st * 1.4, TURN - cur);
+      if (E && tl < 0.12) st = cur > 0 ? TURN - cur : 0;            // easy mode: finish it before touchdown
+      if (cur === 0 && st > 0) sfx.whoosh();
+      P.ohSpin = cur + st;
+      if (P.ohSpin >= TURN - 1e-6) { P.ohSpin = 0; airTricks.ohTurns = (airTricks.ohTurns || 0) + 1; }
+    }
+  }
   if (P.whipLeft > 0) {
     let s = Math.min(P.whipLeft, (Math.PI * 2) / (C.whip * (P.whipName === 'Heelwhip' ? 1.15 : 1)) * boost * dt);
     if (E && tl < 0.12) s = P.whipLeft;                          // easy mode: finish it before touchdown
@@ -2733,7 +2747,11 @@ function scoreAir(P, C, yawErr, flipErr) {
   for (const key of TRICK_KEYS) {
     const t = TK[key]; if (!t || t.t !== 'pose') continue;
     const tm = airTricks.poseTime[t.n] || 0;
-    if (tm > 0.12) { parts.push(t.n); pts += POSE_PTS[t.p] + tm * 300; mult += 1; }
+    if (tm > 0.12) {
+      const turns = t.p === 'overhead' ? airTricks.ohTurns || 0 : 0;   // overhead whips: it went right round your head
+      parts.push(turns ? `${turns === 1 ? '' : turns === 2 ? 'Double ' : turns === 3 ? 'Triple ' : turns + 'x '}${t.n} Whip` : t.n);
+      pts += POSE_PTS[t.p] + tm * 300 + turns * 380; mult += 1 + (turns > 1 ? 1 : 0);
+    }
   }
   const dist = Math.hypot(P.pos.x - P.airStart.x, P.pos.z - P.airStart.z);
   const airPts = P.airTime * 60 + P.maxH * 25;
@@ -2886,13 +2904,13 @@ const tmpV = v3(), tmpQ = new THREE.Quaternion();
 const L = { hip: v3(), chest: v3(), sh: [v3(), v3()], hp: [v3(), v3()], knee: [v3(), v3()], foot: [v3(), v3()], elbow: [v3(), v3()], hand: [v3(), v3()], ft: [v3(), v3()], ht: [v3(), v3()] };
 let bumpT = 0;
 // visual state of the local rider (also what gets sent to other players)
-const VS = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: false, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, bailed: false };
+const VS = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, ohs: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: false, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, bailed: false };
 function updateVisual(dt) {
   const P = player;
-  if (P.bailed) { updateBail(dt); VS.bailed = true; VS.x = root.position.x; VS.y = root.position.y; VS.z = root.position.z; return; }
+  if (P.bailed) { updateBail(dt); VS.bailed = true; VS.ohs = 0; P.ohSpin = 0; VS.x = root.position.x; VS.y = root.position.y; VS.z = root.position.z; return; }
   VS.bailed = false;
   if (P.mode === 'walk') {
-    Object.assign(VS, { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: !!P.wair, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, grinding: false,
+    Object.assign(VS, { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, ohs: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: !!P.wair, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, grinding: false,
       walk: 1, wph: P.wph || 0, ws: P.wspd || 0, pu: P.punchAt ? punchCurve(clock - P.punchAt) : 0, ps: P.punchSide || 0, ko: P.ko ? 1 : 0 });
     applyAvatar(me, VS, dt); return;
   }
@@ -2929,7 +2947,7 @@ function updateVisual(dt) {
   Object.assign(VS, {
     x: P.pos.x, y: P.pos.y + P.visY, z: P.pos.z, yaw: P.yaw, pitch: P.visPitch, roll: P.visRoll, flip: P.flip,
     table: (P.poses.tabletop || 0) * 1.15, wheelie: P.wheelie - P.stop,
-    steer: -P.steer * 1.25 * (P.air || P.grind ? 0 : 1), bar: P.bar, whip: P.whip, xup: P.poses.xup || 0,
+    steer: -P.steer * 1.25 * (P.air || P.grind ? 0 : 1), bar: P.bar, whip: P.whip, ohs: P.air ? P.ohSpin || 0 : (P.ohSpin = 0), xup: P.poses.xup || 0,
     wheelSpd: P.air ? P.airSpin : P.v, crank: P.crank, crouch: P.crouch, air: P.air, whipping: P.whipLeft > 0, barring: P.barLeft > 0,
     kickAmt: P.kickAmt || 0, kickPhase: P.kickPhase, poses: P.poses, braking: P.braking && !P.air, grinding: !!P.grind,
   });
@@ -2958,14 +2976,41 @@ function applyAvatar(A, S, dt) {
   const w = S.wheelie;
   if (w >= 0) { A.wheelieG.position.z = V.contactR; V.model.position.z = -V.contactR; } else { A.wheelieG.position.z = V.contactF; V.model.position.z = -V.contactF; }
   A.wheelieG.rotation.x = -w;
-  if (V.board) { V.board.rotation.z = S.bar; V.whip.rotation.y = S.whip; V.whip.position.y = ((S.poses && S.poses.overhead) || 0) * 0.95; }
+  if (V.board) { V.board.rotation.z = S.bar; V.whip.rotation.y = S.whip + (S.ohs || 0); V.whip.position.y = ((S.poses && S.poses.overhead) || 0) * 0.95; }
   else {
     V.steer.rotation.y = S.steer + S.bar + S.xup * Math.PI;
     V.whip.rotation.y = S.whip * (A.kind === 'scooter' || A.kind === 'escooter' ? 1 : -1);
   }
   for (const wh of V.wheels) wh.obj.rotation.x += S.wheelSpd * dt / wh.r;
   if (V.crank) V.crank.rotation.x = S.crank;
+  overheadWhip(A, S);
   poseRider(dt, S, A);
+}
+// overhead whip: the ride is turned on its side so it lies flat at the height of your hands, and swings round
+// and round over your head like a helicopter blade, pivoting on the middle of the bars. The rider is inside the ride's
+// model, so they get the opposite turn and stay facing forward; poseRider then moves the grips and pedals into the
+// rider's frame with A.ohM.
+const _ohA = new THREE.Vector3(), _ohB = new THREE.Vector3(), _ohM = new THREE.Matrix4(), _ohN = new THREE.Matrix4(), _ohT = new THREE.Matrix4(), _ohS = new THREE.Vector3(), _ohP = new THREE.Vector3();
+function overheadWhip(A, S) {
+  const V = A.veh, g = A.rider.group, th = S.ohs || 0, w = (A.sm && A.sm.ohw) || 0;
+  if (V.board || !V.grips) { A.ohP = null; return; }
+  if (th < 1e-4 && w < 0.005) {
+    if (A.ohP) { V.model.quaternion.identity(); V.model.position.x = 0; V.model.position.y = 0; g.position.set(0, 0, 0); g.rotation.set(0, stanceYaw(A.kind), 0); A.ohP = null; }
+    return;
+  }
+  const zBase = V.model.position.z;
+  V.model.quaternion.identity(); V.model.position.x = 0; V.model.position.y = 0; V.model.updateMatrixWorld(true);
+  V.model.worldToLocal(V.grips[0].getWorldPosition(_ohA)); V.model.worldToLocal(V.grips[1].getWorldPosition(_ohB));
+  _ohP.addVectors(_ohA, _ohB).multiplyScalar(0.5);
+  // M = T(P) · turn(th) · on its side(w) · T(-P)
+  const M = A.ohM || (A.ohM = new THREE.Matrix4());
+  M.makeTranslation(_ohP.x, _ohP.y, _ohP.z).multiply(_ohN.makeRotationY(th)).multiply(_ohN.makeRotationZ(w * Math.PI / 2)).multiply(_ohN.makeTranslation(-_ohP.x, -_ohP.y, -_ohP.z));
+  _ohT.makeTranslation(0, 0, zBase).multiply(M); _ohT.decompose(V.model.position, V.model.quaternion, _ohS);
+  // the rider: undo M, stay dropped below the ride by the overhead amount, keep the stance
+  const oh = (S.poses && S.poses.overhead) || 0, ohH = (A.kind === 'bike' || A.kind === 'ebike' ? 1.02 : 1.12) * oh;
+  _ohT.copy(M).invert().multiply(_ohN.makeTranslation(0, -ohH, 0)).multiply(_ohM.makeRotationY(stanceYaw(A.kind)));
+  _ohT.decompose(g.position, g.quaternion, _ohS);
+  A.ohP = { x: _ohP.x, z: _ohP.z };
 }
 // what each style trick does to the body
 const POSE_FX = {
@@ -3006,7 +3051,8 @@ function poseSkater(dt, S, A) {
   if ((PO.nosegrab || 0) > 0.01) { const a = PO.nosegrab; L.hip.y -= 0.16 * a; L.hip.x += 0.12 * a; grab(1, v3(0.37, V.deckTop + 0.06, 0.0), a); }
   if ((PO.airwalk || 0) > 0.01) { const a = PO.airwalk; L.ft[1].lerp(v3(0.32, top + 0.28, 0.36), a); L.ft[0].lerp(v3(-0.32, top + 0.16, -0.3), a); grab(1, v3(0.36, V.deckTop + 0.07, -0.02), a); }
   { const oh = PO.overhead || 0, h = 1.0 * oh, up = 0.95 * oh; R.group.position.y = -h;
-    if (oh > 0.01) { grab(0, v3(-0.2, V.deckTop + h + up - 0.04, 0.02), oh); grab(1, v3(0.2, V.deckTop + h + up - 0.04, 0.02), oh); L.ft[0].lerp(v3(-0.14, L.hip.y - 0.87, 0.05), oh); L.ft[1].lerp(v3(0.14, L.hip.y - 0.87, -0.04), oh); } }
+    sm.ohw = damp(sm.ohw || 0, (S.ohs || 0) > 1e-4 ? 1 : 0, 14, dt); const hw = 0.2 - 0.13 * sm.ohw;
+    if (oh > 0.01) { grab(0, v3(-hw, V.deckTop + h + up - 0.04, 0.02), oh); grab(1, v3(hw, V.deckTop + h + up - 0.04, 0.02), oh); L.ft[0].lerp(v3(-0.14, L.hip.y - 0.87, 0.05), oh); L.ft[1].lerp(v3(0.14, L.hip.y - 0.87, -0.04), oh); } }
   const lookDir = v3(0.06 + (PO.nosegrab || 0) * 0.2, 1, 0.14 + crouch * 0.5).normalize();
   L.chest.copy(L.hip).addScaledVector(lookDir, D.torso);
   const sideV = v3(1, 0, 0);
@@ -3034,6 +3080,7 @@ function poseRider(dt, S, A) {
   toLocal(V.grips[0], L.ht[0]); toLocal(V.grips[1], L.ht[1]);
   if (bike) { toLocal(V.pedals[0], L.ft[0]); toLocal(V.pedals[1], L.ft[1]); L.ft[0].y += 0.085; L.ft[1].y += 0.085; L.ft[0].z -= 0.03; L.ft[1].z -= 0.03; }
   else { L.ft[0].copy(V.feet[0]); L.ft[1].copy(V.feet[1]); L.ft[0].y += 0.07; L.ft[1].y += 0.07; }
+  if (A.ohP) for (const p of [L.ht[0], L.ht[1], L.ft[0], L.ft[1]]) p.applyMatrix4(A.ohM);   // overhead whip: the ride is turned, so move its grips and pedals into the rider's frame
   if (kind === 'bike') L.hip.set(0, 1.08 - crouch, V.contactR + 0.34);
   else if (kind === 'ebike') { L.hip.copy(V.saddle); L.hip.y -= crouch * 0.35; }
   else if (kind === 'scooter') L.hip.set(0.02, V.deckTop + 0.82 - crouch, -0.1);
@@ -3056,8 +3103,20 @@ function poseRider(dt, S, A) {
     for (const k in S.poses) { const a = S.poses[k]; if (a > 0.01 && POSE_FX[k]) POSE_FX[k](L, a, s, c); }
   }
   const oh = S.poses.overhead || 0, ohH = (bike ? 1.02 : 1.12) * oh;
-  R.group.position.y = -ohH;
-  if (oh > 0.01) for (let s = 0; s < 2; s++) { const side = s === 0 ? -1 : 1; L.ht[s].y += ohH; L.ht[s].x += side * 0.04 * oh; L.ft[s].lerp(v3(side * 0.13 + (s ? 0.05 : -0.05), L.hip.y - 0.86, L.hip.z + (s ? 0.12 : -0.08)), oh); }
+  if (!A.ohP) R.group.position.y = -ohH;
+  sm.ohw = damp(sm.ohw || 0, (S.ohs || 0) > 1e-4 ? 1 : 0, 12, dt);
+  if (oh > 0.01) {
+    // stand right under the bars, so when it whips round it goes round over your head; while it spins, both hands
+    // hold the middle of the bars
+    const mx = A.ohP ? A.ohP.x : (L.ht[0].x + L.ht[1].x) / 2, mz = A.ohP ? A.ohP.z : (L.ht[0].z + L.ht[1].z) / 2, w = sm.ohw * oh;
+    L.hip.x += (mx - L.hip.x) * oh * 0.9; L.hip.z += (mz - 0.12 - L.hip.z) * oh * 0.8;
+    for (let s = 0; s < 2; s++) {
+      const side = s === 0 ? -1 : 1;
+      L.ht[s].x += (mx + side * 0.07 - L.ht[s].x) * w; L.ht[s].z += (mz - L.ht[s].z) * w;
+      L.ht[s].y += ohH; L.ht[s].x += side * 0.04 * oh * (1 - w);
+      L.ft[s].lerp(v3(side * 0.13 + (s ? 0.05 : -0.05), L.hip.y - 0.86, L.hip.z + (s ? 0.12 : -0.08)), oh);
+    }
+  }
   const sup = S.poses.superman || 0;
   if (sup > 0.01 && bike) { L.hip.z -= sup * 0.3; L.hip.y += sup * 0.08; }
   if ((S.poses.tabletop || 0) > 0.01) L.hip.y -= S.poses.tabletop * 0.08;
@@ -4822,7 +4881,7 @@ const net = (() => {
     const rows = [[myName() + ' (you)', score], ...[...remotes.values()].map(r => [r.name, r.score])].sort((a, b) => b[1] - a[1]);
     elList.innerHTML = rows.map(([n, s]) => `<div><span>${esc(n)}</span><span>${(s || 0).toLocaleString()}</span></div>`).join('');
   }
-  const LERP = ['x', 'y', 'z', 'pitch', 'roll', 'flip', 'table', 'wheelie', 'steer', 'bar', 'whip', 'xup', 'wheelSpd', 'crank', 'crouch', 'kickAmt'];
+  const LERP = ['x', 'y', 'z', 'pitch', 'roll', 'flip', 'table', 'wheelie', 'steer', 'bar', 'whip', 'ohs', 'xup', 'wheelSpd', 'crank', 'crouch', 'kickAmt'];
   const ANG = ['yaw'];
   function pack() {
     const s = {}; for (const k of LERP) s[k] = +VS[k].toFixed(3); s.yaw = +VS.yaw.toFixed(3); s.kickPhase = +VS.kickPhase.toFixed(3);
@@ -4848,6 +4907,7 @@ const net = (() => {
       S.walk = b.s.wk | 0; S.wph = b.s.wph || 0; S.ws = b.s.ws || 0; S.pu = b.s.pu || 0; S.ps = b.s.ps | 0; S.ko = b.s.ko | 0;
       // whip and bar angles wrap, so don't interpolate across a reset
       if (Math.abs(b.s.whip - a.s.whip) > 3) S.whip = b.s.whip; if (Math.abs(b.s.bar - a.s.bar) > 3) S.bar = b.s.bar;
+      if (Math.abs((b.s.ohs || 0) - (a.s.ohs || 0)) > 3) S.ohs = b.s.ohs || 0;
       applyAvatar(r.A, S, dt);
       if (b.s.bl) { r.A.root.rotation.z = damp(r.A.root.rotation.z, 1.35, 6, dt); } else r.A.root.rotation.z = 0;
     }
@@ -5638,7 +5698,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.7.2';
+const GAME_VERSION = '2.7.3';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7134,7 +7194,7 @@ const BIND_DEF = {
 };
 const BIND_GROUPS = [
   ['RIDING', [['up', 'Ride / frontflip'], ['down', 'Brake / reverse / backflip'], ['left', 'Steer left / spin'], ['right', 'Steer right / spin'], ['jump', 'Hop / ollie'], ['wheelie', 'Wheelie / manual']]],
-  ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6'], ['t7', 'Overhead trick']]],
+  ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6'], ['t7', 'Overhead whip']]],
   ['ON FOOT', [['getoff', 'Get off / get on'], ['use', 'Talk / use / open'], ['punch', 'Punch'], ['run', 'Run'], ['bag', 'Bag (food & drink)'], ['quests', 'Quest log']]],
   ['OTHER', [['ride', 'Switch ride'], ['map', 'World map'], ['cam', 'Camera'], ['reset', 'Reset'], ['replay', 'Instant replay'], ['photo', 'Photo mode'], ['radio', 'Next radio station'], ['chat', 'Chat'], ['help', 'Hide help']]],
 ];
@@ -7164,7 +7224,7 @@ function renderHint() {
   const el = document.getElementById('hint'); if (!el) return;
   const K = keyName;
   el.innerHTML = `<b>${K('up')}/${K('down')}</b> ride · brake · reverse &nbsp; <b>${K('left')}/${K('right')}</b> steer &nbsp; <b>${K('jump')}</b> hop &nbsp; <b>${K('wheelie')}</b> wheelie<br>` +
-    `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks &nbsp; <b>${K('t7')}</b> overhead<br>` +
+    `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks &nbsp; <b>${K('t7')}</b> overhead whip<br>` +
     `<b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
     `<b>${K('map')}</b> map &nbsp; <b>1-0</b> places &nbsp; <b>${K('ride')}</b> ride &nbsp; <b>${K('cam')}</b> camera &nbsp; <b>${K('replay')}</b> replay &nbsp; <b>${K('photo')}</b> photo &nbsp; <b>${K('reset')}</b> reset &nbsp; <b>${K('chat')}</b> chat &nbsp; <b>${K('help')}</b> hide &nbsp; <b>ESC</b> menu`;
 }
@@ -7255,6 +7315,11 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.7.3', d: 'November 2026', t: 'Overhead whips', items: [
+    'The overhead trick (Y) now whips your bike, scooter or board round and round over your head while you hold it. Let go and it finishes the turn before it comes back down',
+    'Each full turn scores extra: Scooter Overhead Whip, Double Bike Overhead Whip, Triple Board Overhead Whip…',
+    'Other riders online see your overhead whips too, and they show up in replays and shared clips',
+  ] },
   { v: '2.7.2', d: 'November 2026', t: 'Captions and pings', items: [
     'When you share a clip or photo, a box now pops up with a preview so you can add a caption (optional) before it posts',
     'If you have linked Discord, the SEND IT bot pings you in #clips when it posts your clip, so your friends know it was you',

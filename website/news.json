@@ -2,6 +2,17 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.7.3",
+   "date": "November 2026",
+   "title": "Overhead whips",
+   "image": "media/bigair.jpg",
+   "items": [
+    "The overhead trick (Y) now whips your bike, scooter or board round and round over your head while you hold it. Let go and it finishes the turn before it comes back down",
+    "Each full turn scores extra: Scooter Overhead Whip, Double Bike Overhead Whip, Triple Board Overhead Whip…",
+    "Other riders online see your overhead whips too, and they show up in replays and shared clips"
+   ]
+  },
+  {
    "v": "2.7.2",
    "date": "November 2026",
    "title": "Captions and pings",
