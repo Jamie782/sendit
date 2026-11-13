@@ -1,7 +1,7 @@
 {
- "version": "2.8.1",
+ "version": "2.8.2",
  "minShell": "1.5.0",
- "notes": "2.8.1: set coins",
+ "notes": "2.8.2: bomb spam",
  "files": [
   {
    "path": "discord.json",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "7df8d7670eaf439622d83c9332a163dc240eca94bf8a16fc55ea2a08c017d603"
+   "sha256": "befb02ce08e95756641ff99454fff102f6ea06ffa23ea3ea74b8d22c855d276d"
   },
   {
    "path": "src/game.js",
-   "sha256": "a19d9faefd6354fe49cdd9eb94a00ba72860f20eb9a5474049ba6c5d9f3fd2d3"
+   "sha256": "cc193519251e8aefd34891b091e64e1dfa61fc6ac703ad21ec5df1f30b4436b5"
   },
   {
    "path": "assets/logo-icon.png",

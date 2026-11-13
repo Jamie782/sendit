@@ -1151,7 +1151,7 @@ const IS_KICK = k => k === 'scooter' || k === 'skate';   // rides you push with 
 const stanceYaw = k => k === 'skate' ? -Math.PI / 2 : 0;  // skaters stand sideways
 const VEH_KEYS = Object.keys(VEH).filter(k => !VEH[k].hidden);
 // the admin helicopter (v2.8): how it flies and what its two tricks do
-const HELI = { top: 34, rope: 6, grabR: 32, bombR: 100, bombs: 8, blast: 10, cd: 2.2 };
+const HELI = { top: 34, rope: 6, grabR: 32, bombR: 100, bombs: 8, blast: 10, auto: 0.2 };
 let wantHeli = false;
 const HELI_ICON = '<svg viewBox="0 0 64 40"><path d="M8 7h48M32 7v6"/><path d="M15 23c0-6 6-10 13-10h8c7 0 12 5 12 10s-5 8-12 8H25c-6 0-10-3-10-8z"/><path d="M48 21h11l2-6M24 31l-2 4M40 31l2 4M15 35h34"/></svg>';
 const COLORS = [0xff4d1f, 0x18a0ff, 0x2ee86c, 0xffc531, 0xb14dff, 0xf2f2f2, 0x1d1d20];
@@ -5728,7 +5728,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.8.1';
+const GAME_VERSION = '2.8.2';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7391,7 +7391,7 @@ function heliStep(dt, P) {
   // the two tricks
   H.bombCd = Math.max(0, H.bombCd - dt);
   const j = !!input.tr.J, k = !!input.tr.K;
-  if (j && !H.pj) heliBombs(P);
+  if (j && (!H.pj || H.bombCd <= 0)) heliBombs(P);   // no cooldown: every press drops a load, holding it keeps them coming
   if (k && !H.pk) heliGrab(P);
   H.pj = j; H.pk = k;
   // a grab that never caught anyone lets go by itself
@@ -7419,8 +7419,9 @@ function heliCam(dt) {
 
 // ── trick 1: bombs ──
 function heliBombs(P) {
-  const H = P.heli; if (H.bombCd > 0) return;
-  H.bombCd = HELI.cd;
+  const H = P.heli;
+  H.bombCd = HELI.auto;
+  if (BOMBS.length > 160) return;   // plenty in the air already
   const list = [];
   for (let i = 0; i < HELI.bombs; i++) {
     const a = Math.random() * Math.PI * 2, r = HELI.bombR * Math.sqrt(Math.random());
@@ -7465,7 +7466,7 @@ function explode(x, gy, z) {
     smoke.push({ sp, vy: rand(2.2, 4.8), vx: rand(-0.8, 0.8), vz: rand(-0.8, 0.8), d: rand(0.08, 0.35), s0: sp.scale.x });
   }
   BLASTS.push({ fire, ring, scorch, smoke, t: 0 });
-  while (BLASTS.length > 14) { const o = BLASTS.shift(); scene.remove(o.fire, o.ring, o.scorch); o.fire.material.dispose(); o.ring.material.dispose(); o.scorch.material.dispose(); for (const q of o.smoke) { scene.remove(q.sp); q.sp.material.dispose(); } }
+  while (BLASTS.length > 30) { const o = BLASTS.shift(); scene.remove(o.fire, o.ring, o.scorch); o.fire.material.dispose(); o.ring.material.dispose(); o.scorch.material.dispose(); for (const q of o.smoke) { scene.remove(q.sp); q.sp.material.dispose(); } }
   emitDust(v3(x, gy + 0.8, z), 16, 'road', 3.2);
   emitDust(v3(x, gy + 0.4, z), 8, surfaceAt(x, z), 2.2);
   // the rider (you), unless you're the one flying or you're hanging off a rope
@@ -7699,6 +7700,9 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.8.2', d: 'November 2026', t: 'Bomb spam', items: [
+    'The helicopter\'s bombs have no cooldown any more: every press drops a load, and holding the key keeps them raining down',
+  ] },
   { v: '2.8.1', d: 'November 2026', t: 'Set coins', items: [
     'Admins can now set a player\'s coins to an exact amount with the new SET button in the admin tab (GIVE and TAKE still add or take away)',
   ] },

@@ -2,6 +2,15 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.8.2",
+   "date": "November 2026",
+   "title": "Bomb spam",
+   "image": "media/online.jpg",
+   "items": [
+    "The helicopter's bombs have no cooldown any more: every press drops a load, and holding the key keeps them raining down"
+   ]
+  },
+  {
    "v": "2.8.1",
    "date": "November 2026",
    "title": "Set coins",
