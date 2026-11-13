@@ -1,7 +1,7 @@
 // SEND IT Discord server setup — run once:  node setup-server.mjs
 // Builds the roles, channels and permissions for the SEND IT community server, posts the welcome and rules
-// messages, sets the server icon, makes a webhook for #clips (so the game can post clips) and one for
-// #update-log, and makes a permanent invite link. Safe to run again: anything that already exists is left alone.
+// messages, sets the server icon and the bot's name and picture, and makes a permanent invite link. The game's clips
+// are posted by the SEND IT bot itself (no webhooks). Safe to run again: anything that already exists is left alone.
 //
 // You need: Node 18 or newer, and the SEND IT bot added to your server with the "Administrator" permission.
 // The bot token is asked for when the script runs. It is not saved anywhere.
@@ -151,25 +151,31 @@ if (existsSync(icon)) {
   catch (e) { console.log('\nServer icon — skipped (' + e.message.slice(0, 80) + ')'); }
 }
 
-// ── webhooks and invite ──
-async function hook(ch, name) {
-  const have = (await api('GET', `/channels/${ch.id}/webhooks`)).find(w => w.name === name);
-  return have || api('POST', `/channels/${ch.id}/webhooks`, { name });
+// ── the bot's own name and picture (it posts clips as itself, so there are no webhook links to leak) ──
+if (existsSync(icon)) {
+  const want = { avatar: 'data:image/png;base64,' + readFileSync(icon).toString('base64') };
+  if (me.username !== 'SEND IT') want.username = 'SEND IT';
+  try { await api('PATCH', '/users/@me', want); console.log('Bot name and picture — set'); }
+  catch (e) { console.log('Bot name and picture — skipped (' + e.message.slice(0, 80) + ')'); }
 }
-const hClips = await hook(clips, 'SEND IT Clips');
-const hUpd = await hook(upd, 'SEND IT Updates');
+
+// ── remove the old webhooks if an earlier version of this script made them ──
+for (const ch of [clips, upd]) {
+  for (const w of await api('GET', `/channels/${ch.id}/webhooks`)) {
+    if (w.name === 'SEND IT Clips' || w.name === 'SEND IT Updates') { await api('DELETE', `/webhooks/${w.id}`); console.log(`  old webhook in #${ch.name} — removed`); }
+  }
+}
+
+// ── invite ──
 const inv = await api('POST', `/channels/${welcome.id}/invites`, { max_age: 0, max_uses: 0, unique: false });
 
 console.log('\n────────────────────────────────────────────');
-console.log('Done! Four things to copy:\n');
-console.log('1) Clips webhook — put this in Supabase as the secret DISCORD_CLIPS_WEBHOOK:');
-console.log(`   https://discord.com/api/webhooks/${hClips.id}/${hClips.token}\n`);
-console.log('2) Update-log webhook — keep it for automatic update posts (add it to GitHub later):');
-console.log(`   https://discord.com/api/webhooks/${hUpd.id}/${hUpd.token}\n`);
-console.log('3) Server ID — put this in Supabase as the secret DISCORD_GUILD_ID (lets players join from the game):');
+console.log('Done! Three things to copy:\n');
+console.log('1) Server ID — put this in Supabase as the secret DISCORD_GUILD_ID:');
 console.log(`   ${G}\n`);
-console.log('   …and put the bot token you just pasted in as the secret DISCORD_BOT_TOKEN.\n');
-console.log('4) Invite link — send this one to Claude for the game and website:');
+console.log('2) Your bot token (the one you just pasted) — put it in Supabase as the secret DISCORD_BOT_TOKEN.');
+console.log('   With these two, the bot posts clips in #clips and adds players who tick "Also join the SEND IT Discord server".\n');
+console.log('3) Invite link — send this one to Claude for the game and website:');
 console.log(`   https://discord.gg/${inv.code}\n`);
-console.log('Keep the two webhook links private: anyone who has them can post in those channels.');
+console.log('Keep the bot token private. If it ever leaks, press Reset Token on the Bot page and update the Supabase secret.');
 console.log('────────────────────────────────────────────');

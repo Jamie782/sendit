@@ -1,12 +1,16 @@
 // SEND IT: share a replay clip or a photo from the game to the #clips channel on the SEND IT Discord.
 // The game posts multipart form data (token, kind, place, ride, combo, caption, file). We check the player is signed in
-// and not banned, keep people to one share every 90 seconds, then the SEND IT bot (a webhook kept in the
-// DISCORD_CLIPS_WEBHOOK secret, so its address never reaches players) posts it. If the player has linked Discord the
-// post pings them. The reply carries a signed "edit" ticket so the player can change the caption afterwards
+// and not banned, keep people to one share every 90 seconds, then the SEND IT bot posts it in #clips as itself, using the
+// DISCORD_BOT_TOKEN secret (it never reaches players, and there is no webhook link that could leak). It finds #clips in
+// the server named by DISCORD_GUILD_ID (or DISCORD_CLIPS_CHANNEL if set). If the player has linked Discord the post pings
+// them. The reply carries a signed "edit" ticket so the player can change the caption afterwards
 // (action=edit), for up to 24 hours, without us having to store anything.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const HOOK = Deno.env.get("DISCORD_CLIPS_WEBHOOK") ?? "";
+const BOT = (Deno.env.get("DISCORD_BOT_TOKEN") ?? "").trim();
+const GUILD = (Deno.env.get("DISCORD_GUILD_ID") ?? "").trim();
+const CHAN_SET = (Deno.env.get("DISCORD_CLIPS_CHANNEL") ?? "").trim();
+const DAPI = "https://discord.com/api/v10";
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(Deno.env.get("SUPABASE_URL")!, KEY, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -50,16 +54,36 @@ async function hmac(data: string) {
   hk ||= await crypto.subtle.importKey("raw", enc.encode("si-clip-edit:" + KEY), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return b64u(await crypto.subtle.sign("HMAC", hk, enc.encode(data)));
 }
-async function makeTicket(o: { m: string; u: string; b: string; t: number }) {
+async function makeTicket(o: { m: string; c: string; u: string; b: string; t: number }) {
   const body = b64u(enc.encode(JSON.stringify(o)));
   return body + "." + await hmac(body);
 }
 async function readTicket(t: string) {
   const [body, sig] = String(t || "").split(".");
   if (!body || !sig || sig !== await hmac(body)) return null;
-  try { return JSON.parse(unb64u(body)) as { m: string; u: string; b: string; t: number }; } catch { return null; }
+  try { return JSON.parse(unb64u(body)) as { m: string; c: string; u: string; b: string; t: number }; } catch { return null; }
 }
 const withCaption = (base: string, cap: string) => cap ? `${base}\n> ${cap}` : base;
+
+// ── talking to Discord as the bot ──
+async function discord(method: string, path: string, body?: BodyInit, json = false): Promise<Response> {
+  for (let i = 0; ; i++) {
+    const r = await fetch(DAPI + path, { method, body, headers: { Authorization: `Bot ${BOT}`, ...(json ? { "Content-Type": "application/json" } : {}) } });
+    if (r.status !== 429 || i >= 1) return r;
+    const j = await r.json().catch(() => ({})); // rate limited: wait once and try again
+    await new Promise((res) => setTimeout(res, Math.min(5, Number(j?.retry_after) || 1) * 1000 + 100));
+  }
+}
+let clipsChan = /^\d{5,25}$/.test(CHAN_SET) ? CHAN_SET : "";
+async function findClips() {
+  if (clipsChan) return clipsChan;
+  if (!/^\d{5,25}$/.test(GUILD)) return "";
+  const r = await discord("GET", `/guilds/${GUILD}/channels`).catch(() => null);
+  if (!r?.ok) return "";
+  const list = await r.json().catch(() => []) as { id: string; name: string; type: number }[];
+  clipsChan = list.find((c) => c.type === 0 && c.name === "clips")?.id || "";
+  return clipsChan;
+}
 
 async function whoIs(token: string) {
   const { data: me, error } = await db.rpc("si_me", { p_token: token });
@@ -70,7 +94,7 @@ async function whoIs(token: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
-  if (!/^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(HOOK)) return json({ ok: false, error: "not_set_up" });
+  if (!BOT || !/^\d{5,25}$/.test(CHAN_SET || GUILD)) return json({ ok: false, error: "not_set_up" });
   if (Number(req.headers.get("content-length") || 0) > MAX + 300_000) return json({ ok: false, error: "too_big" });
 
   let form: FormData;
@@ -80,7 +104,7 @@ Deno.serve(async (req) => {
   // ── change the caption on a post you made ──
   if (form.get("action") === "edit") {
     const tk = await readTicket(String(form.get("edit") || ""));
-    if (!tk) return json({ ok: false, error: "bad_request" });
+    if (!tk || !/^\d+$/.test(String(tk.c)) || !/^\d+$/.test(String(tk.m))) return json({ ok: false, error: "bad_request" });
     if (Date.now() - tk.t > EDIT_FOR) return json({ ok: false, error: "edit_expired" });
     const w = await whoIs(token);
     if (!w.me) return json({ ok: false, error: w.err });
@@ -89,7 +113,7 @@ Deno.serve(async (req) => {
     lastEdit.set(tk.u, Date.now());
     const cap = cleanCaption(form.get("caption"));
     try {
-      const r = await fetch(`${HOOK}/messages/${tk.m}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: withCaption(tk.b, cap), allowed_mentions: { parse: [] } }) });
+      const r = await discord("PATCH", `/channels/${tk.c}/messages/${tk.m}`, JSON.stringify({ content: withCaption(tk.b, cap), allowed_mentions: { parse: [] } }), true);
       if (r.status === 404) return json({ ok: false, error: "gone" });
       if (!r.ok) return json({ ok: false, error: `discord_${r.status}` });
     } catch { return json({ ok: false, error: "discord_unreachable" }); }
@@ -104,6 +128,8 @@ Deno.serve(async (req) => {
 
   const w = await whoIs(token);
   if (!w.me) return json({ ok: false, error: w.err });
+  const chan = await findClips();
+  if (!chan) return json({ ok: false, error: "not_set_up" });
   const me = w.me, who = String(me.id || me.username), now = Date.now();
   if ((last.get(who) || 0) > now - WAIT) return json({ ok: false, error: "slow_down", wait: Math.ceil(((last.get(who) || 0) + WAIT - now) / 1000) });
   last.set(who, now);
@@ -119,16 +145,17 @@ Deno.serve(async (req) => {
     : `📸 ${who2} took a photo${place ? ` at **${place}**` : ""}`;
   const cap = cleanCaption(form.get("caption"));
   const fd = new FormData();
-  fd.append("payload_json", JSON.stringify({ username: "SEND IT", avatar_url: "https://play-sendit.netlify.app/media/icon.png", content: withCaption(base, cap), allowed_mentions: { parse: [], users: did ? [did] : [] } }));
+  fd.append("payload_json", JSON.stringify({ content: withCaption(base, cap), allowed_mentions: { parse: [], users: did ? [did] : [] } }));
   fd.append("files[0]", file, kind === "clip" ? (file.type.includes("mp4") ? "send-it-clip.mp4" : "send-it-clip.webm") : "send-it-photo.jpg");
   let msgId = "";
   try {
-    const r = await fetch(`${HOOK}?wait=true`, { method: "POST", body: fd });
+    const r = await discord("POST", `/channels/${chan}/messages`, fd);
+    if (r.status === 404) clipsChan = CHAN_SET; // #clips was deleted or remade: look it up again next time
     if (!r.ok) { last.delete(who); return json({ ok: false, error: r.status === 413 ? "too_big" : `discord_${r.status}` }); }
     msgId = String((await r.json().catch(() => ({})))?.id || "");
   } catch {
     last.delete(who); return json({ ok: false, error: "discord_unreachable" });
   }
-  const edit = /^\d+$/.test(msgId) ? await makeTicket({ m: msgId, u: String(me.id), b: base, t: now }) : null;
+  const edit = /^\d+$/.test(msgId) ? await makeTicket({ m: msgId, c: chan, u: String(me.id), b: base, t: now }) : null;
   return json({ ok: true, pinged: !!did, caption: plain(cap), edit });
 });
