@@ -81,7 +81,8 @@ async function findClips() {
   const r = await discord("GET", `/guilds/${GUILD}/channels`).catch(() => null);
   if (!r?.ok) return "";
   const list = await r.json().catch(() => []) as { id: string; name: string; type: number }[];
-  clipsChan = list.find((c) => c.type === 0 && c.name === "clips")?.id || "";
+  // "🎬┃clips" or plain "clips" (not "clip-of-the-week")
+  clipsChan = list.find((c) => c.type === 0 && c.name.toLowerCase().replace(/[^a-z-]/g, "") === "clips")?.id || "";
   return clipsChan;
 }
 

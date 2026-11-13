@@ -49,23 +49,30 @@ console.log(`\nSetting up "${guild.name}" as ${me.username}…\n`);
 const P = { VIEW: 1n << 10n, SEND: 1n << 11n, SEND_THREADS: 1n << 38n, THREADS: 1n << 35n, REACT: 1n << 6n, ATTACH: 1n << 15n, EMBED: 1n << 14n, HISTORY: 1n << 16n, CONNECT: 1n << 20n, SPEAK: 1n << 21n, MANAGE_MSG: 1n << 13n, KICK: 1n << 1n, BAN: 1n << 2n, TIMEOUT: 1n << 40n, MANAGE_THREADS: 1n << 34n, MOVE: 1n << 24n, MUTE: 1n << 22n, ADMIN: 1n << 3n, MENTION_ALL: 1n << 17n };
 const bits = (...k) => k.reduce((a, x) => a | P[x], 0n).toString();
 
+// Names are matched without their emoji and symbols, so running this again on a server made by an older version
+// renames "Dev" to "👑 Dev", "clips" to "🎬┃clips" and so on instead of making duplicates.
+const bare = (n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, '');
+
 // ── roles ──
 const roles = await api('GET', `/guilds/${G}/roles`);
-const everyone = roles.find(r => r.id === G);
 async function role(name, color, opts = {}) {
-  const have = roles.find(r => r.name === name);
-  if (have) { console.log(`  role ${name} — already there`); return have; }
+  const have = roles.find(r => bare(r.name) === bare(name));
+  if (have) {
+    if (have.name !== name) { await api('PATCH', `/guilds/${G}/roles/${have.id}`, { name }); console.log(`  role ${name} — renamed`); }
+    else console.log(`  role ${name} — already there`);
+    return have;
+  }
   const r = await api('POST', `/guilds/${G}/roles`, { name, color, hoist: !!opts.hoist, mentionable: !!opts.mentionable, permissions: opts.perms || '0' });
   roles.push(r); console.log(`  role ${name} — made`); return r;
 }
 console.log('Roles');
 const R = {
-  dev: await role('Dev', ORANGE, { hoist: true, perms: bits('ADMIN') }),
-  mod: await role('Mod', 0x5865f2, { hoist: true, perms: bits('MANAGE_MSG', 'KICK', 'BAN', 'TIMEOUT', 'MANAGE_THREADS', 'MOVE', 'MUTE') }),
-  cotw: await role('Clip of the Week', 0xf5c542, { hoist: true }),
-  pro: await role('Pro Rider', 0x2ecc71, { hoist: true }),
-  tester: await role('Tester', 0x9b59b6),
-  ping: await role('Update Pings', 0x95a5a6, { mentionable: true }),
+  dev: await role('👑 Dev', ORANGE, { hoist: true, perms: bits('ADMIN') }),
+  mod: await role('🛡️ Mod', 0x5865f2, { hoist: true, perms: bits('MANAGE_MSG', 'KICK', 'BAN', 'TIMEOUT', 'MANAGE_THREADS', 'MOVE', 'MUTE') }),
+  cotw: await role('🏆 Clip of the Week', 0xf5c542, { hoist: true }),
+  pro: await role('🔥 Pro Rider', 0x2ecc71, { hoist: true }),
+  tester: await role('🧪 Tester', 0x9b59b6),
+  ping: await role('🔔 Update Pings', 0x95a5a6, { mentionable: true }),
 };
 
 // ── channels ──
@@ -73,76 +80,114 @@ let chans = await api('GET', `/guilds/${G}/channels`);
 const T = { TEXT: 0, VOICE: 2, CAT: 4, NEWS: 5, FORUM: 15 };
 const readOnly = [{ id: G, type: 0, allow: bits('VIEW', 'HISTORY', 'REACT'), deny: bits('SEND', 'SEND_THREADS', 'THREADS') }];
 const staffOnly = [{ id: G, type: 0, allow: '0', deny: bits('VIEW') }, { id: R.mod.id, type: 0, allow: bits('VIEW', 'SEND', 'HISTORY'), deny: '0' }, { id: R.dev.id, type: 0, allow: bits('VIEW', 'SEND', 'HISTORY'), deny: '0' }];
+const sameKind = (a, b) => a === b || (a !== T.CAT && b !== T.CAT && a !== T.VOICE && b !== T.VOICE);
 async function chan(name, type, parent, opts = {}) {
-  const have = chans.find(c => c.name === name && c.type === type);
-  if (have) { console.log(`  ${type === T.CAT ? 'category' : '#'}${name} — already there`); return have; }
+  const label = `${type === T.CAT ? 'category ' : ''}${name}`;
+  const have = chans.find(c => bare(c.name) === bare(name) && sameKind(c.type, type));
+  if (have) {
+    const moved = parent && have.parent_id !== parent.id;
+    if (have.name !== name || moved || (opts.topic && have.topic !== opts.topic)) {
+      await api('PATCH', `/channels/${have.id}`, { name, ...(moved ? { parent_id: parent.id } : {}), ...(type !== T.CAT && type !== T.VOICE && opts.topic ? { topic: opts.topic } : {}) });
+      have.name = name; if (moved) have.parent_id = parent.id; console.log(`  ${label} — updated`);
+    } else console.log(`  ${label} — already there`);
+    return have;
+  }
   const body = { name, type, parent_id: parent ? parent.id : undefined, topic: opts.topic, rate_limit_per_user: opts.slow, permission_overwrites: opts.perms, available_tags: opts.tags };
   let c;
   try { c = await api('POST', `/guilds/${G}/channels`, body); }
   catch (e) { if (type === T.NEWS || type === T.FORUM) { c = await api('POST', `/guilds/${G}/channels`, { ...body, type: T.TEXT, available_tags: undefined }); } else throw e; }
-  chans.push(c); console.log(`  ${type === T.CAT ? 'category' : '#'}${name} — made`); return c;
+  chans.push(c); console.log(`  ${label} — made`); return c;
 }
 console.log('\nChannels');
-const catInfo = await chan('📌 START HERE', T.CAT, null);
-const welcome = await chan('welcome', T.TEXT, catInfo, { topic: 'Start here', perms: readOnly });
-const rules = await chan('rules', T.TEXT, catInfo, { topic: 'Be decent', perms: readOnly });
-const ann = await chan('announcements', T.NEWS, catInfo, { topic: 'News from the SEND IT team', perms: readOnly });
-const upd = await chan('update-log', T.TEXT, catInfo, { topic: 'Every SEND IT update, posted automatically', perms: readOnly });
+const catInfo = await chan('── 📌 START HERE ──', T.CAT, null);
+const welcome = await chan('👋┃welcome', T.TEXT, catInfo, { topic: '👋 Start here', perms: readOnly });
+const rules = await chan('📜┃rules', T.TEXT, catInfo, { topic: '📜 Be decent', perms: readOnly });
+const ann = await chan('📢┃announcements', T.NEWS, catInfo, { topic: '📢 News from the SEND IT team', perms: readOnly });
+const upd = await chan('🆕┃update-log', T.TEXT, catInfo, { topic: '🆕 Every SEND IT update', perms: readOnly });
 
-const catRide = await chan('🛹 RIDE', T.CAT, null);
-await chan('general', T.TEXT, catRide, { topic: 'Talk about anything SEND IT' });
-const clips = await chan('clips', T.TEXT, catRide, { topic: 'Clips and photos straight from the game. In a replay press X to share yours.', slow: 30 });
-await chan('screenshots', T.TEXT, catRide, { topic: 'Photo mode shots (P in game)', slow: 15 });
-await chan('looking-to-ride', T.TEXT, catRide, { topic: 'Post your server code and find people to ride with', slow: 20 });
-await chan('tricks-help', T.TEXT, catRide, { topic: 'How do I… ? Ask here' });
+const catRide = await chan('── 🛹 RIDE ──', T.CAT, null);
+const general = await chan('💬┃general', T.TEXT, catRide, { topic: '💬 Talk about anything SEND IT' });
+const clips = await chan('🎬┃clips', T.TEXT, catRide, { topic: '🎬 Clips and photos straight from the game. In a replay press X to share yours.', slow: 30 });
+await chan('📸┃screenshots', T.TEXT, catRide, { topic: '📸 Photo mode shots (P in game)', slow: 15 });
+const lfr = await chan('🤝┃looking-to-ride', T.TEXT, catRide, { topic: '🤝 Post your server code and find people to ride with', slow: 20 });
+const help = await chan('🛹┃tricks-help', T.TEXT, catRide, { topic: '🛹 How do I… ? Ask here' });
 
-const catComp = await chan('🏆 COMPETE', T.CAT, null);
-await chan('clip-of-the-week', T.TEXT, catComp, { topic: 'The best clip each week wins the Clip of the Week role', perms: readOnly });
-await chan('leaderboards', T.TEXT, catComp, { topic: 'Top riders', perms: readOnly });
+const catComp = await chan('── 🏆 COMPETE ──', T.CAT, null);
+const cotw = await chan('🏆┃clip-of-the-week', T.TEXT, catComp, { topic: '🏆 The best clip each week wins the Clip of the Week role', perms: readOnly });
+await chan('📊┃leaderboards', T.TEXT, catComp, { topic: '📊 Top riders', perms: readOnly });
 
-const catFb = await chan('💬 FEEDBACK', T.CAT, null);
+const catFb = await chan('── 💬 FEEDBACK ──', T.CAT, null);
 const tag = (name, emoji) => ({ name, emoji_name: emoji });
-await chan('suggestions', T.FORUM, catFb, { topic: 'One idea per post. Upvote the ones you like.', tags: [tag('Ride', '🚲'), tag('Place', '🗺️'), tag('Trick', '🌀'), tag('Other', '💡'), tag('Planned', '✅')] });
-await chan('bug-reports', T.FORUM, catFb, { topic: 'What happened, what you expected, and a screenshot if you can.', tags: [tag('Bug', '🐛'), tag('Crash', '💥'), tag('Lag', '🐢'), tag('Fixed', '✅')] });
+const ideas = await chan('💡┃suggestions', T.FORUM, catFb, { topic: 'One idea per post. Upvote the ones you like.', tags: [tag('Ride', '🚲'), tag('Place', '🗺️'), tag('Trick', '🌀'), tag('Other', '💡'), tag('Planned', '✅')] });
+const bugs = await chan('🐛┃bug-reports', T.FORUM, catFb, { topic: 'What happened, what you expected, and a screenshot if you can.', tags: [tag('Bug', '🐛'), tag('Crash', '💥'), tag('Lag', '🐢'), tag('Fixed', '✅')] });
 
-const catVoice = await chan('🔊 VOICE', T.CAT, null);
-await chan('Riding 1', T.VOICE, catVoice);
-await chan('Riding 2', T.VOICE, catVoice);
-await chan('Chill', T.VOICE, catVoice);
+const catVoice = await chan('── 🔊 VOICE ──', T.CAT, null);
+await chan('🛹┃Riding 1', T.VOICE, catVoice);
+await chan('🛴┃Riding 2', T.VOICE, catVoice);
+await chan('🛋️┃Chill', T.VOICE, catVoice);
 
-const catStaff = await chan('🛠 STAFF', T.CAT, null, { perms: staffOnly });
-await chan('mod-chat', T.TEXT, catStaff, { perms: staffOnly });
-await chan('mod-log', T.TEXT, catStaff, { perms: staffOnly });
+const catStaff = await chan('── 🛠️ STAFF ──', T.CAT, null, { perms: staffOnly });
+await chan('🛡️┃mod-chat', T.TEXT, catStaff, { perms: staffOnly });
+await chan('📋┃mod-log', T.TEXT, catStaff, { perms: staffOnly });
 
-// ── welcome and rules messages (only if the channel is empty) ──
+// ── messages: posted once; on a re-run the bot's own copy (found by its title) is updated to the newest version ──
 async function postOnce(ch, payload) {
-  const last = await api('GET', `/channels/${ch.id}/messages?limit=1`);
-  if (last.length) return console.log(`  #${ch.name} already has messages — skipped`);
-  await api('POST', `/channels/${ch.id}/messages`, payload); console.log(`  #${ch.name} — posted`);
+  const last = await api('GET', `/channels/${ch.id}/messages?after=0&limit=20`); // the oldest messages in the channel
+  const title = bare(payload.embeds[0].title);
+  const mine = last.find(m => m.author && m.author.id === me.id && m.embeds && m.embeds[0] && bare(m.embeds[0].title) === title);
+  if (mine) { await api('PATCH', `/channels/${ch.id}/messages/${mine.id}`, payload); return console.log(`  ${ch.name} — updated`); }
+  if (last.length) return console.log(`  ${ch.name} already has messages — skipped`);
+  await api('POST', `/channels/${ch.id}/messages`, payload); console.log(`  ${ch.name} — posted`);
 }
+const linkBtn = (label, url, emoji) => ({ type: 2, style: 5, label, url, emoji: { name: emoji } });
+const FOOT = { text: 'SEND IT · see you on the ramps', icon_url: `${SITE}/media/icon.png` };
 console.log('\nMessages');
-await postOnce(welcome, { embeds: [{
-  title: 'Welcome to SEND IT', color: ORANGE,
-  description: 'The free stunt-riding game on bikes, scooters, skateboards, skis and surfboards.\n\n' +
-    `**Get the game:** ${SITE}\n` +
-    `**Read the rules:** <#${rules.id}>\n` +
-    `**Share your clips:** in the game open a replay with **V** and press **X**. It lands in <#${clips.id}>.\n` +
-    '**Ride together:** host a server in the game and post the code in looking-to-ride.\n\nSee you on the ramps.',
-  thumbnail: { url: `${SITE}/media/icon.png` },
-}] });
-await postOnce(rules, { embeds: [{
-  title: 'Rules', color: ORANGE,
-  description: [
-    '**1. Be decent.** No hate, harassment, threats or slurs.',
-    '**2. Keep it clean.** No NSFW, gore or shock content.',
-    '**3. No spam or ads.** No self-promo, scams, or invite links to other servers.',
-    '**4. Right channel.** Clips in clips, bugs in bug-reports, ideas in suggestions.',
-    '**5. No cheating.** Don\'t share exploits or cheats. Found one? Report it in bug-reports.',
-    '**6. English in the main channels**, so mods can keep things safe.',
-    '**7. Listen to the Mods.** They have the final say.',
-    '\nBreaking the rules gets a warning, then a timeout, then a ban. Discord\'s own rules also apply: https://discord.com/guidelines',
-  ].join('\n'),
-}] });
+await postOnce(welcome, {
+  embeds: [{
+    color: ORANGE,
+    author: { name: 'SEND IT', icon_url: `${SITE}/media/icon.png`, url: SITE },
+    title: '🛹  Welcome to SEND IT',
+    description: '**The free stunt-riding game.** Bikes, scooters, skateboards, skis and surfboards, a whole town to ride, and online servers with your mates.\n​',
+    fields: [
+      { name: '🎮  Get the game', value: `[play-sendit.netlify.app](${SITE})\nWindows and Mac`, inline: true },
+      { name: '📜  Read the rules', value: `<#${rules.id}>\nTwo minutes, promise`, inline: true },
+      { name: '🎬  Share your clips', value: `Open a replay with **V**, press **X**.\nIt lands in <#${clips.id}>`, inline: true },
+      { name: '🤝  Ride together', value: `Host a server in the game and drop the code in <#${lfr.id}>`, inline: true },
+      { name: '💡  Got an idea?', value: `<#${ideas.id}>`, inline: true },
+      { name: '🐛  Found a bug?', value: `<#${bugs.id}>`, inline: true },
+      { name: '🔗  Link Discord in the game', value: 'Online → Link Discord. The bot pings you when your clip is posted, and you can sign in with Discord.' },
+    ],
+    image: { url: `${SITE}/media/trailer-poster.jpg` },
+    footer: FOOT,
+  }],
+  components: [{ type: 1, components: [linkBtn('Play SEND IT', SITE, '🎮'), linkBtn('Watch the trailer', `${SITE}/media/trailer.mp4`, '🎬')] }],
+});
+const RULES = [
+  ['1️⃣', 'Be decent', 'No hate, harassment, threats or slurs.'],
+  ['2️⃣', 'Keep it clean', 'No NSFW, gore or shock content.'],
+  ['3️⃣', 'No spam or ads', 'No self-promo, scams, or invite links to other servers.'],
+  ['4️⃣', 'Right channel', `Clips in <#${clips.id}>, bugs in <#${bugs.id}>, ideas in <#${ideas.id}>.`],
+  ['5️⃣', 'No cheating', `Don't share exploits or cheats. Found one? Report it in <#${bugs.id}>.`],
+  ['6️⃣', 'English in the main channels', 'So the mods can keep things safe.'],
+  ['7️⃣', 'Listen to the Mods', 'They have the final say.'],
+];
+await postOnce(rules, {
+  embeds: [{
+    color: ORANGE,
+    title: '📜  Rules',
+    description: 'Short and simple. Break them and it goes **⚠️ warning → ⏳ timeout → 🔨 ban**.\n​',
+    fields: RULES.map(([e, t, d]) => ({ name: `${e}  ${t}`, value: d })),
+    footer: { text: "Discord's own rules apply too · discord.com/guidelines", icon_url: `${SITE}/media/icon.png` },
+  }],
+});
+await postOnce(clips, {
+  embeds: [{
+    color: ORANGE,
+    title: '🎬  Clips from the game land here',
+    description: `In the game, open a replay with **V** and press **X**. Add a caption if you want, and the SEND IT bot posts it here.\n\n🔗 Link Discord in the game (**Online → Link Discord**) and the bot pings you when it posts.\n🏆 The best clip each week wins **Clip of the Week** in <#${cotw.id}>.`,
+    footer: FOOT,
+  }],
+});
 
 // ── server icon ──
 const icon = join(HERE, 'icon.png');

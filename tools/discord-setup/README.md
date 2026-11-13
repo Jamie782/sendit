@@ -8,14 +8,18 @@ It is safe to run again; anything that already exists is left alone.
 
 | Section | Channels |
 |---|---|
-| 📌 START HERE (read-only) | #welcome, #rules, #announcements, #update-log |
-| 🛹 RIDE | #general, #clips, #screenshots, #looking-to-ride, #tricks-help |
-| 🏆 COMPETE (read-only) | #clip-of-the-week, #leaderboards |
-| 💬 FEEDBACK | suggestions and bug-reports (forums with tags) |
-| 🔊 VOICE | Riding 1, Riding 2, Chill |
-| 🛠 STAFF (Dev and Mod only) | #mod-chat, #mod-log |
+| ── 📌 START HERE ── (read-only) | 👋┃welcome, 📜┃rules, 📢┃announcements, 🆕┃update-log |
+| ── 🛹 RIDE ── | 💬┃general, 🎬┃clips, 📸┃screenshots, 🤝┃looking-to-ride, 🛹┃tricks-help |
+| ── 🏆 COMPETE ── (read-only) | 🏆┃clip-of-the-week, 📊┃leaderboards |
+| ── 💬 FEEDBACK ── | 💡┃suggestions and 🐛┃bug-reports (forums with tags) |
+| ── 🔊 VOICE ── | 🛹┃Riding 1, 🛴┃Riding 2, 🛋️┃Chill |
+| ── 🛠️ STAFF ── (Dev and Mod only) | 🛡️┃mod-chat, 📋┃mod-log |
 
-Roles: **Dev** (admin), **Mod**, **Clip of the Week**, **Pro Rider**, **Tester**, **Update Pings**.
+Roles: **👑 Dev** (admin), **🛡️ Mod**, **🏆 Clip of the Week**, **🔥 Pro Rider**, **🧪 Tester**, **🔔 Update Pings**.
+
+#welcome gets a big embed with the trailer picture and Play / Watch the trailer buttons, #rules gets the rules as an
+embed, and #clips gets a pinned-style intro. Running it again on a server made by an older version renames everything
+to the new names (no duplicates) and updates the bot's own messages.
 
 ## Steps
 
@@ -34,7 +38,7 @@ Roles: **Dev** (admin), **Mod**, **Clip of the Week**, **Pro Rider**, **Tester**
    With those two secrets the SEND IT bot posts clips in #clips as itself (no webhook links that could leak or be
    abused) and adds players who tick "Also join the SEND IT Discord server". The bot doesn't need to be hosted or
    "online": Supabase uses its token only when a clip is shared or someone joins.
-7. Give yourself the **Dev** role: Server Settings → Members → your name → **+** → Dev.
+7. Give yourself the **👑 Dev** role: Server Settings → Members → your name → **+** → 👑 Dev.
 
 Optional: Server Settings → **Enable Community** turns #announcements into a real announcement channel
 people can follow, and lets you pick #rules as the rules channel.
