@@ -4,16 +4,33 @@
 //   🔥 on every clip the bot posts in 🎬┃clips, so people can vote for Clip of the Week
 // Clip posting itself doesn't need this running: Supabase posts clips with the same token whenever someone shares one.
 //
-// Runs on Orihost (or anything with Node 18+). Put the bot token in config.json, then start it.
+// Runs on Render (free web service: the token goes in the BOT_TOKEN environment variable) or anything with Node 18+
+// (the token goes in config.json). On Render it also answers web requests and visits its own address every
+// 10 minutes, because Render puts free services to sleep after 15 minutes with no visitors.
 import { readFileSync, existsSync } from 'node:fs';
+import http from 'node:http';
 import { Client, GatewayIntentBits, ActivityType, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, Events, escapeMarkdown } from 'discord.js';
 
 const cfgFile = new URL('./config.json', import.meta.url);
 const cfg = existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) : {};
 const TOKEN = (process.env.BOT_TOKEN || cfg.token || '').trim();
-if (!TOKEN || TOKEN.startsWith('PASTE')) {
-  console.log('No bot token yet. Open config.json and paste the bot token between the quotes, then start the server again.');
-  process.exit(1);
+const HAS_TOKEN = !!TOKEN && !TOKEN.startsWith('PASTE');
+let botState = HAS_TOKEN ? 'starting' : 'waiting for the bot token';
+
+// ── on Render: a tiny web page, and a visit to ourselves every 10 minutes so the service never falls asleep ──
+const PORT = Number(process.env.PORT || 0);
+if (PORT) {
+  http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(`SEND IT bot: ${botState}\n`);
+  }).listen(PORT, () => console.log(`web page on port ${PORT}`));
+  const self = process.env.RENDER_EXTERNAL_URL;
+  if (self) setInterval(() => fetch(self + '/?ping=1').catch(() => { }), 10 * 60_000);
+}
+if (!HAS_TOKEN) {
+  console.log(PORT ? 'No bot token yet. In Render open the service, go to Environment, add BOT_TOKEN with the bot token, and save.'
+    : 'No bot token yet. Open config.json and paste the bot token between the quotes, then start the server again.');
+  if (!PORT) process.exit(1);
 }
 
 const SITE = 'https://play-sendit.netlify.app';
@@ -135,6 +152,7 @@ function start(withMembers) {
   const client = new Client({ intents });
 
   client.once(Events.ClientReady, async c => {
+    botState = `online as ${c.user.tag}`;
     console.log(`SEND IT bot online as ${c.user.tag} in ${c.guilds.cache.size} server(s)${withMembers ? '' : ' (welcome cards off: switch on "Server Members Intent" on the Bot page to turn them on)'}`);
     for (const g of c.guilds.cache.values()) {
       try { await g.commands.set(COMMANDS); console.log(`  slash commands ready in ${g.name}`); } catch (e) { console.log(`  couldn't add slash commands in ${g.name}: ${e.message}`); }
@@ -181,8 +199,9 @@ function start(withMembers) {
 
   client.login(TOKEN).catch(e => {
     if (withMembers && (e.code === 'DisallowedIntents' || /intent/i.test(e.message))) { client.destroy(); return start(false); }
-    console.log(/token/i.test(e.message) ? 'Discord didn\'t accept the token in config.json. Reset it on the Bot page and paste the new one.' : 'Couldn\'t log in: ' + e.message);
-    process.exit(1);
+    botState = 'the bot token was not accepted';
+    console.log(/token/i.test(e.message) ? 'Discord didn\'t accept the bot token. Reset it on the Bot page and put the new one in (BOT_TOKEN on Render, config.json elsewhere).' : 'Couldn\'t log in: ' + e.message);
+    if (!PORT) process.exit(1);
   });
 }
 
@@ -198,5 +217,5 @@ async function status(c) {
   c.user.setPresence({ status: 'online', activities: [list[tick++ % list.length]] });
 }
 
-start(true);
+if (HAS_TOKEN) start(true);
 process.on('unhandledRejection', e => console.log('error:', e?.message || e));

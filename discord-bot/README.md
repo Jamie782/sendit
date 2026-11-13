@@ -14,16 +14,19 @@ It also adds:
 
 Clip posting doesn't need this bot. Supabase posts clips with the same token, so clips keep working even if this is off.
 
-## Putting it on Orihost
-1. Make a new **Node.js** server on Orihost (Node 18 or newer).
-2. **Files**: upload `SendIt-Bot.zip`, then press the **⋯** next to it and choose **Unarchive**. The files can go in the main folder.
-3. Open **config.json**, paste the bot token between the quotes in place of `PASTE THE BOT TOKEN HERE`, and press **Save**.
-   This is the same token you put in Supabase.
-4. **Startup**: if it asks for a main file, put `index.js`.
-5. **Console**: press **Start**. It installs discord.js the first time, then says `SEND IT bot online as SEND IT…`.
+## Running it on Render (free)
+Claude sets up the service, deploying the `discord-bot` folder of this repo as a free web service. You only add the token:
+1. In Render, open the **sendit-bot** service, then go to **Environment**.
+2. Press **Add Environment Variable**. For the key, enter `BOT_TOKEN`. For the value, paste the bot token (the same one that's in Supabase).
+3. Press **Save, rebuild, and deploy**. Within a minute the logs say `SEND IT bot online as SEND IT…`.
 
-The slash commands appear in Discord within a few seconds. If they don't, restart Discord with Ctrl+R (Cmd+R on Mac).
+Render puts free services to sleep after 15 minutes with no visitors. The bot visits its own web address every 10 minutes so
+that never happens. A 24/7 service uses about 720–744 of the 750 free hours each workspace gets per month, so it should
+be the only always-on free service in its workspace.
+
+## Running it somewhere else (Orihost, a VPS, your own computer)
+Put the token in `config.json` in place of `PASTE THE BOT TOKEN HERE`, then run `npm install` and `node index.js` (Node 18 or newer).
 
 **Welcome cards (optional):** on the Discord developer portal, open SEND IT, then **Bot**, and switch on
-**Server Members Intent**. Press Save, then **Restart** the bot on Orihost. Without that switch the bot still runs
+**Server Members Intent**. Press Save, then restart the bot (on Render: **Manual Deploy → Restart service**). Without that switch the bot still runs
 and just leaves the welcome cards out.
