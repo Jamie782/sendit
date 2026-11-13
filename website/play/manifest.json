@@ -1,7 +1,7 @@
 {
- "version": "2.8.0",
+ "version": "2.8.1",
  "minShell": "1.5.0",
- "notes": "2.8.0: the admin helicopter",
+ "notes": "2.8.1: set coins",
  "files": [
   {
    "path": "discord.json",
@@ -9,7 +9,7 @@
   },
   {
    "path": "index.html",
-   "sha256": "48e24d13ca87bb1e7c7a2aea3e76fd3525284b94f4d5e1c0bfcd68fead8340f0"
+   "sha256": "e12739ded6510a58ae10cb59d0cb78f4cda05186b77110ec08f2977bb9d7951d"
   },
   {
    "path": "style.css",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "760eff4070e3612d76748e1d3b4952d366c0086e88c7eb03c77b43826382c72a"
+   "sha256": "7df8d7670eaf439622d83c9332a163dc240eca94bf8a16fc55ea2a08c017d603"
   },
   {
    "path": "src/game.js",
-   "sha256": "36eab6310ffc7b61059c4ef0f373750247c434fc11926b2d8ec6e0934c94c484"
+   "sha256": "a19d9faefd6354fe49cdd9eb94a00ba72860f20eb9a5474049ba6c5d9f3fd2d3"
   },
   {
    "path": "assets/logo-icon.png",

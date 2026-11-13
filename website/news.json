@@ -2,6 +2,15 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.8.1",
+   "date": "November 2026",
+   "title": "Set coins",
+   "image": "media/online.jpg",
+   "items": [
+    "Admins can now set a player's coins to an exact amount with the new SET button in the admin tab (GIVE and TAKE still add or take away)"
+   ]
+  },
+  {
    "v": "2.8.0",
    "date": "November 2026",
    "title": "The admin helicopter",

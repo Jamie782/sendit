@@ -5449,7 +5449,7 @@ const online = (() => {
   }
   async function beat() {
     clearTimeout(beatT); if (!me) return;
-    try { const r = await rpc('si_heartbeat', { p_token: token, p_room: net.code || null }); requests = r.requests | 0; invites = r.invites || []; if (me && (me.role || null) !== (r.role || null)) me.role = r.role || null; if (r.gold) adminGift(r.gold | 0); if (r.kicked) kickedByAdmin(); emit(); renderInvites(); } catch { }
+    try { const r = await rpc('si_heartbeat', { p_token: token, p_room: net.code || null }); requests = r.requests | 0; invites = r.invites || []; if (me && (me.role || null) !== (r.role || null)) me.role = r.role || null; if (r.setcoins != null) adminSetCoins(+r.setcoins); if (r.gold) adminGift(r.gold | 0); if (r.kicked) kickedByAdmin(); emit(); renderInvites(); } catch { }
     beatT = setTimeout(beat, 15000);
   }
   let requests = 0, invites = [];
@@ -5728,7 +5728,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.8.0';
+const GAME_VERSION = '2.8.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -7699,6 +7699,9 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.8.1', d: 'November 2026', t: 'Set coins', items: [
+    'Admins can now set a player\'s coins to an exact amount with the new SET button in the admin tab (GIVE and TAKE still add or take away)',
+  ] },
   { v: '2.8.0', d: 'November 2026', t: 'The admin helicopter', items: [
     'Admins now have a HELICOPTER in the rides list. Fly it anywhere: forwards and back, turn, SPACE to go up and SHIFT to go down',
     'Trick 1 drops a load of bombs anywhere within 100 m. Anyone close to a blast gets blown off their ride or knocked flying',
@@ -8350,7 +8353,7 @@ function renderAdmin() {
     const status = p.banned_until ? `<em class="ban">BANNED until ${fmtUntil(p.banned_until)}${p.ban_reason ? ' · ' + esc(p.ban_reason) : ''}</em>` : p.online ? `<em class="on">ONLINE${p.room ? ' · server ' + esc(p.room) : ''}</em>` : `<em>offline</em>`;
     return `<div class="adm-row"><div class="adm-who"><b>${esc(p.username)}</b>${p.role ? `<small class="role">${p.role.toUpperCase()}</small>` : ''}${you ? '<small>YOU</small>' : ''}<div>${status}<span class="adm-coins"><i class="coin"></i>${(p.coins | 0).toLocaleString()}</span></div></div>
       <div class="adm-acts" data-u="${esc(p.username)}">
-        <button data-a="give">GIVE</button><button data-a="take">TAKE</button>
+        <button data-a="give">GIVE</button><button data-a="take">TAKE</button><button data-a="set" title="Set their coins to exactly this amount">SET</button>
         ${you || prot ? '' : `<button data-a="kick">KICK</button>${p.banned_until ? '<button data-a="unban">UNBAN</button>' : '<button data-a="ban" class="red">BAN</button>'}`}
         ${isOwner() && !you && p.role !== 'owner' ? (p.role ? '<button data-a="unadmin">REMOVE ADMIN</button>' : '<button data-a="admin">MAKE ADMIN</button>') : ''}
       </div></div>`;
@@ -8365,6 +8368,11 @@ async function admDo(action, user, extra = {}) {
       if (!n) throw new Error('bad_amount');
       await online.rpc('si_admin_gold', { p_token: T, p_username: user, p_amount: action === 'give' ? n : -n });
       admMsg(`${action === 'give' ? 'Gave' : 'Took'} <b>${n.toLocaleString()}</b> coins ${action === 'give' ? 'to' : 'from'} <b>${esc(user)}</b>. It lands within 15 seconds (or next time they sign in).`);
+    } else if (action === 'set') {
+      const n = parseInt(String(extra.amount ?? document.getElementById('adm-amount').value).replace(/[,\s]/g, ''), 10);
+      if (!(n >= 0) || n > 1e9) throw new Error('bad_amount');
+      await online.rpc('si_admin_setcoins', { p_token: T, p_username: user, p_amount: n });
+      admMsg(`Set <b>${esc(user)}</b>'s coins to <b>${n.toLocaleString()}</b>. It lands within 15 seconds (or next time they sign in).`);
     } else if (action === 'kick') {
       await online.rpc('si_admin_kick', { p_token: T, p_username: user });
       admMsg(`Kicked <b>${esc(user)}</b>. They'll be dropped from their server within 15 seconds.`);
@@ -8429,6 +8437,12 @@ function adminGift(n) {
   cash = Math.max(0, cash + n); store.set('cash', cash); renderCash(); online.saveSoon(800);
   showPopup(n > 0 ? `+${n.toLocaleString()} COINS` : `${n.toLocaleString()} COINS`, n > 0 ? 'good' : 'bail', n > 0 ? 'A GIFT FROM AN ADMIN' : 'TAKEN BY AN ADMIN');
   addFeed(n > 0 ? `An admin gave you <b>${n.toLocaleString()}</b> coins` : `An admin took <b>${(-n).toLocaleString()}</b> coins`);
+}
+function adminSetCoins(n) {
+  if (!(n >= 0)) return;
+  cash = Math.round(n); store.set('cash', cash); renderCash(); online.saveSoon(800);
+  showPopup(`${cash.toLocaleString()} COINS`, 'good', 'AN ADMIN SET YOUR COINS');
+  addFeed(`An admin set your coins to <b>${cash.toLocaleString()}</b>`);
 }
 function kickedByAdmin() {
   if (net.code) { net.leave(true); }
