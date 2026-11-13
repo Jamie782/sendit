@@ -1150,6 +1150,10 @@ const VEH = {
 const IS_KICK = k => k === 'scooter' || k === 'skate';   // rides you push with your foot
 const stanceYaw = k => k === 'skate' ? -Math.PI / 2 : 0;  // skaters stand sideways
 const VEH_KEYS = Object.keys(VEH).filter(k => !VEH[k].hidden);
+// the admin helicopter (v2.8): how it flies and what its two tricks do
+const HELI = { top: 34, rope: 6, grabR: 32, bombR: 100, bombs: 8, blast: 10, cd: 2.2 };
+let wantHeli = false;
+const HELI_ICON = '<svg viewBox="0 0 64 40"><path d="M8 7h48M32 7v6"/><path d="M15 23c0-6 6-10 13-10h8c7 0 12 5 12 10s-5 8-12 8H25c-6 0-10-3-10-8z"/><path d="M48 21h11l2-6M24 31l-2 4M40 31l2 4M15 35h34"/></svg>';
 const COLORS = [0xff4d1f, 0x18a0ff, 0x2ee86c, 0xffc531, 0xb14dff, 0xf2f2f2, 0x1d1d20];
 let paintColor = store.get('color', 0);
 
@@ -2214,6 +2218,8 @@ const sfx = (() => {
     splash() { burst(0.8, 1600, 120, 0.4); burst(0.45, 3200, 900, 0.12, 'bandpass'); },
     crash() { burst(0.5, 2200, 80, 0.4); tone(55, 0.35, 0.25); },
     thud() { burst(0.22, 500, 70, 0.3); tone(95, 0.16, 0.18); },
+    boom(v = 1) { burst(1.7, 1500, 30, 0.75 * v); tone(38, 1.1, 0.5 * v); burst(0.5, 4200, 380, 0.22 * v, 'bandpass'); },
+    chop(v = 1) { burst(0.07, 260, 80, 0.1 * v); },
     ding() { tone(880, 0.25, 0.08); tone(1320, 0.35, 0.06, 0.08); },
     hop() { burst(0.1, 300, 1000, 0.06, 'bandpass'); },
     bark() { tone(420, 0.07, 0.05); tone(300, 0.09, 0.05, 0.05); burst(0.06, 900, 500, 0.03, 'bandpass'); },
@@ -2310,6 +2316,8 @@ function step(dt) {
   if (P.bailed) return;
   forward(P.yaw);
   const px = P.pos.x, pz = P.pos.z;
+  if (P.carried) { carriedStep(dt, P); return; }
+  if (P.mode === 'heli') { heliStep(dt, P); return; }
   if (P.mode === 'walk') {
     walkStep(dt, P);
     const car = carHit(P.pos);
@@ -2856,7 +2864,7 @@ function endGrind(P, ok) {
 // bail
 const bailVis = { active: false, rv: v3(), rr: v3(), bv: v3(), br: v3() };
 function bail(reason) {
-  const P = player; if (P.bailed) return;
+  const P = player; if (P.bailed || P.mode === 'heli') return;
   P.lastBail = reason; root.position.copy(P.pos); root.rotation.set(0, P.yaw, 0);
   const v = P.air ? P.vel.clone() : forward(P.yaw, v3()).multiplyScalar(P.v);
   if (v.lengthSq() < 0.1 && P.vel.lengthSq() > 0.1) v.copy(P.vel);
@@ -2888,6 +2896,8 @@ function updateBail(dt) {
 }
 function respawnSafe() {
   const P = player;
+  if (P.mode === 'heli') { P.heli.vel.set(0, 0, 0); return; }
+  if (P.carried) return;
   if (P.mode === 'walk') { P.mode = 'ride'; setVehicleShown(me, true); }
   if (parked) { scene.remove(parked.g); parked = null; }
   P.ko = false; P.hp = 100;
@@ -2909,6 +2919,13 @@ function updateVisual(dt) {
   const P = player;
   if (P.bailed) { updateBail(dt); VS.bailed = true; VS.ohs = 0; P.ohSpin = 0; VS.x = root.position.x; VS.y = root.position.y; VS.z = root.position.z; return; }
   VS.bailed = false;
+  if (P.mode === 'heli') {
+    const H = P.heli;
+    Object.assign(VS, { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, pitch: H.pitch, roll: H.roll, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, ohs: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: false, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, grinding: false,
+      walk: 0, ko: 0, pu: 0, heli: 1, hk: H.carry ? (H.carry.t === 'p' ? H.carry.id : 'ped') : '' });
+    applyAvatar(me, VS, dt); return;
+  }
+  VS.heli = 0; VS.hk = '';
   if (P.mode === 'walk') {
     Object.assign(VS, { x: P.pos.x, y: P.pos.y, z: P.pos.z, yaw: P.yaw, pitch: 0, roll: 0, flip: 0, table: 0, wheelie: 0, steer: 0, bar: 0, whip: 0, ohs: 0, xup: 0, wheelSpd: 0, crank: 0, crouch: 0, air: !!P.wair, whipping: false, barring: false, kickAmt: 0, kickPhase: 0, poses: {}, braking: false, grinding: false,
       walk: 1, wph: P.wph || 0, ws: P.wspd || 0, pu: P.punchAt ? punchCurve(clock - P.punchAt) : 0, ps: P.punchSide || 0, ko: P.ko ? 1 : 0 });
@@ -2960,7 +2977,10 @@ function updateVisual(dt) {
 }
 function applyAvatar(A, S, dt) {
   const V = A.veh;
-  if (!!S.walk !== !!A.walking) setVehicleShown(A, !S.walk);
+  const hideV = !!(S.walk || S.heli);
+  if (hideV !== !!A.walking) setVehicleShown(A, !hideV);
+  if (S.heli || A.heli) heliAvatar(A, S, dt);
+  if (S.heli) return;
   if ((A.kind === 'ski') !== !!(A.rider && A.rider.skis)) syncSkis(A);
   if (S.walk) {
     A.root.position.set(S.x, S.y, S.z); A.root.rotation.set(0, S.yaw, 0);
@@ -3165,6 +3185,7 @@ function updateCamera(dt, menu) {
     camera.lookAt(c.x, c.y + 0.75, c.z);
     camera.fov = 45; camera.updateProjectionMatrix(); return;
   }
+  if (P.mode === 'heli') return heliCam(dt);
   if (P.mode === 'walk' && camState.mode !== 3) { rider.parts.head.visible = true; return walkCam(dt); }
   if (camState.mode === 3) { rider.parts.head.visible = true; return tvCam(dt); }
   const hv = P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
@@ -4530,6 +4551,7 @@ function updatePeds(dt) {
   const P = player, cam = camera.position;
   for (const p of PEDS) {
     let moving = 0;
+    if (p.carried) { pedCarried(p, dt); continue; }
     if (p.down) { updateDownPed(p, dt); if (p.reactAt != null) p.reactT += dt; const dc = Math.hypot(cam.x - p.x, cam.z - p.z); p.g.visible = dc < 160; if (dc < 90 && p.down) { p.phase += dt * 0.5; posePedDown(p); } continue; }
     p.runAnim = 0;
     if (updateMoodyPed(p, dt)) { moving = p.runAnim ? 4.2 : 0; }
@@ -4739,6 +4761,7 @@ const net = (() => {
     return o;
   }
   const roomId = c => 'sendit-room-' + c.toLowerCase();
+  const ADMIN_MSGS = new Set(['bomb', 'grab', 'drop']);
   function hello(withTicket) { const h = { t: 'hi', name: myName(), kind: player.kind, color: paintColor, helmet: outfit(outfitId).helmet, paint: paintId, outfit: outfitId, av: AV, acct: !!online.me }; if (withTicket && myTicket) h.ticket = myTicket; return h; }
   function setUi(connected) {
     for (const id of ['mp-join', 'mp-code']) document.getElementById(id).classList.toggle('hidden', connected);
@@ -4814,9 +4837,9 @@ const net = (() => {
   let kicked = false;
   async function admit(conn, m) {
     // private servers check a join ticket with the game server, so only the host's friends get in
-    let name = m.name, verified = false;
+    let name = m.name, verified = false, admin = false;
     if (m.ticket && listed && online.me) {
-      try { const r = await online.rpc('si_check_ticket', { p_token: online.token, p_code: code, p_ticket: m.ticket }); if (r.ok) { verified = true; name = r.username; } }
+      try { const r = await online.rpc('si_check_ticket', { p_token: online.token, p_code: code, p_ticket: m.ticket }); if (r.ok) { verified = true; name = r.username; admin = !!r.role; } }
       catch { }
     }
     if (priv && !verified) { try { conn.send({ t: 'kick', why: 'This server is friends only.' }); } catch { } setTimeout(() => conn.close(), 400); return; }
@@ -4827,7 +4850,7 @@ const net = (() => {
     conn.send(hello());
     for (const r of remotes.values()) conn.send(others(r));
     m.id = conn.peer; broadcast(m, conn);
-    addRemote(conn.peer, m); renderRoom(); renderLine(); roomBeat();
+    addRemote(conn.peer, m); { const rr = remotes.get(conn.peer); if (rr) rr.admin = admin; } renderRoom(); renderLine(); roomBeat();
   }
   function broadcast(m, except) { for (const [k, c] of conns) if (c !== except && c.open && c.ok !== false) c.send(m); }
   function send(m) { if (!peer || !conns.size) return; m.id = myId; broadcast(m); }
@@ -4836,6 +4859,7 @@ const net = (() => {
     if (isHost && !conn.ok) { if (m.t === 'hi' && !conn.admitting) { conn.admitting = true; admit(conn, m); } return; }
     if (!isHost && m.t === 'kick') { kicked = true; status(m.why || 'The host did not let you in.'); addFeed(esc(m.why || 'Not allowed in')); leave(true); kicked = false; status(m.why || 'The host did not let you in.'); return; }
     if (!isHost && m.t === 'welcome') { roomName = m.name; priv = m.priv; elCode.textContent = code; setUi(true); status(`On <b>${esc(roomName)}</b> (${code})`); addFeed(`Joined <b>${esc(roomName)}</b>`); online.beat(); return; }
+    if (isHost && ADMIN_MSGS.has(m.t)) { const r = remotes.get(conn.peer); if (!r || !r.admin) return; }   // only admins can drop bombs or grab people
     if (isHost) { m.id = conn.peer; if (m.t === 'hi') { const r = remotes.get(conn.peer); if (r) m.name = r.name; } broadcast(m, conn); }
     const id = m.id || conn.peer;
     if (id === myId) return;
@@ -4846,6 +4870,9 @@ const net = (() => {
     else if (m.t === 'bail') { const r = remotes.get(id); if (r) r.bailT = 2.0; }
     else if (m.t === 'punch') { if (m.to === myId) { const r = remotes.get(id); addFeed(`<b>${esc(r ? r.name : '?')}</b> punched you`); gotPunched(m); } }
     else if (m.t === 'bye') drop(id);
+    else if (m.t === 'bomb') { if (Array.isArray(m.b)) dropBombs(m.b.slice(0, 16)); }
+    else if (m.t === 'grab') { if (m.to === myId) { const r = remotes.get(id); startCarried(id, r ? r.name : 'Someone'); } }
+    else if (m.t === 'drop') { if (m.to === myId && player.carried && player.carried.by === id) { const v = Array.isArray(m.v) ? m.v : []; endCarried(+v[0] || 0, +v[1] || 0, +v[2] || 0); } }
     renderRoom();
   }
   function nameTag(name, col) {
@@ -4885,6 +4912,7 @@ const net = (() => {
   const ANG = ['yaw'];
   function pack() {
     const s = {}; for (const k of LERP) s[k] = +VS[k].toFixed(3); s.yaw = +VS.yaw.toFixed(3); s.kickPhase = +VS.kickPhase.toFixed(3);
+    if (VS.heli) { s.hl = 1; s.hk = VS.hk || ''; }
     if (VS.walk) { s.wk = 1; s.wph = +(VS.wph || 0).toFixed(2); s.ws = +(VS.ws || 0).toFixed(2); s.pu = +(VS.pu || 0).toFixed(2); s.ps = VS.ps | 0; s.ko = VS.ko | 0; }
     s.air = VS.air ? 1 : 0; s.wh = VS.whipping ? 1 : 0; s.br = VS.barring ? 1 : 0; s.bk = VS.braking ? 1 : 0; s.gr = VS.grinding ? 1 : 0; s.bl = VS.bailed ? 1 : 0;
     const p = {}; for (const k in VS.poses) if (VS.poses[k] > 0.02) p[k] = +VS.poses[k].toFixed(2); s.p = p; s.sc = score; return s;
@@ -4904,6 +4932,7 @@ const net = (() => {
       S.yaw = a.s.yaw + wrap(b.s.yaw - a.s.yaw) * f;
       S.kickPhase = b.s.kickPhase; S.air = !!b.s.air; S.whipping = !!b.s.wh; S.barring = !!b.s.br; S.braking = !!b.s.bk; S.grinding = !!b.s.gr;
       S.poses = b.s.p || {};
+      S.heli = b.s.hl | 0; S.hk = b.s.hk || ''; S.bl = b.s.bl | 0;
       S.walk = b.s.wk | 0; S.wph = b.s.wph || 0; S.ws = b.s.ws || 0; S.pu = b.s.pu || 0; S.ps = b.s.ps | 0; S.ko = b.s.ko | 0;
       // whip and bar angles wrap, so don't interpolate across a reset
       if (Math.abs(b.s.whip - a.s.whip) > 3) S.whip = b.s.whip; if (Math.abs(b.s.bar - a.s.bar) > 3) S.bar = b.s.bar;
@@ -4923,6 +4952,7 @@ const net = (() => {
   return {
     HAS, host, join, leave, send, update, remotes, renderLine,
     get connected() { return !!peer && (isHost || conns.size > 0); },
+    get myId() { return myId; },
     get code() { return peer && (isHost || conns.size > 0) ? code : null; },
     announce() { send(hello()); },
     trick(name, pts) { send({ t: 'trick', name, pts }); },
@@ -5698,7 +5728,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.7.3';
+const GAME_VERSION = '2.8.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -5763,7 +5793,7 @@ function buildTrickBar() {
 function updateTrickBar(dt) {
   const el = document.getElementById('trickbar'); const P = player;
   trickBarT -= dt;
-  const show = state === 'play' && !P.bailed && P.mode !== 'walk' && (P.air || P.grind || trickBarT > 0);
+  const show = state === 'play' && !P.bailed && P.mode === 'ride' && !P.carried && (P.air || P.grind || trickBarT > 0);
   el.style.bottom = hintHidden ? '24px' : '150px';
   el.classList.toggle('hidden', !show);
   if (!show) return;
@@ -5798,7 +5828,7 @@ const mmBg = (() => {
 let hudT = 0;
 function updateHUD(dt) {
   const P = player;
-  const sp = P.mode === 'walk' ? Math.abs(P.wspd || 0) : P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
+  const sp = P.mode === 'heli' ? P.heli.vel.length() : P.mode === 'walk' ? Math.abs(P.wspd || 0) : P.air ? Math.hypot(P.vel.x, P.vel.z) : Math.abs(P.v);
   hudT += dt;
   if (hudT > 0.06) { elSpeed.textContent = Math.round(sp * 3.6); elSpeed.parentElement.style.setProperty('--spd', Math.min(1, sp * 3.6 / 80).toFixed(3)); hudT = 0; }
   const showW = P.inWheelie && !P.air && !P.bailed;
@@ -5873,8 +5903,15 @@ const ZONE_ORDER = ['auto', 'the100', 'woodpark', 'bigbowl', 'warehouse', 'rooft
 const zoneThumb = k => `assets/maps/${k}.jpg`;
 function renderRidePicker() {
   const el = document.getElementById('ride-picker'); if (!el) return;
-  el.innerHTML = VEH_KEYS.map(k => rideOpen(k) ? `<button data-ride="${k}" class="${k === player.kind ? 'sel' : ''}" title="${VEH[k].label}">${RIDE_ICON[k] || ''}<span>${VEH[k].label}</span></button>`
-    : `<button data-ride="${k}" class="locked" title="Unlocks at level ${RIDE_LVL[k]}">${RIDE_ICON[k] || ''}<span>LEVEL ${RIDE_LVL[k]}</span><i class="lock"></i></button>`).join('');
+  const heliSel = wantHeli || player.mode === 'heli';
+  el.innerHTML = VEH_KEYS.map(k => rideOpen(k) ? `<button data-ride="${k}" class="${k === player.kind && !heliSel ? 'sel' : ''}" title="${VEH[k].label}">${RIDE_ICON[k] || ''}<span>${VEH[k].label}</span></button>`
+    : `<button data-ride="${k}" class="locked" title="Unlocks at level ${RIDE_LVL[k]}">${RIDE_ICON[k] || ''}<span>LEVEL ${RIDE_LVL[k]}</span><i class="lock"></i></button>`).join('')
+    + (isAdmin() ? `<button data-heli="1" class="heli-pick${heliSel ? ' sel' : ''}" title="HELICOPTER (admin)">${HELI_ICON}<span>HELICOPTER</span><i class="adm-tag">ADMIN</i></button>` : '');
+  if (heliSel && isAdmin()) {
+    document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>HELICOPTER</b><small>ADMIN ONLY</small></div><div class="ri-desc">Fly anywhere. <b>${keyName('t1')}</b> drops bombs anywhere within 100 m, <b>${keyName('t2')}</b> grabs the nearest rider or person below you on a rope and carries them wherever you like (press it again to drop them).</div>` +
+      ['SPEED', 'BOMBS', 'CHAOS'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${[0.95, 1, 1][i] * 100}%"></i></div></div>`).join('');
+    return;
+  }
   const c = VEH[player.kind], lv = UPGRADES.reduce((t, u) => t + upgLevel(player.kind, u.id), 0);
   document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>${c.label}</b>${lv ? `<small>UPGRADES ${lv}/25</small>` : ''}</div><div class="ri-desc">${c.desc}</div>` +
     ['SPEED', 'TRICKS', 'WHEELIES'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${c.stats[i] * 100}%"></i></div></div>`).join('');
@@ -5897,7 +5934,12 @@ function openZonePicker() {
   document.getElementById('zone-picker').classList.remove('hidden');
 }
 {
-  document.getElementById('ride-picker').addEventListener('click', e => { const b = e.target.closest('[data-ride]'); if (!b) return; equip(b.dataset.ride); spawn(zoneFor()); buildMenu(); });
+  document.getElementById('ride-picker').addEventListener('click', e => {
+    if (e.target.closest('[data-heli]')) { if (!isAdmin()) return; wantHeli = true; buildMenu(); return; }
+    const b = e.target.closest('[data-ride]'); if (!b) return;
+    wantHeli = false; if (player.mode === 'heli') exitHeli('force');
+    equip(b.dataset.ride); spawn(zoneFor()); buildMenu();
+  });
   document.getElementById('zone-card').onclick = openZonePicker;
   document.getElementById('zp-x').onclick = () => document.getElementById('zone-picker').classList.add('hidden');
   document.getElementById('zone-picker').addEventListener('click', e => {
@@ -5954,6 +5996,7 @@ document.getElementById('ride-btn').onclick = () => startRide();
 let hintT = 25;
 function startRide() {
   sfx.init(); music.start();
+  if (wantHeli && isAdmin() && player.mode !== 'heli') enterHeli(); else if (player.mode === 'heli' && !isAdmin()) exitHeli('force');
   state = 'play'; elMenu.classList.add('hidden'); elHUD.classList.remove('hidden');
   if (IS_TOUCH) elTouch.classList.remove('hidden');
   camState.init = false;
@@ -7223,10 +7266,351 @@ function renderControls() {
 function renderHint() {
   const el = document.getElementById('hint'); if (!el) return;
   const K = keyName;
+  if (player.mode === 'heli') {
+    el.innerHTML = `<b>HELICOPTER</b> &nbsp; <b>${K('up')}/${K('down')}</b> forwards · back &nbsp; <b>${K('left')}/${K('right')}</b> turn &nbsp; <b>${K('jump')}</b> up &nbsp; <b>${K('wheelie')}</b> down<br>` +
+      `<b>${K('t1')}</b> drop bombs (100 m) &nbsp; <b>${K('t2')}</b> grab someone below you / let go &nbsp; <b>${K('getoff')}</b> land and get out &nbsp; <b>${K('ride')}</b> back to your ride &nbsp; <b>${K('help')}</b> hide`;
+    return;
+  }
   el.innerHTML = `<b>${K('up')}/${K('down')}</b> ride · brake · reverse &nbsp; <b>${K('left')}/${K('right')}</b> steer &nbsp; <b>${K('jump')}</b> hop &nbsp; <b>${K('wheelie')}</b> wheelie<br>` +
     `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks &nbsp; <b>${K('t7')}</b> overhead whip<br>` +
     `<b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
     `<b>${K('map')}</b> map &nbsp; <b>1-0</b> places &nbsp; <b>${K('ride')}</b> ride &nbsp; <b>${K('cam')}</b> camera &nbsp; <b>${K('replay')}</b> replay &nbsp; <b>${K('photo')}</b> photo &nbsp; <b>${K('reset')}</b> reset &nbsp; <b>${K('chat')}</b> chat &nbsp; <b>${K('help')}</b> hide &nbsp; <b>ESC</b> menu`;
+}
+
+// ───────────────────────── v2.8: the admin helicopter ─────────────────────────
+// Admins get a HELICOPTER in the rides list. W/S fly forwards and back, A/D turn, SPACE goes up, SHIFT goes down.
+// Trick 1 drops a load of bombs anywhere within 100 m. Trick 2 grabs the nearest rider or person below you on a rope
+// (riding or on foot) and carries them wherever you fly; press it again to let go. Online, the host only passes
+// bombs and grabs on from players it has checked are admins, so nobody else can fake them.
+function buildHeli() {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const paint = new THREE.MeshStandardMaterial({ color: 0x1d2026, roughness: 0.42, metalness: 0.55 });
+  const stripe = new THREE.MeshStandardMaterial({ color: 0xff5a26, roughness: 0.5, metalness: 0.2 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x0f1a26, roughness: 0.06, metalness: 0.7, transparent: true, opacity: 0.88 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.3, metalness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x24262b, roughness: 0.7 });
+  const add = (geo, mat, x, y, z, parent = body) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; };
+  // cabin, glass nose, orange band
+  add(new THREE.SphereGeometry(1, 28, 20).scale(1.12, 1.02, 2.0), paint, 0, 1.55, 0.05);
+  add(new THREE.SphereGeometry(1, 26, 18).scale(0.96, 0.84, 1.22), glass, 0, 1.76, 0.95);
+  add(new THREE.CylinderGeometry(1.14, 1.14, 0.16, 32).scale(1, 1, 1.78), stripe, 0, 1.2, 0.05);
+  // engine hump and exhaust
+  add(new THREE.BoxGeometry(1.0, 0.45, 1.6), paint, 0, 2.5, -0.55);
+  add(new THREE.CylinderGeometry(0.13, 0.15, 0.5, 12).rotateX(Math.PI / 2), dark, 0.32, 2.48, -1.45);
+  // tail boom, fin, tailplane
+  const boom = add(new THREE.CylinderGeometry(0.15, 0.34, 4.6, 14), paint, 0, 1.8, -3.45); boom.rotation.x = -Math.PI / 2;
+  const fin = add(new THREE.BoxGeometry(0.08, 1.35, 0.85), stripe, 0, 2.35, -5.55); fin.rotation.x = -0.32;
+  add(new THREE.BoxGeometry(1.7, 0.06, 0.45), paint, 0, 1.82, -5.0);
+  // main rotor: mast, hub, four blades and a soft blur disc
+  add(new THREE.CylinderGeometry(0.09, 0.11, 0.5, 12), metal, 0, 2.95, 0.05);
+  const rotor = new THREE.Group(); rotor.position.set(0, 3.22, 0.05); body.add(rotor);
+  add(new THREE.SphereGeometry(0.2, 14, 10), metal, 0, 0, 0, rotor);
+  for (let i = 0; i < 4; i++) { const b = add(new THREE.BoxGeometry(0.34, 0.05, 5.3), dark, 0, 0, 0, rotor); b.rotation.y = i * Math.PI / 2; b.position.set(Math.sin(i * Math.PI / 2) * 2.75, 0, Math.cos(i * Math.PI / 2) * 2.75); }
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(5.6, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x15171b, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide }));
+  disc.position.set(0, 3.2, 0.05); body.add(disc);
+  // tail rotor
+  const tail = new THREE.Group(); tail.position.set(0.16, 2.45, -5.7); body.add(tail);
+  for (let i = 0; i < 2; i++) { const b = add(new THREE.BoxGeometry(0.04, 1.15, 0.14), dark, 0, 0, 0, tail); b.rotation.x = i * Math.PI / 2; }
+  // skids
+  for (const sx of [-0.95, 0.95]) {
+    tube(v3(sx, 0.07, -1.55), v3(sx, 0.07, 1.45), 0.06, metal, body);
+    tube(v3(sx, 0.07, 1.45), v3(sx, 0.32, 1.9), 0.06, metal, body);
+    for (const sz of [-0.85, 0.85]) tube(v3(sx, 0.07, sz), v3(sx * 0.62, 0.78, sz), 0.05, metal, body);
+  }
+  // blinking red light on the fin
+  const beacon = add(new THREE.SphereGeometry(0.09, 10, 8), new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff2020, emissiveIntensity: 1 }), 0, 3.0, -5.75);
+  g.traverse(o => { if (o.isMesh) o.userData.noMerge = true; });
+  return { g, body, rotor, tail, disc, beacon };
+}
+// draw an avatar as a helicopter (yours, other players', and in replays)
+function heliAvatar(A, S, dt) {
+  if (S.heli) {
+    if (!A.heli) { A.heli = buildHeli(); A.root.add(A.heli.g); }
+    const H = A.heli; H.g.visible = true; A.rider.group.visible = false;
+    A.root.position.set(S.x, S.y, S.z); A.root.rotation.set(0, S.yaw, 0);
+    A.slopeG.rotation.set(0, 0, 0); A.airG.rotation.set(0, 0, 0); A.wheelieG.rotation.set(0, 0, 0);
+    H.body.rotation.order = 'YXZ'; H.body.rotation.set(S.pitch || 0, 0, S.roll || 0);
+    H.rotor.rotation.y += dt * 26; H.tail.rotation.x += dt * 40;
+    H.beacon.material.emissiveIntensity = (clock % 1.2) < 0.12 ? 3 : 0.15;
+  } else if (A.heli && A.heli.g.visible) { A.heli.g.visible = false; A.rider.group.visible = true; }
+}
+const heliGround = (x, z) => Math.max(heightAt(x, z), inWater(x, z) ? SEA_Y : -1e9);
+function enterHeli() {
+  const P = player;
+  if (!isAdmin()) return;
+  if (P.bailed || P.carried) return;
+  if (P.inWheelie) finishWheelie();
+  if (parked) { scene.remove(parked.g); parked = null; }
+  endCombo(true);
+  P.mode = 'heli'; P.air = false; P.grind = null; P.v = 0; P.poses = {};
+  P.heli = { vel: v3(), pitch: 0, roll: 0, carry: null, bombCd: 0, pj: false, pk: false, hook: v3(), chop: 0 };
+  P.pos.y = heliGround(P.pos.x, P.pos.z);
+  setVehicleShown(me, false);
+  camState.init = false; renderHint(); hintHidden = false; document.getElementById('hint').style.display = '';
+  document.getElementById('veh-name').textContent = 'HELI';
+  showPopup('HELICOPTER', '', `${keyName('jump')} UP · ${keyName('t1')} BOMBS · ${keyName('t2')} GRAB`);
+}
+function exitHeli(how) {
+  const P = player; if (P.mode !== 'heli') return;
+  const H = P.heli, high = P.pos.y - heliGround(P.pos.x, P.pos.z);
+  if (how !== 'force' && high > 2.5) { showPopup('LAND FIRST', '', `HOLD ${keyName('wheelie')} TO GO DOWN`); return; }
+  if (H.carry) heliRelease(P);
+  P.heli = null; wantHeli = false;
+  P.pos.y = heliGround(P.pos.x, P.pos.z); P.v = 0; P.air = false; P.vel.set(0, 0, 0);
+  if (inWater(P.pos.x, P.pos.z)) { P.mode = 'ride'; setVehicleShown(me, true); swapRide('surf', "SURF'S UP"); }
+  else if (how === 'walk') {
+    forward(P.yaw); P.pos.x += fwd.z * 1.8; P.pos.z -= fwd.x * 1.8; P.pos.y = heightAt(P.pos.x, P.pos.z);
+    P.mode = 'walk'; P.wspd = 0; P.wvy = 0; P.wph = 0; P.punchT = 0; P.hp = P.hp ?? 100;
+  } else { P.mode = 'ride'; setVehicleShown(me, true); }
+  me.rider.group.visible = true;
+  camState.init = false; renderHint();
+  document.getElementById('veh-name').textContent = P.mode === 'walk' ? 'ON FOOT' : VEH[P.kind].label;
+}
+// flying
+function heliStep(dt, P) {
+  const H = P.heli; if (!H) return;
+  const thr = input.throttle - input.brake, turn = input.steer;
+  const up = (keyDown('jump') ? 1 : 0) - (keyDown('wheelie') ? 1 : 0);
+  P.yaw += turn * 1.5 * dt;
+  forward(P.yaw);
+  const gh0 = heliGround(P.pos.x, P.pos.z), grounded = P.pos.y - gh0 < 0.05 && up <= 0;
+  const top = HELI.top * (grounded ? 0 : 1);
+  H.vel.x = damp(H.vel.x, fwd.x * thr * top, grounded ? 8 : 1.4, dt);
+  H.vel.z = damp(H.vel.z, fwd.z * thr * top, grounded ? 8 : 1.4, dt);
+  H.vel.y = damp(H.vel.y, up * 14, 2.6, dt);
+  P.pos.addScaledVector(H.vel, dt);
+  const gh = heliGround(P.pos.x, P.pos.z);
+  if (P.pos.y < gh) { P.pos.y = gh; if (H.vel.y < 0) H.vel.y = 0; }
+  if (P.pos.y > 420) { P.pos.y = 420; H.vel.y = Math.min(0, H.vel.y); }
+  // lean into it: nose down going forwards, bank into turns
+  const fs = H.vel.x * fwd.x + H.vel.z * fwd.z, airborne = P.pos.y - gh > 0.3;
+  H.pitch = damp(H.pitch, airborne ? clamp(fs / HELI.top, -1, 1) * 0.2 + thr * 0.07 : 0, 3, dt);
+  H.roll = damp(H.roll, airborne ? turn * 0.26 * clamp(Math.abs(fs) / 12 + 0.35, 0, 1) : 0, 3, dt);
+  P.v = 0; P.air = false; P.vel.copy(H.vel);
+  H.hook.set(P.pos.x, P.pos.y + 0.6 - HELI.rope, P.pos.z);
+  // the two tricks
+  H.bombCd = Math.max(0, H.bombCd - dt);
+  const j = !!input.tr.J, k = !!input.tr.K;
+  if (j && !H.pj) heliBombs(P);
+  if (k && !H.pk) heliGrab(P);
+  H.pj = j; H.pk = k;
+  // a grab that never caught anyone lets go by itself
+  const c = H.carry;
+  if (c && c.t === 'p') {
+    const r = net.remotes.get(c.id);
+    if (!r || !r.S) { heliRelease(P, true); addFeed(`<b>${esc(c.name)}</b> slipped off the rope`); }
+    else if (clock - c.t0 > 2.5 && Math.hypot(r.S.x - H.hook.x, r.S.z - H.hook.z) > 8) { heliRelease(P, true); addFeed(`Couldn't grab <b>${esc(c.name)}</b>`); }
+  }
+}
+function heliCam(dt) {
+  const P = player, H = P.heli;
+  if (!camState.init) { camState.yaw = P.yaw; camState.init = true; camState.pos.copy(P.pos).add(v3(0, 6, 0)); camState.look.copy(P.pos); }
+  camState.yaw += wrap(P.yaw - camState.yaw) * (1 - Math.exp(-2.5 * dt));
+  const f = forward(camState.yaw, v3()), sp = H ? Math.hypot(H.vel.x, H.vel.z) : 0;
+  const dist = 12.5 + sp * 0.12, ht = 4.6 + sp * 0.05;
+  const want = P.pos.clone().addScaledVector(f, -dist).add(v3(0, ht, 0));
+  const gh = heightAt(want.x, want.z); if (want.y < gh + 1.5) want.y = gh + 1.5;
+  camState.pos.lerp(want, 1 - Math.exp(-5 * dt));
+  camState.look.lerp(P.pos.clone().add(v3(0, 1.6, 0)).addScaledVector(f, 6), 1 - Math.exp(-8 * dt));
+  camera.position.copy(camState.pos); camera.lookAt(camState.look);
+  if (shake > 0) { camera.position.add(v3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(shake * 0.35)); shake = Math.max(0, shake - dt * 1.6); }
+  camera.fov = damp(camera.fov, 62 + sp * 0.3, 3, dt); camera.updateProjectionMatrix();
+}
+
+// ── trick 1: bombs ──
+function heliBombs(P) {
+  const H = P.heli; if (H.bombCd > 0) return;
+  H.bombCd = HELI.cd;
+  const list = [];
+  for (let i = 0; i < HELI.bombs; i++) {
+    const a = Math.random() * Math.PI * 2, r = HELI.bombR * Math.sqrt(Math.random());
+    list.push([+(P.pos.x + Math.cos(a) * r).toFixed(1), +(P.pos.z + Math.sin(a) * r).toFixed(1), +(i * 0.16 + Math.random() * 0.35).toFixed(2)]);
+  }
+  dropBombs(list); net.send({ t: 'bomb', b: list });
+  showPopup('BOMBS AWAY', '', ''); sfx.whoosh();
+}
+const BOMBS = [], BLASTS = [];
+const BOMB_MAT = new THREE.MeshStandardMaterial({ color: 0x2b2f2a, roughness: 0.55, metalness: 0.4 });
+const BOMB_FIN = new THREE.MeshStandardMaterial({ color: 0xc23a1c, roughness: 0.6 });
+const BOMB_GEO = new THREE.SphereGeometry(1, 14, 10).scale(0.32, 0.32, 0.75);
+const FIN_GEO = new THREE.BoxGeometry(0.6, 0.04, 0.3);
+const FIRE_GEO = new THREE.SphereGeometry(1, 20, 14), RING_GEO = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2), SCORCH_GEO = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2);
+function dropBombs(list) {
+  for (const b of list) {
+    const x = +b[0], z = +b[1], delay = clamp(+b[2] || 0, 0, 3);
+    if (!isFinite(x) || !isFinite(z)) continue;
+    const g = new THREE.Group(), m = new THREE.Mesh(BOMB_GEO, BOMB_MAT); m.castShadow = true; g.add(m);
+    for (let i = 0; i < 2; i++) { const f = new THREE.Mesh(FIN_GEO, BOMB_FIN); f.position.z = -0.62; f.rotation.z = i * Math.PI / 2; g.add(f); }
+    g.rotation.x = Math.PI / 2; g.visible = false; scene.add(g);
+    const gy = heliGround(x, z);
+    BOMBS.push({ g, x, z, gy, y: gy + 32, vy: -12, t: -delay });
+  }
+}
+function explode(x, gy, z) {
+  const cam = camera.position, dCam = Math.hypot(cam.x - x, cam.y - gy, cam.z - z);
+  sfx.boom(clamp(1.15 - dCam / 220, 0.06, 1));
+  shake = Math.max(shake, clamp(1.3 - dCam / 55, 0, 1.3));
+  // fireball, shock ring, scorch mark, smoke and a flash
+  const fire = new THREE.Mesh(FIRE_GEO, new THREE.MeshBasicMaterial({ color: 0xffb040, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
+  fire.position.set(x, gy + 1, z); scene.add(fire);
+  const ring = new THREE.Mesh(RING_GEO, new THREE.MeshBasicMaterial({ color: 0xffe2b0, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+  ring.position.set(x, gy + 0.15, z); scene.add(ring);
+  const scorch = new THREE.Mesh(SCORCH_GEO, new THREE.MeshBasicMaterial({ color: 0x0c0b0a, transparent: true, opacity: 0.65, depthWrite: false }));
+  scorch.position.set(x, gy + 0.04, z); scorch.scale.setScalar(rand(3.2, 4.4)); scene.add(scorch);
+  // a column of dark smoke that rolls up and drifts off
+  const smoke = [];
+  for (let i = 0; i < 7; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, color: i < 2 ? 0x6a5040 : 0x2b2825, transparent: true, depthWrite: false, opacity: 0 }));
+    sp.position.set(x + rand(-1.6, 1.6), gy + 0.8 + rand(0, 1.5), z + rand(-1.6, 1.6)); sp.scale.setScalar(rand(2.4, 3.6)); scene.add(sp);
+    smoke.push({ sp, vy: rand(2.2, 4.8), vx: rand(-0.8, 0.8), vz: rand(-0.8, 0.8), d: rand(0.08, 0.35), s0: sp.scale.x });
+  }
+  BLASTS.push({ fire, ring, scorch, smoke, t: 0 });
+  while (BLASTS.length > 14) { const o = BLASTS.shift(); scene.remove(o.fire, o.ring, o.scorch); o.fire.material.dispose(); o.ring.material.dispose(); o.scorch.material.dispose(); for (const q of o.smoke) { scene.remove(q.sp); q.sp.material.dispose(); } }
+  emitDust(v3(x, gy + 0.8, z), 16, 'road', 3.2);
+  emitDust(v3(x, gy + 0.4, z), 8, surfaceAt(x, z), 2.2);
+  // the rider (you), unless you're the one flying or you're hanging off a rope
+  const P = player;
+  if (P.mode !== 'heli' && !P.carried && state === 'play') {
+    const dx = P.pos.x - x, dz = P.pos.z - z, d = Math.hypot(dx, dz, (P.pos.y - gy) * 0.6);
+    if (d < HELI.blast) {
+      const f = 1 - d / HELI.blast, h = Math.hypot(dx, dz) || 1, nx = dx / h, nz = dz / h;
+      if (P.mode === 'walk') { hurt(Math.round(25 + 75 * f), 'BLOWN UP'); P.wvy = 5 + 7 * f; P.pos.x += nx * 2.5 * f; P.pos.z += nz * 2.5 * f; }
+      else if (!P.bailed) { bail('BLOWN UP'); bailVis.rv.add(v3(nx * 10 * f, 8 + 9 * f, nz * 10 * f)); bailVis.bv.add(v3(nx * 7 * f, 6 + 7 * f, nz * 7 * f)); }
+    }
+  }
+  // people nearby go flying
+  for (const p of PEDS) {
+    if (p.carried) continue;
+    const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz), R = HELI.blast * 1.2;
+    if (d < R) { const f = 1 - d / R; hitPed(p, dx || 0.1, dz, 'bomb', 6 + 12 * f); if (p.down) { p.down.vy = 4 + 6 * f; p.down.dur += 1; } }
+  }
+}
+// ── trick 2: grab whoever's below you ──
+function heliGrab(P) {
+  const H = P.heli;
+  if (H.carry) { heliRelease(P); return; }
+  let best = null, bd = 1e9;
+  const consider = (x, y, z, o) => {
+    const h = Math.hypot(x - P.pos.x, z - P.pos.z), dy = P.pos.y - y;
+    if (h < HELI.grabR && dy > 1.5 && dy < 90) { const d = Math.hypot(h, dy * 0.4); if (d < bd) { bd = d; best = o; } }
+  };
+  for (const r of net.remotes.values()) if (r.S && !r.S.heli && !r.S.bl) consider(r.S.x, r.S.y, r.S.z, { t: 'p', id: r.id, name: r.name });
+  for (const p of PEDS) if (p.g.visible) consider(p.x, heightAt(p.x, p.z) > 0.5 ? 0 : heightAt(p.x, p.z), p.z, { t: 'ped', p });
+  if (!best) { showPopup('NOBODY BELOW YOU', '', `FLY OVER SOMEONE (WITHIN ${HELI.grabR} M)`); return; }
+  best.t0 = clock; H.carry = best;
+  if (best.t === 'p') { net.send({ t: 'grab', to: best.id }); addFeed(`You grabbed <b>${esc(best.name)}</b>`); }
+  else {
+    const p = best.p; p.carried = true; p.down = null; p.angry = 0; p.flee = 0; p.stagger = 0;
+    p.cy = heightAt(p.x, p.z) > 0.5 ? 0 : heightAt(p.x, p.z);
+    speak(p, pick(['Put me down!', 'AAAAAH!', 'Is this even legal?!', 'I want my mum!', 'Not again!']));
+    showPopup('GOT ONE', '', `${keyName('t2')} TO DROP THEM`);
+  }
+  sfx.whoosh();
+}
+function heliRelease(P, quiet) {
+  const H = P.heli, c = H && H.carry; if (!c) return; H.carry = null;
+  if (c.t === 'p') { net.send({ t: 'drop', to: c.id, v: [+H.vel.x.toFixed(2), +H.vel.y.toFixed(2), +H.vel.z.toFixed(2)] }); if (!quiet) addFeed(`You dropped <b>${esc(c.name)}</b>`); }
+  else {
+    const p = c.p; p.carried = false;
+    const gy = heightAt(p.x, p.z) > 0.5 ? 0 : heightAt(p.x, p.z), sp = Math.hypot(H.vel.x, H.vel.z);
+    knockDown(p, H.vel.x || 0.1, H.vel.z, sp);
+    Object.assign(p.down, { y: Math.max(0, (p.cy ?? gy) - gy), vy: H.vel.y, vx: H.vel.x, vz: H.vel.z });
+    p.down.dur += 1.5; p.reactAt = p.down.dur + 0.9; p.reactT = 0; p.reactHow = 'ride';
+  }
+}
+// a person you're carrying hangs off the rope by their hands
+function pedCarried(p, dt) {
+  const H = player.heli;
+  if (!H || !H.carry || H.carry.p !== p) { p.carried = false; return; }
+  const k = clock - H.carry.t0 < 0.8 ? 1 - Math.exp(-6 * dt) : 1, hy = H.hook.y - 2.05;
+  p.x += (H.hook.x - p.x) * k; p.z += (H.hook.z - p.z) * k; p.cy = (p.cy ?? hy) + (hy - (p.cy ?? hy)) * k;
+  p.yaw += dt * 0.7;
+  p.g.position.set(p.x, p.cy, p.z); p.g.rotation.set(0, p.yaw, 0); p.g.visible = true;
+  p.phase += dt * 10; poseHuman(p.R, p.phase, 0, 0, 1, true);
+}
+// ── you, hanging off someone else's helicopter (online) ──
+function startCarried(pilotId, name) {
+  const P = player;
+  if (P.mode === 'heli' || P.carried || P.bailed || state === 'replay') return;
+  if (P.mode === 'ride') { if (P.grind) P.grind = null; if (!P.air) launch(P, 0, 0, null, 0, true); }
+  P.carried = { by: pilotId, t: 0, lost: 0 };
+  endCombo(false);
+  showPopup('GRABBED!', 'bail', `${String(name).toUpperCase()} PICKED YOU UP`);
+  addFeed(`<b>${esc(name)}</b> grabbed you with the helicopter`);
+}
+function carriedStep(dt, P) {
+  const C = P.carried, r = net.remotes.get(C.by);
+  if (!r || !r.S || !r.S.heli) { C.lost += dt; if (C.lost > 1.2) endCarried(0, 0, 0); return; }
+  C.lost = 0; C.t += dt;
+  const hy = r.S.y + 0.6 - HELI.rope - (P.mode === 'walk' ? 2.05 : 1.75);
+  const k = C.t < 0.8 ? 1 - Math.exp(-6 * dt) : 1;
+  P.pos.x += (r.S.x - P.pos.x) * k; P.pos.y += (hy - P.pos.y) * k; P.pos.z += (r.S.z - P.pos.z) * k;
+  const b = r.buf, n = b.length, v = n > 1 && b[n - 1].t > b[n - 2].t ? 1000 / (b[n - 1].t - b[n - 2].t) : 0;
+  const vx = n > 1 ? (b[n - 1].s.x - b[n - 2].s.x) * v : 0, vy = n > 1 ? (b[n - 1].s.y - b[n - 2].s.y) * v : 0, vz = n > 1 ? (b[n - 1].s.z - b[n - 2].s.z) * v : 0;
+  if (P.mode === 'walk') { P.wvy = 0; P.wair = true; P.wspd = 0; }
+  else { P.air = true; P.vel.set(vx, vy, vz); P.airTime = 0; P.maxH = P.pos.y; P.airStart.copy(P.pos); }
+}
+function endCarried(vx, vy, vz) {
+  const P = player; if (!P.carried) return;
+  P.carried = null;
+  if (P.mode === 'walk') { P.wvy = clamp(vy, -30, 30); P.wair = true; }
+  else { P.air = true; P.vel.set(clamp(vx, -40, 40), clamp(vy, -30, 30), clamp(vz, -40, 40)); P.airStart.copy(P.pos); P.maxH = P.pos.y; P.airTime = 0; }
+  showPopup('DROPPED!', '', 'GOOD LUCK');
+}
+// every frame: falling bombs, blasts, ropes and rotor noise
+const ROPES = [], _rpA = new THREE.Vector3(), _rpB = new THREE.Vector3();
+const ROPE_MAT = new THREE.LineBasicMaterial({ color: 0x1a1a1a }), HOOK_MAT = new THREE.MeshStandardMaterial({ color: 0xffc531, roughness: 0.4, metalness: 0.6 });
+function rope(i) {
+  if (!ROPES[i]) {
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const line = new THREE.Line(geo, ROPE_MAT); line.frustumCulled = false;
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.04, 8, 16), HOOK_MAT);
+    scene.add(line, hook); ROPES[i] = { line, hook };
+  }
+  return ROPES[i];
+}
+function updateHelis(dt) {
+  for (let i = BOMBS.length - 1; i >= 0; i--) {
+    const b = BOMBS[i]; b.t += dt;
+    if (b.t < 0) continue;
+    b.g.visible = true; b.vy -= G * dt; b.y += b.vy * dt;
+    b.g.position.set(b.x, b.y, b.z); b.g.rotation.z += dt * 3;
+    if (b.y <= b.gy + 0.2) { explode(b.x, b.gy, b.z); scene.remove(b.g); BOMBS.splice(i, 1); }
+  }
+  for (const o of BLASTS) {
+    o.t += dt; const t = o.t;
+    for (const q of o.smoke) {
+      const u = t - q.d; if (u < 0) continue;
+      if (u > 4.5) { q.sp.visible = false; continue; }
+      q.sp.position.x += q.vx * dt; q.sp.position.z += q.vz * dt; q.sp.position.y += q.vy * dt * Math.max(0.25, 1 - u / 3);
+      q.sp.scale.setScalar(q.s0 * (1 + u * 1.1)); q.sp.material.opacity = 0.8 * Math.min(1, u / 0.25) * clamp(1 - (u - 1.2) / 3.3, 0, 1);
+    }
+    if (t < 0.9) { o.fire.visible = true; o.fire.scale.setScalar(1 + 7.5 * Math.min(1, t / 0.28)); o.fire.material.opacity = Math.max(0, 1 - t / 0.9); o.fire.material.color.setHex(t < 0.12 ? 0xfff2c0 : t < 0.35 ? 0xffa030 : 0x803020); o.fire.position.y += dt * 2.5; }
+    else o.fire.visible = false;
+    if (t < 0.7) { o.ring.visible = true; o.ring.scale.setScalar(1 + t * 26); o.ring.material.opacity = 0.8 * (1 - t / 0.7); } else o.ring.visible = false;
+    o.scorch.material.opacity = 0.65 * clamp(1 - (t - 10) / 6, 0, 1);
+  }
+  // ropes
+  let n = 0;
+  const draw = (A, hk) => {
+    if (!A.heli || !A.heli.g.visible) return;
+    A.heli.body.localToWorld(_rpA.set(0, 0.55, 0.1));
+    let end = null;
+    if (hk === 'ped' && A === me && player.heli && player.heli.carry && player.heli.carry.p) { const p = player.heli.carry.p; end = _rpB.set(p.x, p.cy + 2.05, p.z); }
+    else if (hk && hk === net.myId) end = _rpB.copy(me.root.position).add(v3(0, player.mode === 'walk' ? 2.05 : 1.75, 0));
+    else if (hk && net.remotes.get(hk)) { const r = net.remotes.get(hk); end = _rpB.copy(r.A.root.position).add(v3(0, r.S && r.S.walk ? 2.05 : 1.75, 0)); }
+    if (!end) end = _rpB.set(_rpA.x + Math.sin(clock * 1.3) * 0.35, _rpA.y - HELI.rope, _rpA.z + Math.cos(clock) * 0.35);
+    const R = rope(n++), a = R.line.geometry.attributes.position;
+    a.setXYZ(0, _rpA.x, _rpA.y, _rpA.z); a.setXYZ(1, end.x, end.y, end.z); a.needsUpdate = true;
+    R.line.visible = true; R.hook.visible = true; R.hook.position.copy(end); R.hook.position.y += 0.1;
+  };
+  if (player.mode === 'heli') draw(me, VS.hk);
+  for (const r of net.remotes.values()) if (r.S && r.S.heli) draw(r.A, r.S.hk);
+  for (let i = n; i < ROPES.length; i++) { ROPES[i].line.visible = false; ROPES[i].hook.visible = false; }
+  // rotor chop: yours, and anyone else's nearby
+  const chop = (A, holder, d) => { holder.chop = (holder.chop || 0) - dt; if (holder.chop <= 0) { holder.chop = 1 / 11; const v = clamp(1 - d / 90, 0, 1); if (v > 0.02) sfx.chop(v); } };
+  if (player.mode === 'heli' && player.heli) chop(me, player.heli, 6);
+  for (const r of net.remotes.values()) if (r.S && r.S.heli) chop(r.A, r, Math.hypot(r.S.x - camera.position.x, r.S.y - camera.position.y, r.S.z - camera.position.z));
 }
 
 // ───────────────────────── v2.1: surf & ski tricks ─────────────────────────
@@ -7315,6 +7699,12 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.8.0', d: 'November 2026', t: 'The admin helicopter', items: [
+    'Admins now have a HELICOPTER in the rides list. Fly it anywhere: forwards and back, turn, SPACE to go up and SHIFT to go down',
+    'Trick 1 drops a load of bombs anywhere within 100 m. Anyone close to a blast gets blown off their ride or knocked flying',
+    'Trick 2 grabs the nearest rider or person below you on a rope, riding or on foot, and you can carry them wherever you like. Press it again to drop them',
+    'Online, bombs and grabs only come from real admins: the server checks before passing them on',
+  ] },
   { v: '2.7.3', d: 'November 2026', t: 'Overhead whips', items: [
     'The overhead trick (Y) now whips your bike, scooter or board round and round over your head while you hold it. Let go and it finishes the turn before it comes back down',
     'Each full turn scores extra: Scooter Overhead Whip, Double Bike Overhead Whip, Triple Board Overhead Whip…',
@@ -7488,7 +7878,7 @@ function updatePresence() {
   else if (state === 'map') details = `Looking at the map · ${name}`;
   else if (state === 'replay') details = `Watching a replay · ${name}`;
   else if (state === 'photo') details = `Taking photos · ${name}`;
-  else details = player.mode === 'walk' ? `Walking around ${name}` : `Riding ${name}`;
+  else details = player.mode === 'heli' ? `Flying a helicopter over ${name}` : player.mode === 'walk' ? `Walking around ${name}` : `Riding ${name}`;
   if (state !== 'menu' && z && ZONE_IMG.has(z)) { img = `${PRES_SITE}play/assets/maps/${z}.jpg`; imgText = name; }
   let stateTxt = player.mode === 'walk' || state === 'menu' ? `Level ${lvl}` : `Level ${lvl} · ${rideName}`;
   const p = { details: details.slice(0, 120), state: stateTxt.slice(0, 120), start: PRESENCE_START, large: img, largeText: imgText, small: ICON, smallText: `SEND IT ${GAME_VERSION} · best combo ${Math.round(best).toLocaleString()}`, buttons: [{ label: 'Get SEND IT', url: PRES_SITE }] };
@@ -7863,7 +8253,7 @@ function updateLife(dt) {
     const P = player, hpEl = document.getElementById('hp');
     hpEl.classList.toggle('hidden', P.mode !== 'walk');
     hpEl.querySelector('i').style.width = Math.round(P.hp ?? 100) + '%';
-    document.getElementById('veh-name').textContent = P.mode === 'walk' ? 'ON FOOT' : VEH[P.kind].label;
+    document.getElementById('veh-name').textContent = P.mode === 'heli' ? 'HELI' : P.mode === 'walk' ? 'ON FOOT' : VEH[P.kind].label;
   }
 }
 // minimap extras: the quest target, your parked ride
@@ -8126,11 +8516,12 @@ function tick(dt, doRender = true) {
     if (hit('reset')) respawnSafe();
     if (hit('help')) { hintHidden = !hintHidden; document.getElementById('hint').style.display = hintHidden ? 'none' : ''; }
     if (hit('use')) useNear();
-    if (hit('getoff')) { if (walking) getOn(); else getOff(); }
+    if (hit('getoff')) { if (player.mode === 'heli') exitHeli('walk'); else if (player.carried) showPopup("YOU'RE ON A ROPE", '', 'WAIT FOR THEM TO DROP YOU'); else if (walking) getOn(); else getOff(); }
     if (hit('bag')) toggleBag();
     if (hit('quests')) toggleQuests();
     if (walking && hit('punch')) punch();
-    if (hit('ride') && !walking) {
+    if (hit('ride') && player.mode === 'heli') exitHeli('ride');
+    else if (hit('ride') && !walking && !player.carried) {
       if (VEH[player.kind].hidden) { if (player.kind === 'surf' && inWater(player.pos.x, player.pos.z)) showPopup("YOU'RE IN THE SEA", '', 'SURF BACK TO THE BEACH FIRST'); else backToRide(); }
       else { const open = VEH_KEYS.filter(rideOpen), i = (open.indexOf(player.kind) + 1) % open.length; const p = player.pos.clone(), y = player.yaw; equip(open[i]); spawn(zoneFor()); player.pos.copy(p); player.yaw = y; player.safe.pos.copy(p); showPopup(VEH[open[i]].label); }
     }
@@ -8144,6 +8535,7 @@ function tick(dt, doRender = true) {
     acc += sdt; const h = 1 / 120; let n = 0;
     while (acc >= h && n < 8) { step(h); input.jump = false; acc -= h; n++; }
     updateVisual(sdt);
+    updateHelis(sdt);
     updateHUD(dt);
     updateLetters(dt);
     updateRace(sdt);

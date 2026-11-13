@@ -2,6 +2,18 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.8.0",
+   "date": "November 2026",
+   "title": "The admin helicopter",
+   "image": "media/online.jpg",
+   "items": [
+    "Admins now have a HELICOPTER in the rides list. Fly it anywhere: forwards and back, turn, SPACE to go up and SHIFT to go down",
+    "Trick 1 drops a load of bombs anywhere within 100 m. Anyone close to a blast gets blown off their ride or knocked flying",
+    "Trick 2 grabs the nearest rider or person below you on a rope, riding or on foot, and you can carry them wherever you like. Press it again to drop them",
+    "Online, bombs and grabs only come from real admins: the server checks before passing them on"
+   ]
+  },
+  {
    "v": "2.7.3",
    "date": "November 2026",
    "title": "Overhead whips",

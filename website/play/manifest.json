@@ -1,7 +1,7 @@
 {
- "version": "2.7.3",
+ "version": "2.8.0",
  "minShell": "1.5.0",
- "notes": "2.7.3: overhead whips",
+ "notes": "2.8.0: the admin helicopter",
  "files": [
   {
    "path": "discord.json",
@@ -13,15 +13,15 @@
   },
   {
    "path": "style.css",
-   "sha256": "05481e862773ab32838f8cc2bdf183f7838a7aa6558247f36cb75a4f680d7667"
+   "sha256": "acd9c11b42c01e77293f47b3806df449a9b3ff2e03513a9e0a6ef893a652d3ed"
   },
   {
    "path": "version.json",
-   "sha256": "ca514bcfbc1d71c7b3e758533fa98277f80b613ed10a45c48db069e0791f4766"
+   "sha256": "760eff4070e3612d76748e1d3b4952d366c0086e88c7eb03c77b43826382c72a"
   },
   {
    "path": "src/game.js",
-   "sha256": "1e058f6c9a3aa8b8be1973caa48c02111a95b7b722c70dbd9a178687df6c8a6e"
+   "sha256": "36eab6310ffc7b61059c4ef0f373750247c434fc11926b2d8ec6e0934c94c484"
   },
   {
    "path": "assets/logo-icon.png",
