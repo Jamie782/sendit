@@ -31,3 +31,7 @@ Open **https://play-sendit.netlify.app/discord-setup.html?key=SETUP_KEY** (Claud
 4. Press **BUILD MY SERVER**. The bot makes the roles, channels, rules, welcome message and invite link, and saves the
    server ID and invite link in `si_settings`, so clip posting, server joining and the website's Discord link all find it
    by themselves. Nothing to host: Supabase only uses the bot token when something happens. Safe to press again.
+
+## Keeping the bot online (optional)
+`discord-bot/` is a small Node.js bot for Orihost: the green dot, "Playing SEND IT", slash commands (/play, /leaderboard,
+/profile, /servers, /clip, /invite), 🔥 on clips and welcome cards. See `discord-bot/README.md`. Clip posting works without it.

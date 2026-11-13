@@ -1,0 +1,10 @@
+{
+  "name": "sendit-discord-bot",
+  "version": "1.0.0",
+  "description": "Keeps the SEND IT bot online in the SEND IT Discord, with slash commands and welcome cards",
+  "type": "module",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "discord.js": "14.27.0" }
+}
