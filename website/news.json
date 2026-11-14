@@ -2,6 +2,18 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.9.1",
+   "date": "November 2026",
+   "title": "Coins are harder to get",
+   "image": "media/online.jpg",
+   "items": [
+    "Coins are harder to get: tricks and combos pay about a third of what they did, the most one combo pays is 400 (was 2,500), and you can earn at most 600 coins a minute from tricks",
+    "Trick Attack pays a lot less, and Hill Bomb, Woods Downhill and Peak Run pay less",
+    "Everything in the garage costs 4x more: paints, outfits, ride models and upgrades",
+    "Quests, goals, level-ups, daily challenges and treasure chests still pay the same"
+   ]
+  },
+  {
    "v": "2.9.0",
    "date": "November 2026",
    "title": "Ride models and THE SKY SEND",

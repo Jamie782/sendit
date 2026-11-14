@@ -1,7 +1,7 @@
 {
- "version": "2.9.0",
+ "version": "2.9.1",
  "minShell": "1.5.0",
- "notes": "Ride models (VOLT MX, FAT TYRE, COMMUTER, THUNDER), THE SKY SEND with 20 s of air, cleaner overhead whip, helicopter parked until April Fools",
+ "notes": "Coins are harder to get and the garage costs 4x more",
  "files": [
   {
    "path": "discord.json",
@@ -17,11 +17,11 @@
   },
   {
    "path": "version.json",
-   "sha256": "88660cfe14c3ac72ef16b1be94155dd31afa8725187ef5151de22d2974ceddd9"
+   "sha256": "c7c259ef1774f38e5e683a2923ba85050c039d3b38f3a25b3d0b1efa84986c05"
   },
   {
    "path": "src/game.js",
-   "sha256": "5160d6d8e1c845a9ff2970b09c22b00863ac742b7fde78e383f20e158281d3ef"
+   "sha256": "223c0ae433d540d4bf7629c83338c60cf11251f310f646ae05cc7290767e2e20"
   },
   {
    "path": "assets/logo-icon.png",

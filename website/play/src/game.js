@@ -1155,13 +1155,13 @@ const VEH_KEYS = Object.keys(VEH).filter(k => !VEH[k].hidden);
 const RIDE_MODELS = {
   ebike: [
     { id: 'trail', n: 'TRAIL', d: 'Pedal-assist trail e-bike with an air fork. Light enough to throw around.', price: 0, m: {}, st: [0.85, 0.6, 0.8] },
-    { id: 'moto', n: 'VOLT MX', d: 'Electric dirt bike: footpegs instead of pedals, long-travel suspension and a mad amount of torque. Fastest thing on two wheels, heavier to flip.', price: 4500, m: { top: 1.42, accel: 1.45, hop: 0.92, spin: 0.82, flip: 0.85, whip: 1.25, bar: 1.2, wb: 1.08, wbMax: 1.1 }, st: [1.0, 0.5, 0.95] },
-    { id: 'fat', n: 'FAT TYRE', d: 'Fat-tyre e-bike on 4-inch tyres. Grips everything and floats over sand and grass.', price: 1500, m: { top: 0.94, accel: 1.08, hop: 0.95, spin: 0.95 }, st: [0.75, 0.55, 0.7] },
+    { id: 'moto', n: 'VOLT MX', d: 'Electric dirt bike: footpegs instead of pedals, long-travel suspension and a mad amount of torque. Fastest thing on two wheels, heavier to flip.', price: 18000, m: { top: 1.42, accel: 1.45, hop: 0.92, spin: 0.82, flip: 0.85, whip: 1.25, bar: 1.2, wb: 1.08, wbMax: 1.1 }, st: [1.0, 0.5, 0.95] },
+    { id: 'fat', n: 'FAT TYRE', d: 'Fat-tyre e-bike on 4-inch tyres. Grips everything and floats over sand and grass.', price: 6000, m: { top: 0.94, accel: 1.08, hop: 0.95, spin: 0.95 }, st: [0.75, 0.55, 0.7] },
   ],
   escooter: [
     { id: 'street', n: 'STREET', d: 'Dual-suspension street scooter. Quick, with long wheelies.', price: 0, m: {}, st: [0.9, 0.35, 1.0] },
-    { id: 'commuter', n: 'COMMUTER', d: 'Big-wheeled commuter e-scooter: tall stem, bright front light and a dashboard. Smooth and steady.', price: 800, m: { top: 0.8, accel: 0.85, hop: 0.92, wb: 1.12, wbMax: 1.1 }, st: [0.7, 0.3, 0.85] },
-    { id: 'beast', n: 'THUNDER', d: 'Dual-motor monster scooter: 11-inch tyres, a double stem and swingarm suspension. It properly sends it.', price: 5000, m: { top: 1.45, accel: 1.6, hop: 0.95, spin: 0.85, flip: 0.85, whip: 1.2 }, st: [1.0, 0.3, 1.0] },
+    { id: 'commuter', n: 'COMMUTER', d: 'Big-wheeled commuter e-scooter: tall stem, bright front light and a dashboard. Smooth and steady.', price: 3200, m: { top: 0.8, accel: 0.85, hop: 0.92, wb: 1.12, wbMax: 1.1 }, st: [0.7, 0.3, 0.85] },
+    { id: 'beast', n: 'THUNDER', d: 'Dual-motor monster scooter: 11-inch tyres, a double stem and swingarm suspension. It properly sends it.', price: 20000, m: { top: 1.45, accel: 1.6, hop: 0.95, spin: 0.85, flip: 0.85, whip: 1.2 }, st: [1.0, 0.3, 1.0] },
   ],
 };
 let MODELS_SET = null;
@@ -2271,7 +2271,17 @@ function readInput() {
 // ───────────────────────── scoring ─────────────────────────
 let score = 0, best = store.get('best', 0);
 let combo = { parts: [], pts: 0, mult: 0, active: false, seen: {} };
-const MULT_CAP = 12, COMBO_COIN_CAP = 2500;
+const MULT_CAP = 12, COMBO_COIN_CAP = 400;
+// trick coins (combos and Trick Attack) are limited to TRICK_COINS_MIN a minute
+const TRICK_COINS_MIN = 600, trickCoinLog = [];
+function trickCoins(n) {
+  const now = performance.now();
+  while (trickCoinLog.length && now - trickCoinLog[0][0] > 60000) trickCoinLog.shift();
+  const used = trickCoinLog.reduce((a, e) => a + e[1], 0);
+  n = Math.max(0, Math.min(Math.round(n), TRICK_COINS_MIN - used));
+  if (n > 0) trickCoinLog.push([now, n]);
+  return n;
+}
 let airTricks = { counts: {}, poseTime: {} };
 let wheelieAcc = 0;
 const elScore = document.getElementById('score'), elBest = document.getElementById('best'), elCN = document.getElementById('combo-names'), elCS = document.getElementById('combo-score');
@@ -2298,8 +2308,8 @@ function endCombo(bank) {
     score += total; elScore.textContent = score.toLocaleString();
     if (score > best) { best = score; store.set('best', best); elBest.textContent = best.toLocaleString(); }
     // harder tricks score more, and coins come from the score: bigger tricks and longer combos pay more
-    const coins = earn(Math.min(COMBO_COIN_CAP, total / 20 * (combo.mult >= 6 ? 1.5 : combo.mult >= 3 ? 1.2 : 1)));
-    if (total > 300) showPopup('+' + total.toLocaleString(), 'good', (combo.mult >= 4 ? 'SICK COMBO · ' : '') + `+${coins} COINS`);
+    const coins = earn(trickCoins(Math.min(COMBO_COIN_CAP, total / 60 * (combo.mult >= 6 ? 1.5 : combo.mult >= 3 ? 1.2 : 1))));
+    if (total > 300) showPopup('+' + total.toLocaleString(), 'good', (combo.mult >= 4 ? 'SICK COMBO · ' : '') + (coins ? `+${coins} COINS` : 'COIN LIMIT, TRY AGAIN IN A MINUTE'));
     else if (coins) addFeed(`<b>+${coins} coins</b>`);
     online.submit('combo', total);
     addXP(Math.min(2500, total / 8)); dailyEvent('combo', total); dailyEvent('mult', combo.mult); dailyEvent('zone', nearestZone());
@@ -5343,7 +5353,7 @@ const UPGRADES = [
   { id: 'trick', n: 'Trick speed', d: '+8% spins, flips, whips' },
   { id: 'grip', n: 'Handling', d: 'sharper steering, calmer wheelies' },
 ];
-const UPG_COST = [250, 600, 1200, 2400, 4500];
+const UPG_COST = [1000, 2400, 4800, 9600, 18000];
 const upg = store.get('upg', {});
 const upgLevel = (kind, id) => (upg[kind] && upg[kind][id]) || 0;
 function vehCfg(kind) {
@@ -5351,24 +5361,24 @@ function vehCfg(kind) {
   return { ...b, top: b.top * (1 + 0.06 * L('speed')), accel: b.accel * (1 + 0.12 * L('accel')), hop: b.hop * (1 + 0.06 * L('pop')), spin: b.spin * t, flip: b.flip * t, whip: b.whip / t, bar: b.bar / t, grip: L('grip') };
 }
 const PAINTS = [
-  { id: 'gloss', n: 'Gloss', price: 0 }, { id: 'matte', n: 'Matte', price: 300 }, { id: 'camo', n: 'Camo', price: 800 },
-  { id: 'carbon', n: 'Carbon fibre', price: 1500 }, { id: 'chrome', n: 'Chrome', price: 1800 }, { id: 'flame', n: 'Flames', price: 2200 },
-  { id: 'neon', n: 'Neon glow', price: 2600 }, { id: 'galaxy', n: 'Galaxy', price: 3200 }, { id: 'oil', n: 'Oil slick', price: 3800 }, { id: 'pixel', n: 'Pixel camo', price: 2400 },
-  { id: 'rainbow', n: 'Rainbow', price: 4200 }, { id: 'lava', n: 'Lava', price: 5000 }, { id: 'gold', n: '24K gold', price: 6000 }, { id: 'diamond', n: 'Diamond', price: 12000 },
+  { id: 'gloss', n: 'Gloss', price: 0 }, { id: 'matte', n: 'Matte', price: 1200 }, { id: 'camo', n: 'Camo', price: 3200 },
+  { id: 'carbon', n: 'Carbon fibre', price: 6000 }, { id: 'chrome', n: 'Chrome', price: 7200 }, { id: 'flame', n: 'Flames', price: 8800 },
+  { id: 'neon', n: 'Neon glow', price: 10400 }, { id: 'galaxy', n: 'Galaxy', price: 12800 }, { id: 'oil', n: 'Oil slick', price: 15200 }, { id: 'pixel', n: 'Pixel camo', price: 9600 },
+  { id: 'rainbow', n: 'Rainbow', price: 16800 }, { id: 'lava', n: 'Lava', price: 20000 }, { id: 'gold', n: '24K gold', price: 24000 }, { id: 'diamond', n: 'Diamond', price: 48000 },
 ];
 const OUTFITS = [
   { id: 'classic', n: 'Classic', price: 0, top: 0x2a2c31, pants: 0x2f3a48, helmet: 0xff4d1f },
-  { id: 'street', n: 'Street', price: 300, top: 0xe6e2d8, pants: 0x1f2a3a, helmet: 0x111111 },
-  { id: 'race', n: 'Race kit', price: 900, top: 0x1d4ed8, pants: 0xf2f2f2, helmet: 0xf2f2f2 },
-  { id: 'forest', n: 'Forest', price: 900, top: 0x2f5d3a, pants: 0x4a3b2a, helmet: 0x6b8e23 },
-  { id: 'hivis', n: 'Hi-vis', price: 1200, top: 0xd7ff1f, pants: 0x222222, helmet: 0xff7a00 },
-  { id: 'night', n: 'Night rider', price: 1600, top: 0x0d0d10, pants: 0x0d0d10, helmet: 0x7a2cff },
-  { id: 'candy', n: 'Candy', price: 2000, top: 0xff6fb5, pants: 0x7dd3fc, helmet: 0xffffff },
-  { id: 'ninja', n: 'Ninja', price: 2400, top: 0x111114, pants: 0x111114, helmet: 0xd61f1f },
-  { id: 'ice', n: 'Ice', price: 2800, top: 0xbfe9ff, pants: 0x2b4c7e, helmet: 0x7fd4ff },
-  { id: 'toxic', n: 'Toxic', price: 3400, top: 0x39ff14, pants: 0x1b1b1b, helmet: 0x39ff14 },
-  { id: 'royal', n: 'Royal', price: 5000, top: 0x4b1d8f, pants: 0x1a1a2e, helmet: 0xffd43b },
-  { id: 'champ', n: 'Champion', price: 7500, top: 0xffd36b, pants: 0x1a1a1a, helmet: 0xffc531 },
+  { id: 'street', n: 'Street', price: 1200, top: 0xe6e2d8, pants: 0x1f2a3a, helmet: 0x111111 },
+  { id: 'race', n: 'Race kit', price: 3600, top: 0x1d4ed8, pants: 0xf2f2f2, helmet: 0xf2f2f2 },
+  { id: 'forest', n: 'Forest', price: 3600, top: 0x2f5d3a, pants: 0x4a3b2a, helmet: 0x6b8e23 },
+  { id: 'hivis', n: 'Hi-vis', price: 4800, top: 0xd7ff1f, pants: 0x222222, helmet: 0xff7a00 },
+  { id: 'night', n: 'Night rider', price: 6400, top: 0x0d0d10, pants: 0x0d0d10, helmet: 0x7a2cff },
+  { id: 'candy', n: 'Candy', price: 8000, top: 0xff6fb5, pants: 0x7dd3fc, helmet: 0xffffff },
+  { id: 'ninja', n: 'Ninja', price: 9600, top: 0x111114, pants: 0x111114, helmet: 0xd61f1f },
+  { id: 'ice', n: 'Ice', price: 11200, top: 0xbfe9ff, pants: 0x2b4c7e, helmet: 0x7fd4ff },
+  { id: 'toxic', n: 'Toxic', price: 13600, top: 0x39ff14, pants: 0x1b1b1b, helmet: 0x39ff14 },
+  { id: 'royal', n: 'Royal', price: 20000, top: 0x4b1d8f, pants: 0x1a1a2e, helmet: 0xffd43b },
+  { id: 'champ', n: 'Champion', price: 30000, top: 0xffd36b, pants: 0x1a1a1a, helmet: 0xffc531 },
 ];
 const owned = store.get('owned', ['p:gloss', 'o:classic']);
 let paintId = store.get('paint', 'gloss'), outfitId = store.get('outfit', 'classic');
@@ -5510,7 +5520,7 @@ function updateRace(dt) {
         const t = race.t, pb = !race.best || t < race.best;
         if (pb) { race.best = t; store.set('hillBest', t); }
         showPopup(t.toFixed(2) + 's', 'good', pb ? 'NEW BEST TIME' : 'BEST ' + race.best.toFixed(2) + 's');
-        earn(Math.max(150, 900 - t * 14), 'Hill Bomb finish'); goal('hill'); online.submit('hill', +t.toFixed(2));
+        earn(Math.max(60, 400 - t * 8), 'Hill Bomb finish'); goal('hill'); online.submit('hill', +t.toFixed(2));
         net.send({ t: 'trick', name: `Hill Bomb in ${t.toFixed(2)}s`, pts: 0 });
       } else { race.gate++; sfx.ding(); showPopup(race.t.toFixed(2) + 's', '', 'CHECKPOINT'); }
     }
@@ -5532,7 +5542,7 @@ function updateAttack(dt) {
     const pts = score - attack.score0; attack.on = false; el.classList.add('hidden');
     const pb = pts > attack.best; if (pb) { attack.best = pts; store.set('attackBest', pts); }
     showPopup(pts.toLocaleString(), 'good', pb ? 'NEW TRICK ATTACK BEST' : 'BEST ' + attack.best.toLocaleString());
-    earn(pts / 12, 'Trick Attack'); if (pts >= 20000) goal('attack20k'); online.submit('attack', pts);
+    earn(trickCoins(Math.min(1500, pts / 60)), 'Trick Attack'); if (pts >= 20000) goal('attack20k'); online.submit('attack', pts);
   }
 }
 // ───────────────────────── avatar (2D portrait + rider head) ─────────────────────────
@@ -5942,7 +5952,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.9.0';
+const GAME_VERSION = '2.9.1';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -6244,7 +6254,7 @@ function updateWoods() {
   const W = WOODS_TRAIL, P = player, on = Math.abs(P.pos.z - W.z) < 8 && P.pos.x > W.x - 2 && P.pos.x < W.x + W.L + 2;
   if (!on || P.bailed) { woodsRun = 0; return; }
   if (P.pos.x < W.x + 16) woodsRun = clock;
-  else if (woodsRun && P.pos.x > W.x + W.L - 18) { const t = clock - woodsRun; woodsRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'WOODS DOWNHILL'); earn(300, 'Woods downhill'); goal('woods'); online.submit('woods', +t.toFixed(2)); }
+  else if (woodsRun && P.pos.x > W.x + W.L - 18) { const t = clock - woodsRun; woodsRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'WOODS DOWNHILL'); earn(150, 'Woods downhill'); goal('woods'); online.submit('woods', +t.toFixed(2)); }
 }
 // ───────────────────────── v2.0: levels, daily challenges, photo mode, instant replay, map ─────────────────────────
 let xp = store.get('xp', 0);
@@ -6610,7 +6620,7 @@ function updateSki(dt) {
   if (veh.kind !== 'ski') { skiRun = 0; return; }
   const u = SKI.z - P.pos.z, onRun = Math.abs(P.pos.x - SKI.x) < SKI.W / 2 + 4;
   if (u < 18 && onRun && Math.abs(P.v) > 1) { if (!skiRun) skiRun = clock; }
-  else if (skiRun && u > SKI.L - 22) { const t = clock - skiRun; skiRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'PEAK RUN'); earn(400, 'Peak Run'); goal('skirun'); online.submit('ski', +t.toFixed(2)); }
+  else if (skiRun && u > SKI.L - 22) { const t = clock - skiRun; skiRun = 0; showPopup(t.toFixed(1) + 's', 'good', 'PEAK RUN'); earn(200, 'Peak Run'); goal('skirun'); online.submit('ski', +t.toFixed(2)); }
   if (P.bailed) skiRun = 0;
 }
 
@@ -7840,16 +7850,16 @@ GRIND_STYLES.ski = { none: 'Rail Slide', A: 'Frontswap', D: 'Backswap', W: 'Nose
 
 // ───────────────────────── v2.1: more skins (hats, capes and quest rewards) ─────────────────────────
 OUTFITS.push(
-  { id: 'retro', n: 'Retro Hero', price: 2500, top: 0xd61f1f, pants: 0x2b54d6, helmet: 0xffd84a, hatK: 'retro', cape: 0xd61f1f },
-  { id: 'gent', n: 'Top Hat', price: 2800, top: 0x1a1a1a, pants: 0x1a1a1a, helmet: 0x111111, hatK: 'tophat' },
-  { id: 'pirate', n: 'Pirate', price: 3000, top: 0x7a1f2b, pants: 0x2b2b30, helmet: 0x1a1a1a, hatK: 'pirate' },
-  { id: 'banana', n: 'Banana', price: 3500, top: 0xf7dc4a, pants: 0xf7dc4a, helmet: 0xf7dc4a, hatK: 'banana' },
-  { id: 'wizard', n: 'Wizard', price: 4000, top: 0x4b1d8f, pants: 0x4b1d8f, helmet: 0x2b1d5f, hatK: 'wizard', cape: 0x2b1d5f },
-  { id: 'knight', n: 'Knight', price: 4500, top: 0x9aa3ad, pants: 0x6b737d, helmet: 0xc0c8d0, hatK: 'knight' },
-  { id: 'robot', n: 'Robot', price: 5500, top: 0x8a949e, pants: 0x5a6470, helmet: 0xaab4be, hatK: 'robot' },
-  { id: 'astro', n: 'Astronaut', price: 6000, top: 0xf2f2f2, pants: 0xf2f2f2, helmet: 0xffffff, hatK: 'astro' },
-  { id: 'devil', n: 'Devil', price: 6660, top: 0xb3121f, pants: 0x1a1a1a, helmet: 0xb3121f, hatK: 'horns', cape: 0x1a1a1a },
-  { id: 'king', n: 'King', price: 8000, top: 0x7a1f2b, pants: 0xf2efe6, helmet: 0xffc531, hatK: 'crown', cape: 0x9b1b30 },
+  { id: 'retro', n: 'Retro Hero', price: 10000, top: 0xd61f1f, pants: 0x2b54d6, helmet: 0xffd84a, hatK: 'retro', cape: 0xd61f1f },
+  { id: 'gent', n: 'Top Hat', price: 11200, top: 0x1a1a1a, pants: 0x1a1a1a, helmet: 0x111111, hatK: 'tophat' },
+  { id: 'pirate', n: 'Pirate', price: 12000, top: 0x7a1f2b, pants: 0x2b2b30, helmet: 0x1a1a1a, hatK: 'pirate' },
+  { id: 'banana', n: 'Banana', price: 14000, top: 0xf7dc4a, pants: 0xf7dc4a, helmet: 0xf7dc4a, hatK: 'banana' },
+  { id: 'wizard', n: 'Wizard', price: 16000, top: 0x4b1d8f, pants: 0x4b1d8f, helmet: 0x2b1d5f, hatK: 'wizard', cape: 0x2b1d5f },
+  { id: 'knight', n: 'Knight', price: 18000, top: 0x9aa3ad, pants: 0x6b737d, helmet: 0xc0c8d0, hatK: 'knight' },
+  { id: 'robot', n: 'Robot', price: 22000, top: 0x8a949e, pants: 0x5a6470, helmet: 0xaab4be, hatK: 'robot' },
+  { id: 'astro', n: 'Astronaut', price: 24000, top: 0xf2f2f2, pants: 0xf2f2f2, helmet: 0xffffff, hatK: 'astro' },
+  { id: 'devil', n: 'Devil', price: 26640, top: 0xb3121f, pants: 0x1a1a1a, helmet: 0xb3121f, hatK: 'horns', cape: 0x1a1a1a },
+  { id: 'king', n: 'King', price: 32000, top: 0x7a1f2b, pants: 0xf2efe6, helmet: 0xffc531, hatK: 'crown', cape: 0x9b1b30 },
   { id: 'tabby', n: 'Tabby', price: 0, quest: 'cat', top: 0xe08a3c, pants: 0xf2efe6, helmet: 0xe08a3c, hatK: 'cat' },
   { id: 'chef', n: 'Chef', price: 0, quest: 'delivery', top: 0xf7f7f7, pants: 0x2b2b30, helmet: 0xffffff, hatK: 'chef' },
   { id: 'captain', n: 'Captain', price: 0, quest: 'bottle', top: 0x1d2a4a, pants: 0xf2efe6, helmet: 0x1d2a4a, hatK: 'captain' },
@@ -7915,6 +7925,12 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.9.1', d: 'November 2026', t: 'Coins are harder to get', items: [
+    "Coins are harder to get: tricks and combos pay about a third of what they did, the most one combo pays is 400 (was 2,500), and you can earn at most 600 coins a minute from tricks",
+    "Trick Attack pays a lot less, and Hill Bomb, Woods Downhill and Peak Run pay less",
+    "Everything in the garage costs 4x more: paints, outfits, ride models and upgrades",
+    "Quests, goals, level-ups, daily challenges and treasure chests still pay the same",
+  ] },
   { v: '2.9.0', d: 'November 2026', t: 'Ride models and THE SKY SEND', items: [
     "Overhead whip cleaned up: the ride now flips up and over your head without going through your body, and you lean out of the way as it comes round",
     "The admin helicopter is parked until April Fools' Day (1 April)",
