@@ -1150,9 +1150,38 @@ const VEH = {
 const IS_KICK = k => k === 'scooter' || k === 'skate';   // rides you push with your foot
 const stanceYaw = k => k === 'skate' ? -Math.PI / 2 : 0;  // skaters stand sideways
 const VEH_KEYS = Object.keys(VEH).filter(k => !VEH[k].hidden);
+// ride models (v2.9): different versions of the e-bike and the e-scooter. m = multipliers on the ride's numbers
+// (whip and bar are spin times, so bigger is slower); st = the stat bars (speed, tricks, wheelies)
+const RIDE_MODELS = {
+  ebike: [
+    { id: 'trail', n: 'TRAIL', d: 'Pedal-assist trail e-bike with an air fork. Light enough to throw around.', price: 0, m: {}, st: [0.85, 0.6, 0.8] },
+    { id: 'moto', n: 'VOLT MX', d: 'Electric dirt bike: footpegs instead of pedals, long-travel suspension and a mad amount of torque. Fastest thing on two wheels, heavier to flip.', price: 4500, m: { top: 1.42, accel: 1.45, hop: 0.92, spin: 0.82, flip: 0.85, whip: 1.25, bar: 1.2, wb: 1.08, wbMax: 1.1 }, st: [1.0, 0.5, 0.95] },
+    { id: 'fat', n: 'FAT TYRE', d: 'Fat-tyre e-bike on 4-inch tyres. Grips everything and floats over sand and grass.', price: 1500, m: { top: 0.94, accel: 1.08, hop: 0.95, spin: 0.95 }, st: [0.75, 0.55, 0.7] },
+  ],
+  escooter: [
+    { id: 'street', n: 'STREET', d: 'Dual-suspension street scooter. Quick, with long wheelies.', price: 0, m: {}, st: [0.9, 0.35, 1.0] },
+    { id: 'commuter', n: 'COMMUTER', d: 'Big-wheeled commuter e-scooter: tall stem, bright front light and a dashboard. Smooth and steady.', price: 800, m: { top: 0.8, accel: 0.85, hop: 0.92, wb: 1.12, wbMax: 1.1 }, st: [0.7, 0.3, 0.85] },
+    { id: 'beast', n: 'THUNDER', d: 'Dual-motor monster scooter: 11-inch tyres, a double stem and swingarm suspension. It properly sends it.', price: 5000, m: { top: 1.45, accel: 1.6, hop: 0.95, spin: 0.85, flip: 0.85, whip: 1.2 }, st: [1.0, 0.3, 1.0] },
+  ],
+};
+let MODELS_SET = null;
+const modelsSet = () => MODELS_SET || (MODELS_SET = store.get('models', {}));
+const modelDef = (kind, id) => (RIDE_MODELS[kind] || []).find(m => m.id === id) || null;
+const defaultModel = kind => RIDE_MODELS[kind] ? RIDE_MODELS[kind][0].id : '';
+const rideModel = kind => modelDef(kind, modelsSet()[kind]) ? modelsSet()[kind] : defaultModel(kind);
+const modelOwned = (kind, id) => { const d = modelDef(kind, id); return !d || !d.price || owned.includes(`m:${kind}:${id}`) || unlockAll; };
+function modelStats(kind) {
+  const b = VEH[kind], d = modelDef(kind, rideModel(kind));
+  if (!d || !d.m) return b;
+  const o = { ...b }; for (const k in d.m) o[k] = b[k] * d.m[k];
+  return o;
+}
 // the admin helicopter (v2.8): how it flies and what its two tricks do
 const HELI = { top: 34, rope: 6, grabR: 32, bombR: 100, bombs: 8, blast: 10, auto: 0.2 };
 let wantHeli = false;
+// the helicopter is an April Fools' Day thing: admins only get it on 1 April
+const heliDay = () => { const d = new Date(); return d.getMonth() === 3 && d.getDate() === 1; };
+const heliOK = () => isAdmin() && heliDay();
 const HELI_ICON = '<svg viewBox="0 0 64 40"><path d="M8 7h48M32 7v6"/><path d="M15 23c0-6 6-10 13-10h8c7 0 12 5 12 10s-5 8-12 8H25c-6 0-10-3-10-8z"/><path d="M48 21h11l2-6M24 31l-2 4M40 31l2 4M15 35h34"/></svg>';
 const COLORS = [0xff4d1f, 0x18a0ff, 0x2ee86c, 0xffc531, 0xb14dff, 0xf2f2f2, 0x1d1d20];
 let paintColor = store.get('color', 0);
@@ -1173,7 +1202,7 @@ const spokeMat = new THREE.LineBasicMaterial({ color: 0xb6bcc2 });
 // spoked wheel: knobby or road tyre, double-wall rim, hub flanges, laced spokes, optional disc / cassette / motor hub
 function spokedWheel(r, tw, o = {}) {
   const g = new THREE.Group();
-  const tire = new THREE.Mesh(new THREE.TorusGeometry(r - tw, tw, 18, 72).scale(1, 1, o.fat ? 1.25 : 1.05), o.slick ? M.slick : M.rubber);
+  const tire = new THREE.Mesh(new THREE.TorusGeometry(r - tw, tw, 18, 72).scale(1, 1, o.wide ? 1.55 : o.fat ? 1.25 : 1.05), o.slick ? M.slick : M.rubber);
   tire.rotation.y = Math.PI / 2; tire.castShadow = true; g.add(tire);
   const rr = r - tw * 1.9, rimW = tw * 1.15;
   const rimMat = o.rimMat || M.darkMetal;
@@ -1238,10 +1267,109 @@ function roundedDeckGeo(len, wid, thick, rad, bevel = 0.006) {
   const g = new THREE.ExtrudeGeometry(s, { depth: thick - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: 8 });
   g.rotateX(-Math.PI / 2); g.translate(0, bevel, 0); return { geo: g, shape: s };
 }
-function buildVehicle(kind, colorIdx = paintColor) {
+// v2.9: VOLT MX, a light electric dirt bike: no pedals (footpegs), a big battery in the frame, long-travel upside-down
+// forks, a motocross seat and a swingarm with a shock. Same layout as the bikes (front steers, rear end whips).
+function buildEmoto(out, paint) {
+  const model = out.model, r = 0.34, tw = 0.05, wbLen = 1.27;
+  const axis = v3(0, 0.91, -0.41).normalize();
+  const HT = v3(0, 1.02, 0.46), HB = HT.clone().addScaledVector(axis, -0.2);
+  const t = (HB.y - r) / axis.y, F = HB.clone().addScaledVector(axis, -t); F.z += 0.04; F.y = r;
+  const R = v3(0, r, F.z - wbLen), mid = (F.z + R.z) / 2;
+  [HT, HB, F, R].forEach(p => p.z -= mid);
+  out.wbLen = wbLen; out.r = r;
+  const gold = MAT_CACHE.moGold || (MAT_CACHE.moGold = new THREE.MeshStandardMaterial({ color: 0xd9a531, metalness: 0.85, roughness: 0.28 }));
+  const plastic = MAT_CACHE.moPl || (MAT_CACHE.moPl = new THREE.MeshStandardMaterial({ color: 0xf1f1ef, roughness: 0.45 }));
+  const seatM = MAT_CACHE.moSeat || (MAT_CACHE.moSeat = new THREE.MeshStandardMaterial({ color: 0x17181b, roughness: 0.85 }));
+  const bx = (w, h, d, mat, p, parent, rx = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.copy(p); m.rotation.x = rx; m.castShadow = true; parent.add(m); return m; };
+  // ── front: forks, triple clamps, bars, number plate, mudguard, wheel ──
+  const front = axisPivot(model, HT, axis);
+  const steer = new THREE.Group(); front.add(steer); steer.updateMatrixWorld(true);
+  const fk = new THREE.Group(); model.add(fk);
+  const crownT = HT.clone().addScaledVector(axis, -0.02), crownB = HB.clone().addScaledVector(axis, -0.02);
+  for (const c of [crownT, crownB]) { const cl = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.08), M.darkMetal); cl.position.copy(c); cl.quaternion.setFromUnitVectors(v3(0, 1, 0), axis); fk.add(cl); }
+  for (const sx of [-1, 1]) {
+    const top = crownT.clone().add(v3(sx * 0.095, 0.02, 0)), bot = F.clone().add(v3(sx * 0.095, 0, 0));
+    const midP = top.clone().lerp(bot, 0.55);
+    tube(top, midP, 0.032, gold, fk); tube(midP, bot.clone().addScaledVector(axis, 0.04), 0.024, M.chrome, fk);
+    bx(0.03, 0.07, 0.05, M.darkMetal, bot, fk);
+  }
+  tube(F.clone().add(v3(-0.1, 0, 0)), F.clone().add(v3(0.1, 0, 0)), 0.012, M.alloy, fk);
+  const stemTop = HT.clone().addScaledVector(axis, 0.03);
+  const barY = stemTop.y + 0.1, barZ = stemTop.z - 0.04, BW = 0.39;
+  const bl = v3(-BW, barY, barZ - 0.05), br = v3(BW, barY, barZ - 0.05);
+  for (const sx of [-1, 1]) tube(stemTop.clone().add(v3(sx * 0.05, 0, 0)), v3(sx * 0.05, barY - 0.02, barZ), 0.016, M.darkMetal, fk);
+  curveTube([bl, v3(-0.24, barY - 0.005, barZ - 0.03), v3(-0.08, barY - 0.02, barZ), v3(0.08, barY - 0.02, barZ), v3(0.24, barY - 0.005, barZ - 0.03), br], 0.012, M.darkMetal, fk);
+  bx(0.12, 0.035, 0.035, seatM, v3(0, barY + 0.005, barZ), fk);   // bar pad
+  for (const gp of [bl, br]) {
+    const sx = Math.sign(gp.x);
+    const g = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.13, 14).rotateZ(Math.PI / 2), M.grip); g.position.copy(gp).add(v3(-sx * 0.065, 0, 0)); fk.add(g);
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.008, 0.016), M.alloy); lever.position.copy(gp).add(v3(-sx * 0.1, -0.014, 0.045)); lever.rotation.y = sx * 0.2; fk.add(lever);
+    bx(0.03, 0.035, 0.035, M.darkMetal, gp.clone().add(v3(-sx * 0.16, 0, 0.005)), fk);
+  }
+  const gripL = new THREE.Object3D(); gripL.position.copy(bl).add(v3(0.065, 0, 0)); fk.add(gripL);
+  const gripR = new THREE.Object3D(); gripR.position.copy(br).add(v3(-0.065, 0, 0)); fk.add(gripR);
+  // number plate with the headlight in it
+  const plateC = crownB.clone().add(v3(0, 0.02, 0.1));
+  const plate = bx(0.26, 0.26, 0.025, plastic, plateC, fk); plate.quaternion.setFromUnitVectors(v3(0, 1, 0), axis);
+  const num = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.09), paint); num.position.copy(plateC).add(v3(0, 0.06, 0.016)); num.quaternion.copy(plate.quaternion); num.rotateX(-Math.PI / 2); fk.add(num);
+  const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.03, 18).rotateX(Math.PI / 2), M.headlight); hl.position.copy(plateC).add(v3(0, -0.05, 0.025)); fk.add(hl);
+  // front mudguard (motocross style, high off the wheel)
+  const mg = new THREE.Mesh(new THREE.TorusGeometry(r + 0.06, 0.05, 4, 20, 1.5).scale(1, 0.4, 1.4), paint); mg.rotation.y = Math.PI / 2; mg.rotateZ(0.9); mg.position.copy(F); fk.add(mg);
+  const fw = spokedWheel(r, tw, { disc: 0.11, fat: true, rimMat: M.darkMetal }); fw.position.copy(F); fk.add(fw);
+  const cal = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.07, 0.05), M.darkMetal); cal.position.set(-0.075, F.y + 0.1, F.z - 0.06); fk.add(cal);
+  curveTube([bl.clone().add(v3(0.16, -0.01, 0.02)), v3(-0.1, barY - 0.12, barZ + 0.06), v3(-0.1, crownB.y - 0.1, crownB.z + 0.06), v3(-0.075, F.y + 0.14, F.z - 0.06)], 0.004, M.hose, fk);
+  steer.attach(fk);
+  // ── rear: frame spars, battery box with side panels, seat, swingarm, shock, motor, chain, wheel ──
+  const whip = axisPivot(model, HT, axis);
+  const fr = new THREE.Group(); model.add(fr);
+  const P = v3(0, 0.42, R.z + 0.6);                         // swingarm pivot
+  const seatF = v3(0, 0.88, HT.z - 0.36), seatR = v3(0, 0.92, R.z + 0.05);
+  tube(HT.clone().addScaledVector(axis, 0.01), HB.clone().addScaledVector(axis, -0.02), 0.04, M.darkMetal, fr);   // head tube
+  for (const sx of [-1, 1]) {
+    tube(HB.clone().add(v3(sx * 0.05, 0.05, -0.03)), P.clone().add(v3(sx * 0.07, 0.08, 0.04)), 0.03, M.alloy, fr);        // main spars
+    tube(HT.clone().add(v3(sx * 0.04, -0.03, -0.05)), seatF.clone().add(v3(sx * 0.07, -0.08, 0)), 0.024, M.alloy, fr);    // top rails
+    tube(seatF.clone().add(v3(sx * 0.07, -0.08, 0)), seatR.clone().add(v3(sx * 0.06, -0.08, 0.05)), 0.016, M.alloy, fr); // subframe
+    tube(seatR.clone().add(v3(sx * 0.06, -0.08, 0.05)), P.clone().add(v3(sx * 0.07, 0.1, -0.02)), 0.014, M.alloy, fr);
+  }
+  const bc = HB.clone().lerp(P, 0.5).add(v3(0, 0.08, 0));
+  const bat = bx(0.2, 0.3, 0.46, M.darkMetal, bc, fr, -0.35);
+  for (const sx of [-1, 1]) { const pan = bx(0.012, 0.26, 0.42, paint, bc.clone().add(v3(sx * 0.106, 0.01, 0)), fr, -0.35); const stripe = bx(0.014, 0.05, 0.36, plastic, bc.clone().add(v3(sx * 0.107, -0.06, 0)), fr, -0.35); }
+  // seat and rear mudguard
+  const seatL = seatF.distanceTo(seatR), sc = seatF.clone().lerp(seatR, 0.5);
+  const seat = bx(0.2, 0.08, seatL, seatM, sc, fr); seat.rotation.x = Math.atan2(seatR.y - seatF.y, seatF.z - seatR.z);
+  const rg = bx(0.15, 0.02, 0.3, paint, seatR.clone().add(v3(0, -0.02, -0.14)), fr, -0.35);
+  const tl = bx(0.07, 0.03, 0.02, M.taillight, seatR.clone().add(v3(0, -0.07, -0.3)), fr);
+  // swingarm + shock
+  for (const sx of [-1, 1]) tube(P.clone().add(v3(sx * 0.07, 0, 0)), R.clone().add(v3(sx * 0.075, 0, 0)), 0.024, M.alloy, fr, 0.02);
+  tube(R.clone().add(v3(-0.1, 0, 0)), R.clone().add(v3(0.1, 0, 0)), 0.012, M.alloy, fr);
+  const shA = seatF.clone().add(v3(0, -0.14, -0.18)), shB = P.clone().lerp(R, 0.35).add(v3(0, 0.08, 0));
+  tube(shA, shB, 0.022, M.darkMetal, fr);
+  const hp = []; const dirS = shB.clone().sub(shA);
+  for (let i = 0; i <= 70; i++) { const a = i / 70 * Math.PI * 14, q = shA.clone().addScaledVector(dirS, 0.15 + 0.6 * i / 70); hp.push(q.add(v3(Math.cos(a) * 0.04, Math.sin(a) * 0.012, Math.sin(a) * 0.035))); }
+  curveTube(hp, 0.006, M.postbox, fr);
+  // motor, sprockets, chain
+  const mot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.15, 28).rotateZ(Math.PI / 2), M.darkMetal); mot.position.copy(P).add(v3(0, -0.04, 0.12)); fr.add(mot);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.155, 20).rotateZ(Math.PI / 2), paint); cap.position.copy(mot.position); fr.add(cap);
+  const sp1 = mot.position.clone().add(v3(0.09, 0, 0)), sp2 = R.clone().add(v3(0.09, 0, 0));
+  const big = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.008, 6, 40), M.chain); big.rotation.y = Math.PI / 2; big.position.copy(sp2); fr.add(big);
+  tube(sp1.clone().add(v3(0, 0.04, 0)), sp2.clone().add(v3(0, 0.13, 0)), 0.006, M.chain, fr, 0.006, 6);
+  tube(sp1.clone().add(v3(0, -0.04, 0)), sp2.clone().add(v3(0, -0.13, 0)), 0.006, M.chain, fr, 0.006, 6);
+  // footpegs
+  const pegZ = P.z + 0.02, pegY = 0.4;
+  for (const sx of [-1, 1]) { const peg = bx(0.1, 0.022, 0.05, M.darkMetal, v3(sx * 0.17, pegY, pegZ), fr); }
+  const rw = spokedWheel(r, tw, { disc: 0.1, fat: true, rimMat: M.darkMetal }); rw.position.copy(R); fr.add(rw);
+  const calR = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.05, 0.06), M.darkMetal); calR.position.set(-0.08, R.y + 0.09, R.z + 0.05); fr.add(calR);
+  whip.attach(fr);
+  out.front = front; out.steer = steer; out.whip = whip; out.crank = null; out.pedals = null; out.grips = [gripL, gripR];
+  out.wheels = [{ obj: fw, r }, { obj: rw, r }];
+  out.feet = [v3(-0.17, pegY + 0.02, pegZ), v3(0.17, pegY + 0.02, pegZ)];
+  out.seated = true; out.saddle = v3(0, sc.y + 0.06, seatF.z - 0.2); out.hip = null;
+  out.contactR = R.z; out.contactF = F.z; out.forkLowers = null;
+}
+function buildVehicle(kind, colorIdx = paintColor, rm = rideModel(kind)) {
   const paint = new THREE.MeshPhysicalMaterial({ color: COLORS[colorIdx % COLORS.length], metalness: 0.5, roughness: 0.26, clearcoat: 1, clearcoatRoughness: 0.05 });
   const model = new THREE.Group();
-  const out = { model, wheels: [], kind, paint };
+  const out = { model, wheels: [], kind, paint, rm };
   if (kind === 'surf') {
     // a shortboard: rounded nose, squash tail, a stringer and three fins
     const PIV = 0.06, deckTop = 0.075;
@@ -1308,9 +1436,12 @@ function buildVehicle(kind, colorIdx = paintColor) {
     out.wbLen = 0.43; out.r = r; out.deckTop = deckTop; out.skate = true;
     out.feet = [v3(0, deckTop + 0.012, 0.2), v3(0, deckTop + 0.012, -0.24)];
     out.contactR = -0.215; out.contactF = 0.215;
+  } else if (kind === 'ebike' && rm === 'moto') {
+    buildEmoto(out, paint);
   } else if (kind === 'bike' || kind === 'ebike') {
-    const e = kind === 'ebike';
-    const r = e ? 0.37 : 0.335, tw = e ? 0.034 : 0.03;
+    const e = kind === 'ebike', fat = e && rm === 'fat';
+    const r = e ? (fat ? 0.38 : 0.37) : 0.335, tw = e ? (fat ? 0.068 : 0.034) : 0.03;
+    const fw2 = fat ? 0.108 : 0.068, rw2 = fat ? 0.104 : 0.066;   // fat tyres need a wider fork and rear end
     const axis = v3(0, 0.94, -0.34).normalize();
     const HT = v3(0, e ? 0.99 : 0.87, e ? 0.42 : 0.36), HB = HT.clone().addScaledVector(axis, e ? -0.15 : -0.13);
     const t = (HB.y - r) / axis.y, F = HB.clone().addScaledVector(axis, -t); F.z += 0.045; F.y = r;
@@ -1327,7 +1458,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     const crown = HB.clone().addScaledVector(axis, -0.03);
     const box3 = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.045, 0.07), e ? M.darkMetal : paint); box3.position.copy(crown); box3.quaternion.setFromUnitVectors(v3(0, 1, 0), axis); fk.add(box3);
     for (const sx of [-1, 1]) {
-      const top = v3(sx * 0.068, crown.y, crown.z), bot = v3(sx * 0.068, F.y, F.z);
+      const top = v3(sx * fw2, crown.y, crown.z), bot = v3(sx * fw2, F.y, F.z);
       if (e) { const midP = top.clone().lerp(bot, 0.45); tube(top, midP, 0.019, M.chrome, fk); tube(midP.clone().add(v3(0, 0.03, -0.01)), bot.clone().add(v3(0, -0.02, 0.005)), 0.026, M.darkMetal, fk); }
       else tube(top, bot, 0.017, paint, fk, 0.014);
       const drop = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.05, 0.035), M.darkMetal); drop.position.copy(bot); fk.add(drop);
@@ -1355,7 +1486,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     const cal = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.06, 0.04), M.darkMetal); cal.position.set(-0.075, F.y + 0.09, F.z - 0.055); fk.add(cal);
     const gripL = new THREE.Object3D(); gripL.position.copy(bl).add(v3(0.065, 0, 0)); fk.add(gripL);
     const gripR = new THREE.Object3D(); gripR.position.copy(br).add(v3(-0.065, 0, 0)); fk.add(gripR);
-    const fw = spokedWheel(r, tw, { disc: e ? 0.09 : 0.08, fat: e, rimMat: e ? M.darkMetal : M.alloy }); fw.position.copy(F); fk.add(fw);
+    const fw = spokedWheel(r, tw, { disc: e ? 0.09 : 0.08, fat: e, rimMat: e ? M.darkMetal : M.alloy, wide: fat }); fw.position.copy(F); fk.add(fw);
     if (e) { const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.028, 0.05, 16).rotateX(Math.PI / 2), M.headlight); hl.position.copy(stemTop).add(v3(0, -0.03, 0.07)); fk.add(hl); const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.034, 0.06, 16).rotateX(Math.PI / 2), M.darkMetal); hb.position.copy(hl.position).add(v3(0, 0, -0.012)); fk.add(hb); const disp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.04), new THREE.MeshStandardMaterial({ color: 0x050505, emissive: 0x6fd6ff, emissiveIntensity: 1.6 })); disp.position.set(-0.08, barY + 0.01, barZ); fk.add(disp); }
     steer.attach(fk);
     // ── rear triangle (tailwhips around the steering axis) ──
@@ -1370,9 +1501,9 @@ function buildVehicle(kind, colorIdx = paintColor) {
     tube(BB, S, tr * 0.95, paint, fr);
     for (const p of [S, HTt, HB, BB]) weld(p, (e ? 0.04 : 0.032), paint, fr);
     for (const sx of [-1, 1]) {
-      tube(v3(sx * 0.025, BB.y, BB.z - 0.02), v3(sx * 0.066, R.y, R.z), 0.015, paint, fr, 0.012);
-      tube(v3(sx * 0.02, S.y - 0.09, S.z + 0.02), v3(sx * 0.066, R.y + 0.01, R.z), 0.012, paint, fr, 0.01);
-      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.05, 0.05), M.darkMetal); drop.position.set(sx * 0.066, R.y, R.z); fr.add(drop);
+      tube(v3(sx * 0.025, BB.y, BB.z - 0.02), v3(sx * rw2, R.y, R.z), 0.015, paint, fr, 0.012);
+      tube(v3(sx * 0.02, S.y - 0.09, S.z + 0.02), v3(sx * rw2, R.y + 0.01, R.z), 0.012, paint, fr, 0.01);
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.05, 0.05), M.darkMetal); drop.position.set(sx * rw2, R.y, R.z); fr.add(drop);
     }
     // seatpost, clamp & saddle
     const post = S.clone().add(v3(0, 0.1, -0.035));
@@ -1381,7 +1512,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     const sad = new THREE.Group(); sad.position.copy(post).add(v3(0, 0.025, -0.01)); fr.add(sad);
     const sRear = new THREE.Mesh(new THREE.SphereGeometry(0.075, 18, 10), M.saddle); sRear.scale.set(1, 0.32, 1.0); sRear.position.z = -0.04; sad.add(sRear);
     const sNose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 14, 8), M.saddle); sNose.scale.set(0.9, 0.55, 2.4); sNose.position.z = 0.07; sad.add(sNose);
-    const rw = spokedWheel(r, tw, { disc: e ? 0.09 : 0.08, cassette: true, fat: e, rimMat: e ? M.darkMetal : M.alloy }); rw.position.copy(R); fr.add(rw);
+    const rw = spokedWheel(r, tw, { disc: e ? 0.09 : 0.08, cassette: true, fat: e, rimMat: e ? M.darkMetal : M.alloy, wide: fat }); rw.position.copy(R); fr.add(rw);
     const calR = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.04, 0.06), M.darkMetal); calR.position.set(-0.075, R.y + 0.08, R.z + 0.05); fr.add(calR);
     curveTube([v3(-0.075, R.y + 0.1, R.z + 0.08), v3(-0.03, S.y - 0.15, S.z + 0.05), v3(-0.01, HT.y - 0.06, HT.z - 0.1), v3(-0.02, HT.y + 0.04, HT.z + 0.02)], 0.0035, M.hose, fr);
     if (e) {
@@ -1397,9 +1528,9 @@ function buildVehicle(kind, colorIdx = paintColor) {
       }
     }
     // drivetrain: chainring, chain, cranks with platform pedals
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.008, 6, 40), M.chain); ring.rotation.y = Math.PI / 2; ring.position.copy(BB).add(v3(0.062, 0, 0)); fr.add(ring);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.008, 6, 40), M.chain); ring.rotation.y = Math.PI / 2; ring.position.copy(BB).add(v3(fat ? 0.12 : 0.062, 0, 0)); fr.add(ring);
     const ringIn = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.088, 0.004, 5).rotateZ(Math.PI / 2), M.darkMetal); ringIn.position.copy(ring.position); fr.add(ringIn);
-    const cogR = 0.045, ch = new THREE.Vector3(0.062, 0, 0);
+    const cogR = 0.045, ch = new THREE.Vector3(fat ? 0.12 : 0.062, 0, 0);
     tube(BB.clone().add(ch).add(v3(0, 0.095, 0)), R.clone().add(ch).add(v3(0, cogR, 0)), 0.005, M.chain, fr, 0.005, 6);
     tube(BB.clone().add(ch).add(v3(0, -0.095, 0)), R.clone().add(ch).add(v3(0, -cogR, 0)), 0.005, M.chain, fr, 0.005, 6);
     const crank = new THREE.Group(); crank.position.copy(BB); fr.add(crank);
@@ -1418,12 +1549,12 @@ function buildVehicle(kind, colorIdx = paintColor) {
     out.contactR = R.z; out.contactF = F.z;
     out.forkLowers = null;
   } else {
-    const e = kind === 'escooter';
-    const r = e ? 0.115 : 0.055, wbLen = e ? 0.98 : 0.5;
+    const e = kind === 'escooter', big = e && rm === 'beast', com = e && rm === 'commuter';
+    const r = e ? (big ? 0.15 : com ? 0.13 : 0.115) : 0.055, wbLen = e ? (big ? 1.2 : com ? 1.02 : 0.98) : 0.5, etw = big ? 0.058 : 0.04;
     const R = v3(0, r, -wbLen / 2), F = v3(0, r, wbLen / 2);
     const axis = e ? v3(0, 1, -0.12).normalize() : v3(0, 1, -0.06).normalize();
-    const deckTop = e ? 0.2 : 0.11;
-    const HB = v3(0, e ? 0.22 : 0.14, F.z - (e ? 0.04 : 0.028)), HT = HB.clone().addScaledVector(axis, e ? 0.98 : 0.8);
+    const deckTop = e ? (big ? 0.28 : com ? 0.17 : 0.2) : 0.11;
+    const HB = v3(0, e ? (big ? 0.31 : com ? 0.245 : 0.22) : 0.14, F.z - (e ? 0.04 : 0.028)), HT = HB.clone().addScaledVector(axis, e ? (big ? 0.98 : com ? 1.04 : 0.98) : 0.8);
     out.wbLen = wbLen; out.r = r; out.deckTop = deckTop;
     const front = axisPivot(model, HB, axis);
     const steer = new THREE.Group(); front.add(steer); steer.updateMatrixWorld(true);
@@ -1444,7 +1575,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
       const clampS = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.065, 0.052), M.darkMetal); clampS.position.copy(HB).addScaledVector(axis, 0.18); fk.add(clampS);
       for (const by of [-0.02, 0.02]) for (const bx of [-1, 1]) { const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.012, 6).rotateZ(Math.PI / 2), M.alloy); bolt.position.copy(clampS.position).add(v3(bx * 0.03, by, 0)); fk.add(bolt); }
     }
-    const barW = e ? 0.26 : 0.315;
+    const barW = e ? (big ? 0.34 : com ? 0.28 : 0.26) : 0.315;
     const gl = v3(-barW, HT.y, HT.z), gr = v3(barW, HT.y, HT.z);
     tube(gl, gr, e ? 0.014 : 0.0165, e ? M.darkMetal : paint, fk);
     if (!e) { weld(v3(0, HT.y, HT.z), 0.024, paint, fk); for (const sx of [-1, 1]) tube(v3(0, HT.y - 0.085, HT.z), v3(sx * 0.07, HT.y - 0.004, HT.z), 0.008, paint, fk); }
@@ -1459,9 +1590,23 @@ function buildVehicle(kind, colorIdx = paintColor) {
     const gripL = new THREE.Object3D(); gripL.position.copy(gl).add(v3(0.065, 0, 0)); fk.add(gripL);
     const gripR = new THREE.Object3D(); gripR.position.copy(gr).add(v3(-0.065, 0, 0)); fk.add(gripR);
     // fork + front wheel
-    for (const sx of [-1, 1]) tube(v3(sx * (e ? 0.045 : 0.03), HB.y - (e ? 0.12 : 0.01), HB.z), v3(sx * (e ? 0.045 : 0.03), F.y, F.z), e ? 0.013 : 0.01, M.darkMetal, fk);
-    const fcrown = new THREE.Mesh(new THREE.BoxGeometry(e ? 0.12 : 0.08, 0.02, 0.04), M.darkMetal); fcrown.position.set(0, HB.y - (e ? 0.12 : 0.01), HB.z); fk.add(fcrown);
-    const fw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, motor: true, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); fw.position.copy(F); fk.add(fw);
+    const fx2 = big ? 0.075 : 0.045;
+    for (const sx of [-1, 1]) tube(v3(sx * (e ? fx2 : 0.03), HB.y - (e ? 0.12 : 0.01), HB.z), v3(sx * (e ? fx2 : 0.03), F.y, F.z), e ? (big ? 0.018 : 0.013) : 0.01, M.darkMetal, fk);
+    const fcrown = new THREE.Mesh(new THREE.BoxGeometry(e ? fx2 * 2 + 0.03 : 0.08, 0.02, 0.04), M.darkMetal); fcrown.position.set(0, HB.y - (e ? 0.12 : 0.01), HB.z); fk.add(fcrown);
+    const fw = e ? spokedWheel(r, etw, { fat: true, slick: !big, motor: true, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); fw.position.copy(F); fk.add(fw);
+    if (com) {
+      // commuter: a big square headlight on the stem, a wide dashboard and a long front mudguard
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.05, 0.04), M.headlight); lamp.position.copy(HB).addScaledVector(axis, 0.78).add(v3(0, 0, 0.04)); fk.add(lamp);
+      const dash = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.02, 0.07), new THREE.MeshStandardMaterial({ color: 0x050505, emissive: 0xffffff, emissiveIntensity: 0.9 })); dash.position.copy(HT).add(v3(0, 0.03, 0.01)); fk.add(dash);
+      const guard = new THREE.Mesh(new THREE.TorusGeometry(r + 0.03, 0.03, 4, 18, 1.9).scale(1, 1, 1.3), paint); guard.rotation.y = Math.PI / 2; guard.rotateZ(0.65); guard.position.copy(F); fk.add(guard);
+    }
+    if (big) {
+      // dual-motor monster: a second stem tube, twin headlights, a chunky front swingarm with a shock
+      for (const sx of [-1, 1]) tube(HB.clone().addScaledVector(axis, 0.2).add(v3(sx * 0.05, 0, 0)), HT.clone().add(v3(sx * 0.05, -0.05, 0)), 0.019, M.darkMetal, fk);
+      for (const sx of [-1, 1]) { const hl2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.04, 16).rotateX(Math.PI / 2), M.headlight); hl2.position.copy(HB).addScaledVector(axis, 0.5).add(v3(sx * 0.05, 0, 0.05)); fk.add(hl2); }
+      for (const sx of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.2), paint); arm.position.set(sx * fx2, F.y + 0.06, F.z - 0.09); arm.rotation.x = 0.35; fk.add(arm); }
+      curveTube([v3(0, HB.y - 0.1, HB.z + 0.02), v3(0, F.y + 0.12, F.z - 0.1)], 0.018, M.postbox, fk);
+    }
     if (e) {
       const disp = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.016, 0.055), new THREE.MeshStandardMaterial({ color: 0x050505, emissive: 0x2ad1ff, emissiveIntensity: 1.8 })); disp.position.copy(HT).add(v3(0, 0.022, 0.005)); fk.add(disp);
       const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.035, 16).rotateX(Math.PI / 2), M.headlight); hl.position.copy(HB).addScaledVector(axis, 0.62).add(v3(0, 0, 0.035)); fk.add(hl);
@@ -1474,7 +1619,7 @@ function buildVehicle(kind, colorIdx = paintColor) {
     // deck + rear (tailwhips around the stem)
     const whip = axisPivot(model, HB, axis);
     const fr = new THREE.Group(); model.add(fr);
-    const deckL = e ? 0.76 : 0.52, deckW = e ? 0.17 : 0.125, deckH = e ? 0.085 : 0.036;
+    const deckL = e ? (big ? 0.94 : com ? 0.6 : 0.76) : 0.52, deckW = e ? (big ? 0.25 : com ? 0.17 : 0.17) : 0.125, deckH = e ? (big ? 0.11 : com ? 0.07 : 0.085) : 0.036;
     const dz = HB.z - deckL / 2 - 0.03;
     const deck = roundedDeckGeo(deckL, deckW, deckH, e ? 0.03 : 0.02);
     const dm = new THREE.Mesh(deck.geo, e ? M.darkMetal : paint); dm.position.set(0, deckTop - deckH, dz); dm.castShadow = true; fr.add(dm);
@@ -1492,7 +1637,13 @@ function buildVehicle(kind, colorIdx = paintColor) {
       const drop = new THREE.Mesh(new THREE.BoxGeometry(0.008, e ? 0.12 : 0.07, e ? 0.12 : 0.08), e ? M.darkMetal : paint); drop.position.copy(a.clone().lerp(v3(a.x, R.y, R.z), 0.5)); drop.rotation.x = e ? 0.4 : 0.6; fr.add(drop);
     }
     const fender = new THREE.Mesh(new THREE.TorusGeometry(r + 0.012, 0.014, 4, 18, Math.PI * 0.55).scale(1, 1, e ? 3.0 : 1.9), M.darkMetal); fender.rotation.y = Math.PI / 2; fender.rotateZ(0.6); fender.position.copy(R); fr.add(fender);
-    const rw = e ? spokedWheel(r, 0.04, { fat: true, slick: true, disc: 0.06, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); rw.position.copy(R); fr.add(rw);
+    const rw = e ? spokedWheel(r, etw, { fat: true, slick: !big, disc: 0.06, rimMat: M.darkMetal }) : stuntWheel(r, 0.026, paint); rw.position.copy(R); fr.add(rw);
+    if (big) {
+      // swingarm plates, a big rear shock, light strips under the deck
+      for (const sx of [-1, 1]) { const pl = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.07, 0.3), paint); pl.position.set(sx * 0.075, (deckTop - deckH + R.y) / 2, R.z + 0.13); pl.rotation.x = 0.45; fr.add(pl); }
+      curveTube([v3(0, deckTop - deckH * 0.3, dz - deckL / 2 + 0.05), v3(0, R.y + 0.09, R.z + 0.08)], 0.02, M.postbox, fr);
+      for (const sx of [-1, 1]) { const strip = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.012, deckL * 0.8), new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x2ad1ff, emissiveIntensity: 2 })); strip.position.set(sx * (deckW / 2 + 0.003), deckTop - deckH + 0.02, dz); fr.add(strip); }
+    }
     if (e) {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), M.taillight); tl.position.set(0, r + 0.12, R.z - 0.11); fr.add(tl);
       const shock = curveTube([v3(0.06, deckTop - deckH, dz - deckL / 2 + 0.1), v3(0.06, R.y + 0.05, R.z + 0.06)], 0.012, M.postbox, fr);
@@ -2026,9 +2177,9 @@ function makeAvatar(riderOpts = {}) {
   return A;
 }
 function seatRider(A) { A.veh.model.add(A.rider.group); A.rider.group.position.set(0, 0, 0); A.rider.group.rotation.set(0, stanceYaw(A.kind), 0); }
-function setAvatarVehicle(A, kind, colorIdx) {
+function setAvatarVehicle(A, kind, colorIdx, rm) {
   if (A.veh) { A.wheelieG.remove(A.veh.model); A.veh.model.traverse(o => o.geometry && o.geometry.dispose()); }
-  A.veh = buildVehicle(kind, colorIdx); A.veh.cfg = VEH[kind]; A.kind = kind;
+  A.veh = buildVehicle(kind, colorIdx, rm === undefined ? rideModel(kind) : (modelDef(kind, rm) ? rm : defaultModel(kind))); A.veh.cfg = VEH[kind]; A.kind = kind;
   A.wheelieG.add(A.veh.model);
   seatRider(A);
   A.veh.model.position.set(0, 0, -A.veh.contactR); A.wheelieG.position.z = A.veh.contactR;
@@ -2509,6 +2660,11 @@ function launch(P, vy, hv, ramp, th, hop = false) {
   if (P.inWheelie) finishWheelie();
   if (P.inStop) { P.stop = 0; finishStoppie(); }
   P.air = true; P.airTime = 0; P.airStart.copy(P.pos); P.maxH = P.pos.y;
+  P.skySend = false;
+  if (ramp && ramp.launch && P.v > 6 && Math.cos(wrap(P.yaw - ramp.yaw)) > 0.6) {
+    P.yaw = ramp.yaw; vy = ramp.launch.vy; hv = ramp.launch.hv; P.skySend = true;
+    if (P === player) { showPopup('LAUNCHED', 'good', 'HOLD ON'); shake = Math.max(shake, 0.6); }
+  }
   forward(P.yaw);
   P.vel.set(fwd.x * hv, vy, fwd.z * hv);
   resetTricks();
@@ -2772,13 +2928,15 @@ function scoreAir(P, C, yawErr, flipErr) {
   if (P.vertAir && Math.abs(P.airStart.x + 150) < 14 && Math.abs(P.airStart.z + 164) < 10) goal('bowl');
   if (P.airStart.x > BA.kickX - 1 && P.airStart.x < BA.kickX + 13 && Math.abs(P.airStart.z - 95) < 5 && P.pos.x > BA.landX + 4) { parts.push('XL Mega'); pts += 1500; mult += 2; goal('xlmega'); }
   if (P.airStart.x > H100.kickX - 1 && P.airStart.x < H100.kickX + 20 && Math.abs(P.airStart.z - H100.Z) < 6 && P.pos.x > H100.landX + 4) { parts.push('THE 100'); pts += 5000; mult += 3; goal('the100'); }
+  if (P.skySend && P.airTime > 8) { parts.push('SKY SEND'); pts += 10000; mult += 4; goal('skysend'); }
   if (P.vertAir && P.maxH > 5 && P.airStart.x > 440 && P.airStart.x < 476 && Math.abs(P.airStart.z + 95) < 10) goal('vert5');
   if (P.airStart.x > -162 && P.airStart.x < -146 && Math.abs(P.airStart.z - 490) < 5 && P.pos.x > CY.mesaB) { parts.push('Canyon Gap'); pts += 1200; mult += 2; goal('canyon'); }
   if (P.airStart.x > -367 && P.airStart.x < -353 && P.airStart.z > -112 && P.airStart.z < -106 && P.pos.z > -101) { parts.push('El Toro'); pts += 700; mult += 1; goal('eltoro'); }
   if (P.airStart.x > -484 && P.airStart.x < -456 && P.airStart.z > 68 && P.airStart.z < 73 && P.pos.z < 64.5) { parts.push('Town Hall 12'); pts += 500; mult += 1; goal('townhall'); }
   if (P.airStart.x > 199.8 && P.airStart.x < 216 && Math.abs(P.airStart.z - 57) < 5.5 && P.pos.x < 199.4) { parts.push('Plaza 7'); pts += 300; mult += 1; goal('plaza7'); }
   if (parts.length === 0) return;
-  if (P.airTime > 1.2) online.submit('air', +P.airTime.toFixed(2));
+  if (P.airTime > 1.2 && !P.skySend) online.submit('air', +P.airTime.toFixed(2));
+  P.skySend = false;
   pts += airPts;
   let name = parts.join(' ');
   if (dist > 12) name += ` (${Math.round(dist)}m)`;
@@ -3011,8 +3169,10 @@ function applyAvatar(A, S, dt) {
 // model, so they get the opposite turn and stay facing forward; poseRider then moves the grips and pedals into the
 // rider's frame with A.ohM.
 const _ohA = new THREE.Vector3(), _ohB = new THREE.Vector3(), _ohM = new THREE.Matrix4(), _ohN = new THREE.Matrix4(), _ohT = new THREE.Matrix4(), _ohS = new THREE.Vector3(), _ohP = new THREE.Vector3();
+// how far the ride has turned on its side: it goes flat as it comes up over your head, before it can touch you
+const ohRoll = S => { const o = clamp((((S.poses && S.poses.overhead) || 0) - 0.05) * 1.6, 0, 1); return o * o * (3 - 2 * o); };
 function overheadWhip(A, S) {
-  const V = A.veh, g = A.rider.group, th = S.ohs || 0, w = (A.sm && A.sm.ohw) || 0;
+  const V = A.veh, g = A.rider.group, th = S.ohs || 0, w = ohRoll(S);
   if (V.board || !V.grips) { A.ohP = null; return; }
   if (th < 1e-4 && w < 0.005) {
     if (A.ohP) { V.model.quaternion.identity(); V.model.position.x = 0; V.model.position.y = 0; g.position.set(0, 0, 0); g.rotation.set(0, stanceYaw(A.kind), 0); A.ohP = null; }
@@ -3027,7 +3187,7 @@ function overheadWhip(A, S) {
   M.makeTranslation(_ohP.x, _ohP.y, _ohP.z).multiply(_ohN.makeRotationY(th)).multiply(_ohN.makeRotationZ(w * Math.PI / 2)).multiply(_ohN.makeTranslation(-_ohP.x, -_ohP.y, -_ohP.z));
   _ohT.makeTranslation(0, 0, zBase).multiply(M); _ohT.decompose(V.model.position, V.model.quaternion, _ohS);
   // the rider: undo M, stay dropped below the ride by the overhead amount, keep the stance
-  const oh = (S.poses && S.poses.overhead) || 0, ohH = (A.kind === 'bike' || A.kind === 'ebike' ? 1.02 : 1.12) * oh;
+  const oh = (S.poses && S.poses.overhead) || 0, ohH = (A.kind === 'bike' || A.kind === 'ebike' ? 1.16 : 1.22) * Math.min(1, oh * 1.6);
   _ohT.copy(M).invert().multiply(_ohN.makeTranslation(0, -ohH, 0)).multiply(_ohM.makeRotationY(stanceYaw(A.kind)));
   _ohT.decompose(g.position, g.quaternion, _ohS);
   A.ohP = { x: _ohP.x, z: _ohP.z };
@@ -3098,7 +3258,7 @@ function poseRider(dt, S, A) {
   sm.barOff = damp(sm.barOff || 0, S.barring ? 1 : 0, S.barring ? 40 : 14, dt);
   const crouch = S.crouch + (S.air ? 0.07 : 0) + (S.braking ? 0.04 : 0) + (S.grinding ? 0.08 : 0);
   toLocal(V.grips[0], L.ht[0]); toLocal(V.grips[1], L.ht[1]);
-  if (bike) { toLocal(V.pedals[0], L.ft[0]); toLocal(V.pedals[1], L.ft[1]); L.ft[0].y += 0.085; L.ft[1].y += 0.085; L.ft[0].z -= 0.03; L.ft[1].z -= 0.03; }
+  if (bike && V.pedals) { toLocal(V.pedals[0], L.ft[0]); toLocal(V.pedals[1], L.ft[1]); L.ft[0].y += 0.085; L.ft[1].y += 0.085; L.ft[0].z -= 0.03; L.ft[1].z -= 0.03; }
   else { L.ft[0].copy(V.feet[0]); L.ft[1].copy(V.feet[1]); L.ft[0].y += 0.07; L.ft[1].y += 0.07; }
   if (A.ohP) for (const p of [L.ht[0], L.ht[1], L.ft[0], L.ft[1]]) p.applyMatrix4(A.ohM);   // overhead whip: the ride is turned, so move its grips and pedals into the rider's frame
   if (kind === 'bike') L.hip.set(0, 1.08 - crouch, V.contactR + 0.34);
@@ -3122,14 +3282,16 @@ function poseRider(dt, S, A) {
     if (sm.barOff > 0.01) L.ht[s].lerp(v3(side * 0.46, L.ht[s].y + 0.36, L.ht[s].z - 0.14), sm.barOff * 0.9);
     for (const k in S.poses) { const a = S.poses[k]; if (a > 0.01 && POSE_FX[k]) POSE_FX[k](L, a, s, c); }
   }
-  const oh = S.poses.overhead || 0, ohH = (bike ? 1.02 : 1.12) * oh;
+  const oh = S.poses.overhead || 0, ohH = (bike ? 1.16 : 1.22) * Math.min(1, oh * 1.6);
   if (!A.ohP) R.group.position.y = -ohH;
   sm.ohw = damp(sm.ohw || 0, (S.ohs || 0) > 1e-4 ? 1 : 0, 12, dt);
   if (oh > 0.01) {
     // stand right under the bars, so when it whips round it goes round over your head; while it spins, both hands
     // hold the middle of the bars
-    const mx = A.ohP ? A.ohP.x : (L.ht[0].x + L.ht[1].x) / 2, mz = A.ohP ? A.ohP.z : (L.ht[0].z + L.ht[1].z) / 2, w = sm.ohw * oh;
-    L.hip.x += (mx - L.hip.x) * oh * 0.9; L.hip.z += (mz - 0.12 - L.hip.z) * oh * 0.8;
+    const mx = A.ohP ? A.ohP.x : (L.ht[0].x + L.ht[1].x) / 2, mz = A.ohP ? A.ohP.z : (L.ht[0].z + L.ht[1].z) / 2, rl = ohRoll(S), w = rl;
+    // only step under the bars once the ride is flat, so the frame never passes through you
+    L.hip.x += (mx - L.hip.x) * rl * rl * 0.9; L.hip.z += (mz - 0.1 - L.hip.z) * rl * rl * 0.85;
+    L.hip.x -= Math.sin(Math.PI * rl) * 0.38;   // step aside while it turns over, the frame swings the other way
     for (let s = 0; s < 2; s++) {
       const side = s === 0 ? -1 : 1;
       L.ht[s].x += (mx + side * 0.07 - L.ht[s].x) * w; L.ht[s].z += (mz - L.ht[s].z) * w;
@@ -3660,7 +3822,7 @@ concreteRamp({ x: -282, z: 0, yaw: -Math.PI / 2, width: 13, length: 3.4 * 0.965 
 for (const [x, h] of [[-230, 1.1], [-205, 0.6], [-125, 1.3], [-20, 1.0]]) { const r = new Ramp({ x, z: 0, yaw: Math.PI / 2, width: 2.0, length: 2.4, type: 'kicker', surface: 'wood', profile: PROF.kicker(2.4, h, 1.3) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 12 }); }
 const BA = { kickX: 418, landX: 448, bagKickX: 368, bagX: 378 }, CY = { mesaB: -128 }, WOODS_TRAIL = {};
 // ───────────────────────── v2.1: the sea (waves, islands, treasure) and the snowy mountain ─────────────────────────
-const SEA_Y = -0.3, ISLANDS = [], CHESTS = [], SKI = {}, WAREHOUSE = {}, ROOF = {}, H100 = { Z: 225, kickX: 440, landX: 500 };
+const SEA_Y = -0.3, ISLANDS = [], CHESTS = [], SKI = {}, WAREHOUSE = {}, ROOF = {}, H100 = { Z: 225, kickX: 440, landX: 500 }, SKY = { Z: 800, X0: 360, TOP: 60, RUN: 72, kickX: 466, KL: 40, KH: 24, vy: 130, hv: 20, bag: [820, 926, 742, 858] };
 function waveH(x, z, t) {
   const f = clamp((SEA_Z - 4 - z) / 30, 0, 1);   // flat by the beach, rolling further out
   return (Math.sin(z * 0.11 + t * 1.3) * 0.34 + Math.sin(x * 0.06 + z * 0.045 - t * 0.8) * 0.22 + Math.sin(x * 0.17 - t * 1.7) * 0.06) * f;
@@ -4329,6 +4491,37 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
     lampSpots.push(v3(X0 + 4, TOP + 3, Z), v3(KX + 8, 10, Z), v3(LX + 6, LH + 3, Z));
     NEW_ZONES.the100 = { name: 'THE 100', pos: v3(X0 + 3, 0, Z), yaw: Math.PI / 2 };
   }
+  // ── THE SKY SEND: a 60 m drop-in, a launch kicker and about 20 seconds of air onto a giant airbag ──
+  {
+    const { Z, X0, TOP, RUN, kickX: KX, KL, KH } = SKY, DK = 10;
+    const roll = new Ramp({ x: X0, z: Z, yaw: Math.PI / 2, width: 12, length: DK + RUN, type: 'rollin', surface: 'wood', profile: PROF.rollin(DK, RUN, TOP) });
+    buildRampMesh(roll, M.wood, M.woodSide, { nu: 120, sideMap: graffitiTex('SKY SEND') });
+    for (let x = X0 + 2; x <= X0 + DK + RUN; x += 7) { const h = roll.profile(x - X0); if (h < 1) continue; for (const s of [-1, 1]) cyl(0.14, 0.14, h, M.steelRed, x, h / 2, Z + s * 5.6, scene, 6); if (h > 10) for (let y = 8; y < h; y += 12) box(0.12, 0.12, 11.2, M.steel, x, y, Z); }
+    for (const s of [-1, 1]) { tube(v3(X0 + 0.2, TOP + 1, Z + s * 5.9), v3(X0 + DK - 0.2, TOP + 1, Z + s * 5.9), 0.045, M.pole, scene); for (const x of [X0 + 0.2, X0 + DK / 2, X0 + DK - 0.2]) cyl(0.035, 0.035, 1, M.pole, x, TOP + 0.5, Z + s * 5.9, scene, 6); }
+    tube(v3(X0 + 0.2, TOP + 1, Z - 5.9), v3(X0 + 0.2, TOP + 1, Z + 5.9), 0.045, M.pole, scene);
+    for (const [dz, i] of [[-3.2, 1], [3.2, 3]]) deckSign(X0 + 0.4, TOP + 2.6, Z + dz, Math.PI / 2, 4.6, 2.4);
+    // the lift up the tower
+    box(3.4, TOP + 3, 3.4, M.darkMetal, X0 - 2.4, (TOP + 3) / 2, Z); collide(X0 - 2.4, Z, 1.7, 1.7, TOP - 1);
+    SKY.top = v3(X0 + 4, TOP, Z); SKY.base = v3(X0 - 2.4, 0, Z - 5.5);
+    // the run-out to the launcher
+    flat(X0 + DK + RUN - 2, KX + 1, Z - 16, Z + 16, M.rampTop, 0.03, 8, 'park');
+    const kick = new Ramp({ x: KX, z: Z, yaw: Math.PI / 2, width: 14, length: KL, type: 'kicker', surface: 'wood', profile: PROF.kicker(KL, KH, 1.9) });
+    kick.launch = { vy: SKY.vy, hv: SKY.hv };
+    buildRampMesh(kick, M.wood, M.woodSide, { nu: 60, sideMap: sponsorTex(2) });
+    for (let x = KX + 4; x <= KX + KL; x += 4) { const h = kick.profile(x - KX); if (h < 1) continue; for (const s of [-1, 1]) cyl(0.12, 0.12, h, M.steelRed, x, h / 2, Z + s * 6.7, scene, 6); if (h > 6) for (let y = 5; y < h; y += 8) box(0.1, 0.1, 13.4, M.steel, x, y, Z); }
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(14, KH), M.darkMetal); back.position.set(KX + KL + 0.03, KH / 2, Z); back.rotation.y = Math.PI / 2; scene.add(back);
+    for (const [dz, i] of [[-4.6, 0], [0, 4], [4.6, 2]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.1), sponsorMat(i)); m.position.set(KX + KL + 0.08, KH - 3, Z + dz); m.rotation.y = Math.PI / 2; m.userData.noMerge = true; scene.add(m); }
+    // the airbag: a huge one, so you can't miss it
+    const [bx0, bx1, bz0, bz1] = SKY.bag;
+    block(bx0, bx1, bz0, bz1, 5, M.airbag, M.airbagSide, 'airbag', 40);
+    for (const [x, z] of [[bx0, bz0], [bx0, bz1], [bx1, bz0], [bx1, bz1]]) cyl(0.9, 1.1, 5.6, M.airbagSide, x, 2.8, z, scene, 10);
+    const ring = (r, c) => { const m = new THREE.Mesh(new THREE.RingGeometry(r - 1.4, r, 48), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85 })); m.rotation.x = -Math.PI / 2; m.position.set((bx0 + bx1) / 2 - 8, 5.04, Z); m.userData.noMerge = true; scene.add(m); };
+    ring(10, 0xffffff); ring(22, 0xffd21f); ring(34, 0xffffff);
+    for (const sd of [-1, 1]) bannerStrip((X0 + KX) / 2 + 20, 1.2, Z + sd * 16.4, sd > 0 ? Math.PI : 0, 90, 1.6);
+    for (const [lx, lz] of [[KX - 30, Z + 26], [KX - 30, Z - 26], [KX + KL + 30, Z + 26], [KX + KL + 30, Z - 26]]) { cyl(0.5, 0.7, 40, M.pole, lx, 20, lz, scene, 8); const p = box(8, 4, 0.6, M.lamp, lx, 41, lz, scene, false); p.rotation.y = lz > Z ? Math.PI : 0; lampSpots.push(v3(lx, 39, lz - Math.sign(lz - Z) * 6)); collide(lx, lz, 0.8, 0.8); }
+    lampSpots.push(v3(X0 + 5, TOP + 3, Z), v3(KX + KL - 4, KH + 3, Z), v3((bx0 + bx1) / 2, 9, Z));
+    NEW_ZONES.sky = { name: 'THE SKY SEND', pos: v3(X0 + 4, 0, Z), yaw: Math.PI / 2 };
+  }
   // ── a tall drop-in tower with railings on the Big Bowl deck ──
   {
     const X = 445, Z = -217.15, BH = 4.5, R = 6.6, W = 10, u = R * 0.965, dk = 1.5, top = BH + qh(R); // foot right on the coping of the long straight side
@@ -4762,7 +4955,7 @@ const net = (() => {
   }
   const roomId = c => 'sendit-room-' + c.toLowerCase();
   const ADMIN_MSGS = new Set(['bomb', 'grab', 'drop']);
-  function hello(withTicket) { const h = { t: 'hi', name: myName(), kind: player.kind, color: paintColor, helmet: outfit(outfitId).helmet, paint: paintId, outfit: outfitId, av: AV, acct: !!online.me }; if (withTicket && myTicket) h.ticket = myTicket; return h; }
+  function hello(withTicket) { const h = { t: 'hi', name: myName(), kind: player.kind, model: rideModel(player.kind), color: paintColor, helmet: outfit(outfitId).helmet, paint: paintId, outfit: outfitId, av: AV, acct: !!online.me }; if (withTicket && myTicket) h.ticket = myTicket; return h; }
   function setUi(connected) {
     for (const id of ['mp-join', 'mp-code']) document.getElementById(id).classList.toggle('hidden', connected);
     document.querySelector('.host-box').classList.toggle('hidden', connected);
@@ -4821,7 +5014,7 @@ const net = (() => {
     });
     peer.on('error', e => status(e.type === 'peer-unavailable' ? `No server with code <b>${code}</b>. It may have closed.` : 'Connection problem (' + e.type + ').'));
   }
-  const others = r => ({ t: 'hi', id: r.id, name: r.name, kind: r.kind, color: r.color, helmet: r.helmet, paint: r.paint, outfit: r.outfit, av: r.av });
+  const others = r => ({ t: 'hi', id: r.id, name: r.name, kind: r.kind, model: r.model, color: r.color, helmet: r.helmet, paint: r.paint, outfit: r.outfit, av: r.av });
   function setup(conn, as) {
     conn.on('open', () => {
       clearTimeout(joinTimer);
@@ -4897,7 +5090,7 @@ const net = (() => {
     r.name = m.name; r.av = m.av; r.helmet = helmet;
     const avKey = JSON.stringify(m.av || {});
     if (r.outfit !== m.outfit || r.avKey !== avKey) { r.outfit = m.outfit; r.avKey = avKey; applyOutfitTo(r.A, m.outfit || 'classic', m.av); }
-    if (r.kind !== m.kind || r.color !== m.color || r.paint !== m.paint) { r.kind = m.kind; r.color = m.color; r.paint = m.paint; setAvatarVehicle(r.A, m.kind, m.color); applyPaint(r.A.veh.paint, m.paint || 'gloss', COLORS[m.color % COLORS.length]); }
+    if (r.kind !== m.kind || r.color !== m.color || r.paint !== m.paint || r.model !== (m.model || '')) { r.kind = m.kind; r.color = m.color; r.paint = m.paint; r.model = m.model || ''; setAvatarVehicle(r.A, m.kind, m.color, r.model); applyPaint(r.A.veh.paint, m.paint || 'gloss', COLORS[m.color % COLORS.length]); }
   }
   function drop(id) {
     const r = remotes.get(id); if (!r) return;
@@ -5154,7 +5347,7 @@ const UPG_COST = [250, 600, 1200, 2400, 4500];
 const upg = store.get('upg', {});
 const upgLevel = (kind, id) => (upg[kind] && upg[kind][id]) || 0;
 function vehCfg(kind) {
-  const b = VEH[kind], L = id => upgLevel(kind, id), t = 1 + 0.08 * L('trick');
+  const b = modelStats(kind), L = id => upgLevel(kind, id), t = 1 + 0.08 * L('trick');
   return { ...b, top: b.top * (1 + 0.06 * L('speed')), accel: b.accel * (1 + 0.12 * L('accel')), hop: b.hop * (1 + 0.06 * L('pop')), spin: b.spin * t, flip: b.flip * t, whip: b.whip / t, bar: b.bar / t, grip: L('grip') };
 }
 const PAINTS = [
@@ -5238,8 +5431,18 @@ function renderGarage() {
   renderCash();
   document.querySelectorAll('#garage-tabs button').forEach(b => b.classList.toggle('sel', b.dataset.t === gTab));
   const k = player.kind;
-  const gr = document.getElementById('g-ride'); if (gr) gr.innerHTML = gTab === 'up' ? VEH_KEYS.map(v => `<button data-ride="${v}" class="${v === k ? 'sel' : ''}${rideOpen(v) ? '' : ' locked'}" title="${rideOpen(v) ? '' : 'Unlocks at level ' + RIDE_LVL[v]}">${VEH[v].label}</button>`).join('') : '';
-  if (gTab === 'up') {
+  const gr = document.getElementById('g-ride'); if (gr) gr.innerHTML = gTab === 'up' || gTab === 'models' ? VEH_KEYS.map(v => `<button data-ride="${v}" class="${v === k ? 'sel' : ''}${rideOpen(v) ? '' : ' locked'}" title="${rideOpen(v) ? '' : 'Unlocks at level ' + RIDE_LVL[v]}">${VEH[v].label}</button>`).join('') : '';
+  if (gTab === 'models') {
+    const list = RIDE_MODELS[k];
+    if (!list) { el.innerHTML = `<div class="g-note">The <b>${VEH[k].label}</b> only comes in one model. The <b>E-BIKE</b> and <b>E-SCOOTER</b> come in a few: switch ride at the top right.</div>`; return; }
+    const cur = rideModel(k);
+    el.innerHTML = `<div class="g-note">Models of the <b>${VEH[k].label}</b>. Each one looks and rides differently; your upgrades and paint work on all of them.</div><div class="m-list">` + list.map(m => {
+      const own = modelOwned(k, m.id), on = cur === m.id;
+      return `<div class="m-card ${on ? 'on' : ''}"><div class="m-top"><b>${m.n}</b>${on ? '<small>RIDING</small>' : ''}</div><p>${m.d}</p>` +
+        ['SPEED', 'TRICKS', 'WHEELIES'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${m.st[i] * 100}%"></i></div></div>`).join('') +
+        (own ? `<button data-model="${m.id}" ${on ? 'disabled' : ''}>${on ? 'EQUIPPED' : 'RIDE IT'}</button>` : `<button data-buy="m:${m.id}" ${cash < m.price ? 'class="poor"' : ''}>${coinHTML(m.price)}</button>`) + `</div>`;
+    }).join('') + `</div>`;
+  } else if (gTab === 'up') {
     el.innerHTML = `<div class="g-note">Upgrades for your <b>${VEH[k].label}</b>. Each ride has its own upgrades — switch ride at the top right.</div>` + UPGRADES.map(u => {
       const lv = upgLevel(k, u.id), cost = UPG_COST[lv];
       return `<div class="g-row"><div><b>${u.n}</b><span>${u.d} per level</span></div><div class="pips">${[0, 1, 2, 3, 4].map(i => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div>` +
@@ -5259,10 +5462,18 @@ function renderGarage() {
       `<div class="p-head">QUEST REWARDS <span class="muted">finish quests to unlock these</span></div><div class="g-grid">${OUTFITS.filter(o => o.quest).map(card).join('')}</div>`;
   }
 }
+function setRideModel(kind, id) {
+  if (!modelDef(kind, id) || !modelOwned(kind, id)) return;
+  modelsSet()[kind] = id; store.set('models', modelsSet());
+  if (player.kind === kind && player.mode !== 'heli') { equip(kind); if (player.mode === 'walk') setVehicleShown(me, false); }
+  online.saveSoon(1000); renderGarage(); buildMenu();
+  showPopup(modelDef(kind, id).n, 'good', `YOUR ${VEH[kind].label} MODEL`);
+}
 function garageClick(e) {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.t) { gTab = b.dataset.t; renderGarage(); return; }
   if (b.dataset.ride) { equip(b.dataset.ride); spawn(zoneFor()); buildMenu(); return; }
+  if (b.dataset.model) { setRideModel(player.kind, b.dataset.model); return; }
   if (b.dataset.av) { const [key, v] = b.dataset.av.split(':'); setAvatar(key, v); return; }
   const k = player.kind;
   if (b.dataset.buy) {
@@ -5270,10 +5481,12 @@ function garageClick(e) {
     let price = 0;
     if (type === 'u') price = UPG_COST[upgLevel(k, id)];
     else if (type === 'p') price = PAINTS.find(p => p.id === id).price;
+    else if (type === 'm') price = modelDef(k, id).price;
     else price = OUTFITS.find(o => o.id === id).price;
     if (cash < price) { b.textContent = 'NEED ' + (price - cash).toLocaleString() + ' MORE'; return; }
     cash -= price; store.set('cash', cash);
     if (type === 'u') { upg[k] = upg[k] || {}; upg[k][id] = upgLevel(k, id) + 1; store.set('upg', upg); veh.cfg = vehCfg(k); online.saveSoon(1000); }
+    if (type === 'm') { owned.push(`m:${k}:${id}`); store.set('owned', owned); renderCash(); setRideModel(k, id); online.saveSoon(1000); sfx.ding(); return; }
     else { owned.push(type + ':' + id); store.set('owned', owned); if (type === 'p') paintId = id; else outfitId = id; store.set('paint', paintId); store.set('outfit', outfitId); equipLook(); }
     sfx.ding(); renderGarage(); return;
   }
@@ -5412,10 +5625,11 @@ const online = (() => {
   }
   const emit = () => listeners.forEach(f => { try { f(); } catch (e) { console.warn(e); } });
   // what we keep in the cloud
-  function snapshot() { return { v: 1, cash, upg, owned, paint: paintId, outfit: outfitId, color: paintColor, goals: [...goalsDone], best, hillBest: race.best, attackBest: attack.best, xp, inv, quests: questState, treasures: store.get('treasures', 0) }; }
+  function snapshot() { return { v: 1, cash, upg, owned, models: modelsSet(), paint: paintId, outfit: outfitId, color: paintColor, goals: [...goalsDone], best, hillBest: race.best, attackBest: attack.best, xp, inv, quests: questState, treasures: store.get('treasures', 0) }; }
   function adopt(save) {
     if (!save || !save.v) return false;
     cash = save.cash | 0; store.set('cash', cash);
+    if (save.models && typeof save.models === 'object') { MODELS_SET = Object.assign({}, save.models); store.set('models', MODELS_SET); }
     for (const k of Object.keys(upg)) delete upg[k]; Object.assign(upg, save.upg || {}); store.set('upg', upg);
     owned.length = 0; owned.push(...new Set(['p:gloss', 'o:classic', ...(save.owned || [])])); store.set('owned', owned);
     paintId = save.paint || 'gloss'; outfitId = save.outfit || 'classic'; store.set('paint', paintId); store.set('outfit', outfitId);
@@ -5728,7 +5942,7 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.8.2';
+const GAME_VERSION = '2.9.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
@@ -5897,24 +6111,24 @@ const ZONE_INFO = {
   woods: ['Woods', 'Forest downhill with tables, drops and logs', 'NEW'],
   market: ['Market Street', 'DcMonalds, Kurger Bings, Barstucks, Ocset and the pub', 'NEW'], mountain: ['Peak Run', 'Snowy mountain: ski hut, chairlift and a ski run', 'NEW'],
   islands: ['Islands', 'Surf out to five islands with treasure chests', 'NEW'],
-  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'], bigbowl: ['The Big Bowl', 'A massive bowl with an 8 m drop-in tower', 'NEW'], the100: ['The 100', 'A 100 m roll-in inside a stadium', 'NEW'],
+  woodpark: ['Wood Park', 'Wooden comp park in the trees, with a pool', 'NEW'], warehouse: ['The Warehouse', 'Indoor park: flow bowl, quarters and a spine', 'NEW'], rooftop: ['Rooftop Park', 'A park on a roof between skyscrapers', 'NEW'], bigbowl: ['The Big Bowl', 'A massive bowl with an 8 m drop-in tower', 'NEW'], the100: ['The 100', 'A 100 m roll-in inside a stadium', 'NEW'], sky: ['The Sky Send', '60 m drop-in, a giant launch kicker and 20 seconds of air onto an airbag', 'NEW'],
 };
-const ZONE_ORDER = ['auto', 'the100', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
+const ZONE_ORDER = ['auto', 'sky', 'the100', 'woodpark', 'bigbowl', 'warehouse', 'rooftop', 'market', 'mountain', 'islands', 'bigair', 'downtown', 'canyon', 'woods', 'vert', 'airbag', 'desert', 'street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard'];
 const zoneThumb = k => `assets/maps/${k}.jpg`;
 function renderRidePicker() {
   const el = document.getElementById('ride-picker'); if (!el) return;
-  const heliSel = wantHeli || player.mode === 'heli';
+  const heliSel = heliOK() && (wantHeli || player.mode === 'heli');
   el.innerHTML = VEH_KEYS.map(k => rideOpen(k) ? `<button data-ride="${k}" class="${k === player.kind && !heliSel ? 'sel' : ''}" title="${VEH[k].label}">${RIDE_ICON[k] || ''}<span>${VEH[k].label}</span></button>`
     : `<button data-ride="${k}" class="locked" title="Unlocks at level ${RIDE_LVL[k]}">${RIDE_ICON[k] || ''}<span>LEVEL ${RIDE_LVL[k]}</span><i class="lock"></i></button>`).join('')
-    + (isAdmin() ? `<button data-heli="1" class="heli-pick${heliSel ? ' sel' : ''}" title="HELICOPTER (admin)">${HELI_ICON}<span>HELICOPTER</span><i class="adm-tag">ADMIN</i></button>` : '');
-  if (heliSel && isAdmin()) {
+    + (heliOK() ? `<button data-heli="1" class="heli-pick${heliSel ? ' sel' : ''}" title="HELICOPTER (admin)">${HELI_ICON}<span>HELICOPTER</span><i class="adm-tag">ADMIN</i></button>` : '');
+  if (heliSel && heliOK()) {
     document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>HELICOPTER</b><small>ADMIN ONLY</small></div><div class="ri-desc">Fly anywhere. <b>${keyName('t1')}</b> drops bombs anywhere within 100 m, <b>${keyName('t2')}</b> grabs the nearest rider or person below you on a rope and carries them wherever you like (press it again to drop them).</div>` +
       ['SPEED', 'BOMBS', 'CHAOS'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${[0.95, 1, 1][i] * 100}%"></i></div></div>`).join('');
     return;
   }
-  const c = VEH[player.kind], lv = UPGRADES.reduce((t, u) => t + upgLevel(player.kind, u.id), 0);
-  document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>${c.label}</b>${lv ? `<small>UPGRADES ${lv}/25</small>` : ''}</div><div class="ri-desc">${c.desc}</div>` +
-    ['SPEED', 'TRICKS', 'WHEELIES'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${c.stats[i] * 100}%"></i></div></div>`).join('');
+  const c = VEH[player.kind], lv = UPGRADES.reduce((t, u) => t + upgLevel(player.kind, u.id), 0), md = modelDef(player.kind, rideModel(player.kind)), st = md ? md.st : c.stats;
+  document.getElementById('ride-info').innerHTML = `<div class="ri-top"><b>${c.label}${md ? ` <span class="ri-model">${md.n}</span>` : ''}</b>${lv ? `<small>UPGRADES ${lv}/25</small>` : ''}</div><div class="ri-desc">${md ? md.d : c.desc}${md ? ' <a class="ri-more" data-models="1">Other models</a>' : ''}</div>` +
+    ['SPEED', 'TRICKS', 'WHEELIES'].map((n, i) => `<div class="stat"><span>${n}</span><div class="bar"><i style="width:${st[i] * 100}%"></i></div></div>`).join('');
 }
 function renderZoneCard() {
   const el = document.getElementById('zone-card'); if (!el) return;
@@ -5934,8 +6148,9 @@ function openZonePicker() {
   document.getElementById('zone-picker').classList.remove('hidden');
 }
 {
+  document.getElementById('ride-info').addEventListener('click', e => { if (e.target.closest('[data-models]')) { gTab = 'models'; setTab('garage'); } });
   document.getElementById('ride-picker').addEventListener('click', e => {
-    if (e.target.closest('[data-heli]')) { if (!isAdmin()) return; wantHeli = true; buildMenu(); return; }
+    if (e.target.closest('[data-heli]')) { if (!heliOK()) return; wantHeli = true; buildMenu(); return; }
     const b = e.target.closest('[data-ride]'); if (!b) return;
     wantHeli = false; if (player.mode === 'heli') exitHeli('force');
     equip(b.dataset.ride); spawn(zoneFor()); buildMenu();
@@ -5996,7 +6211,7 @@ document.getElementById('ride-btn').onclick = () => startRide();
 let hintT = 25;
 function startRide() {
   sfx.init(); music.start();
-  if (wantHeli && isAdmin() && player.mode !== 'heli') enterHeli(); else if (player.mode === 'heli' && !isAdmin()) exitHeli('force');
+  if (wantHeli && heliOK() && player.mode !== 'heli') enterHeli(); else if (player.mode === 'heli' && !heliOK()) exitHeli('force');
   state = 'play'; elMenu.classList.add('hidden'); elHUD.classList.remove('hidden');
   if (IS_TOUCH) elTouch.classList.remove('hidden');
   camState.init = false;
@@ -6156,7 +6371,7 @@ function updateReplay(dt) {
 }
 
 // the full map: every place in the game, click one to go there
-const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'bigbowl', 'the100', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
+const MAP_ZONES = ['street', 'park', 'dirt', 'mega', 'plaza', 'hill', 'beach', 'yard', 'bigair', 'vert', 'airbag', 'downtown', 'canyon', 'desert', 'woods', 'market', 'skihut', 'mountain', 'woodpark', 'bigbowl', 'the100', 'sky', 'warehouse', 'rooftop', 'isle_palm', 'isle_skull', 'isle_far', 'isle_tiny', 'isle_sandbar'];
 let mapPrev = 'play';
 function openMap() {
   if (state === 'map') return closeMap();
@@ -7337,7 +7552,7 @@ function heliAvatar(A, S, dt) {
 const heliGround = (x, z) => Math.max(heightAt(x, z), inWater(x, z) ? SEA_Y : -1e9);
 function enterHeli() {
   const P = player;
-  if (!isAdmin()) return;
+  if (!heliOK()) return;
   if (P.bailed || P.carried) return;
   if (P.inWheelie) finishWheelie();
   if (parked) { scene.remove(parked.g); parked = null; }
@@ -7679,7 +7894,7 @@ function capeMesh(col) {
 
 // ───────────────────────── v2.1: more goals & leaderboards ─────────────────────────
 GOALS.push(
-  ['the100', 'Clear the gap on The 100'], ['foampit', 'Land in the foam pit'],
+  ['the100', 'Clear the gap on The 100'], ['skysend', 'Land The Sky Send on the airbag'], ['foampit', 'Land in the foam pit'],
   ['shareclip', 'Share a clip or photo to the SEND IT Discord'],
   ['walk', 'Get off and walk around'], ['reverse', 'Ride backwards for 10 m'], ['shop', 'Go into a shop'], ['allshops', 'Visit all five shops on Market Street (the pub is at the far end)'],
   ['buy', 'Buy food or a drink'], ['eat', 'Eat or drink something'], ['eat10', 'Eat or drink 10 things'],
@@ -7700,6 +7915,15 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '2.9.0', d: 'November 2026', t: 'Ride models and THE SKY SEND', items: [
+    "Overhead whip cleaned up: the ride now flips up and over your head without going through your body, and you lean out of the way as it comes round",
+    "The admin helicopter is parked until April Fools' Day (1 April)",
+    "NEW: ride models. In the GARAGE, the new MODELS tab has different versions of the e-bike and the e-scooter, each with its own look and feel",
+    "E-bike models: TRAIL (the one you had), VOLT MX (an electric dirt bike with footpegs, long-travel suspension and loads of torque) and FAT TYRE (4-inch tyres)",
+    "E-scooter models: STREET (the one you had), COMMUTER (big wheels, tall stem, front light and dashboard) and THUNDER (a dual-motor monster scooter)",
+    "Other riders online see the model you're riding",
+    "New place: THE SKY SEND. A 60 m drop-in tower, a 24 m launch kicker and about 20 seconds of air onto a giant airbag (+10,000 and x4)",
+  ] },
   { v: '2.8.2', d: 'November 2026', t: 'Bomb spam', items: [
     'The helicopter\'s bombs have no cooldown any more: every press drops a load, and holding the key keeps them raining down',
   ] },
@@ -7848,6 +8072,7 @@ function rideLift(to) { const P = player; P.pos.copy(to); P.v = 0; P.air = false
 INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: () => placeOpen('rooftop') || curLevel() >= PLACE_LVL.rooftop ? 'Take the lift to the roof' : `Lift to the roof (unlocks at level ${PLACE_LVL.rooftop})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.rooftop) return lockedPlaceMsg('rooftop'); rideLift(v3(ROOF.lift.x + 2, ROOF.H, ROOF.lift.z)); } });
 INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
 INTERACT.push({ x: H100.base.x, z: H100.base.z, r: 4, label: () => unlockAll || curLevel() >= PLACE_LVL.the100 ? 'Take the lift up The 100' : `Lift up The 100 (unlocks at level ${PLACE_LVL.the100})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.the100) return lockedPlaceMsg('the100'); rideLift(H100.top.clone()); showPopup('THE 100', '', '100 M UP'); } });
+INTERACT.push({ x: SKY.base.x, z: SKY.base.z, r: 4, label: () => placeOpen('sky') ? 'Take the lift up The Sky Send' : `Lift up The Sky Send (unlocks at level ${PLACE_LVL.sky})`, fn: () => { if (!placeOpen('sky')) return lockedPlaceMsg('sky'); rideLift(SKY.top.clone()); showPopup('THE SKY SEND', '', '60 M UP'); } });
 // ───────────────────────── v2.5: Discord Rich Presence ─────────────────────────
 // The desktop app reads window.__presence every few seconds and shows it on your Discord profile
 // ("Playing SEND IT", where you are, what you ride, how many are in your server). Turn it off in Settings.
@@ -8284,7 +8509,7 @@ function drawMiniExtras(k, P) {
 
 // ───────────────────────── v2.2: rides and places you unlock by levelling up ─────────────────────────
 const RIDE_LVL = { bike: 1, scooter: 1, skate: 2, escooter: 3, ebike: 4, surf: 4, ski: 6 };
-const PLACE_LVL = { woodpark: 3, islands: 4, isle_palm: 4, isle_skull: 4, isle_far: 4, isle_tiny: 4, isle_sandbar: 4, warehouse: 5, mountain: 6, skihut: 6, bigbowl: 7, rooftop: 8, the100: 9 };
+const PLACE_LVL = { woodpark: 3, islands: 4, isle_palm: 4, isle_skull: 4, isle_far: 4, isle_tiny: 4, isle_sandbar: 4, warehouse: 5, mountain: 6, skihut: 6, bigbowl: 7, rooftop: 8, the100: 9, sky: 10 };
 let visited = new Set(store.get('visited', []));
 let unlockAll = store.get('unlockAll', false);
 function curLevel() { return levelOf(xp).l; }
@@ -8409,6 +8634,7 @@ async function admDo(action, user, extra = {}) {
   document.getElementById('adm-skins').onclick = () => {
     for (const p of PAINTS) if (!owned.includes('p:' + p.id)) owned.push('p:' + p.id);
     for (const o of OUTFITS) if (!owned.includes('o:' + o.id)) owned.push('o:' + o.id);
+    for (const k in RIDE_MODELS) for (const m of RIDE_MODELS[k]) if (!owned.includes(`m:${k}:${m.id}`)) owned.push(`m:${k}:${m.id}`);
     store.set('owned', owned); online.saveSoon(500); admMsg('Every paint job and skin is yours.'); renderGarage();
   };
 }

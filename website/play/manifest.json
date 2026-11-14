@@ -1,7 +1,7 @@
 {
- "version": "2.8.2",
+ "version": "2.9.0",
  "minShell": "1.5.0",
- "notes": "2.8.2: bomb spam",
+ "notes": "Ride models (VOLT MX, FAT TYRE, COMMUTER, THUNDER), THE SKY SEND with 20 s of air, cleaner overhead whip, helicopter parked until April Fools",
  "files": [
   {
    "path": "discord.json",
@@ -9,19 +9,19 @@
   },
   {
    "path": "index.html",
-   "sha256": "e12739ded6510a58ae10cb59d0cb78f4cda05186b77110ec08f2977bb9d7951d"
+   "sha256": "8dc54a875af82800b1e43a990268997bf395bfe1baf03df4f05ea498fc445b6b"
   },
   {
    "path": "style.css",
-   "sha256": "acd9c11b42c01e77293f47b3806df449a9b3ff2e03513a9e0a6ef893a652d3ed"
+   "sha256": "58cb6c15cd4a8312778aaae59976b52ff73e1f8670f6996551518e8bb2505370"
   },
   {
    "path": "version.json",
-   "sha256": "befb02ce08e95756641ff99454fff102f6ea06ffa23ea3ea74b8d22c855d276d"
+   "sha256": "88660cfe14c3ac72ef16b1be94155dd31afa8725187ef5151de22d2974ceddd9"
   },
   {
    "path": "src/game.js",
-   "sha256": "cc193519251e8aefd34891b091e64e1dfa61fc6ac703ad21ec5df1f30b4436b5"
+   "sha256": "5160d6d8e1c845a9ff2970b09c22b00863ac742b7fde78e383f20e158281d3ef"
   },
   {
    "path": "assets/logo-icon.png",

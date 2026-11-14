@@ -2,6 +2,21 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "2.9.0",
+   "date": "November 2026",
+   "title": "Ride models and THE SKY SEND",
+   "image": "media/online.jpg",
+   "items": [
+    "Overhead whip cleaned up: the ride now flips up and over your head without going through your body, and you lean out of the way as it comes round",
+    "The admin helicopter is parked until April Fools' Day (1 April)",
+    "NEW: ride models. In the GARAGE, the new MODELS tab has different versions of the e-bike and the e-scooter, each with its own look and feel",
+    "E-bike models: TRAIL (the one you had), VOLT MX (an electric dirt bike with footpegs, long-travel suspension and loads of torque) and FAT TYRE (4-inch tyres)",
+    "E-scooter models: STREET (the one you had), COMMUTER (big wheels, tall stem, front light and dashboard) and THUNDER (a dual-motor monster scooter)",
+    "Other riders online see the model you're riding",
+    "New place: THE SKY SEND. A 60 m drop-in tower, a 24 m launch kicker and about 20 seconds of air onto a giant airbag (+10,000 and x4)"
+   ]
+  },
+  {
    "v": "2.8.2",
    "date": "November 2026",
    "title": "Bomb spam",

@@ -721,3 +721,15 @@ body:not(.touch) .touch-only{display:none}
 /* v2.8.0: the admin helicopter in the rides list */
 .ride-picker button.heli-pick{position:relative;border-style:dashed}
 .ride-picker .adm-tag{position:absolute;top:3px;right:4px;font-style:normal;font-size:8px;font-weight:800;letter-spacing:.5px;color:#111;background:var(--accent);border-radius:4px;padding:1px 4px}
+
+/* v2.9.0: ride models */
+.m-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.m-card{background:rgba(255,255,255,.04);border:2px solid transparent;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.m-card.on{border-color:var(--accent)}
+.m-top{display:flex;justify-content:space-between;align-items:baseline}
+.m-top b{font-family:var(--display);font-size:22px;letter-spacing:1.5px}
+.m-top small{font-family:var(--display);font-size:12px;letter-spacing:1px;color:var(--accent2)}
+.m-card p{margin:0 0 4px;font-size:12.5px;line-height:1.4;opacity:.8;min-height:52px}
+.m-card button{margin-top:6px}
+.ri-model{color:var(--accent);font-size:.8em;margin-left:4px}
+.ri-more{color:var(--accent2);cursor:pointer;text-decoration:underline;font-weight:700;white-space:nowrap}
