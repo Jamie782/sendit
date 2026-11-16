@@ -2,6 +2,22 @@
  "launcher": "1.0.0",
  "news": [
   {
+   "v": "3.0.0",
+   "date": "November 2026",
+   "title": "SEND IT 3: the big one",
+   "image": "media/v3-park.jpg",
+   "items": [
+    "The skatepark is rebuilt from scratch: a clover bowl with pool coping, quarter pipes all round, a jump box, a spine, a pyramid, a volcano, and a raised street plaza with a 7-stair, hubbas, ledges and rails",
+    "New: the HYPE bar. Tricks fill it, then press X for SEND MODE: 10 seconds of double points and more speed",
+    "New: callouts. Every so often the game throws you a quick challenge (a combo, an air, a grind) with coins for doing it in time",
+    "New: over 50 hidden spray cans, around every place on the map. Each one pays coins and XP, and finding them all pays 2,000",
+    "Bikes and everything else: squeeze past a car for a Close Call, brake and steer for a Powerslide, and a perfect landing now keeps your speed",
+    "Graphics: film-style colour grading, sharper picture, warmer afternoon light, a bluer sky, lens vignette and grain, and the edges of the screen streak when you go fast",
+    "A whole new look: new menus, new HUD, a proper loading screen with tips, and the ride and place shown big on the main menu",
+    "SEND IT now runs from the SEND IT Launcher only. The website no longer has a download for just the game"
+   ]
+  },
+  {
    "v": "2.9.1",
    "date": "November 2026",
    "title": "Coins are harder to get",

@@ -86,6 +86,31 @@ app.on('second-instance', (_e, argv) => {
 });
 app.on('open-url', (e, url) => { e.preventDefault(); deliverJoin(codeFrom(url)); });
 
+// ── the launcher is required ──────────────────────────────────────
+// SEND IT is installed and started by the SEND IT Launcher. A copy that wasn't put there by the launcher
+// (an old stand-alone download) shows a screen pointing at the launcher instead of starting the game.
+function fromLauncher() {
+  if (!app.isPackaged) return true;
+  if (process.argv.includes('--from-launcher')) return true;
+  try {
+    // a launcher install lives in <install folder>/game, next to the launcher's installed.json
+    const exe = process.execPath;
+    const gameDir = process.platform === 'darwin' ? path.resolve(exe, '..', '..', '..', '..') : path.dirname(exe);
+    return path.basename(gameDir) === 'game' && fs.existsSync(path.join(gameDir, '..', 'installed.json'));
+  } catch { return false; }
+}
+const LAUNCHER_OK = fromLauncher();
+const GATE_HTML = `<!doctype html><meta charset="utf-8"><title>Send It</title><style>
+  body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;background:radial-gradient(1000px 600px at 50% 35%,#1a1210,#06070a 65%);color:#f4f5f7;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0 24px}
+  h1{font:italic 800 64px/0.9 "Arial Narrow",Impact,sans-serif;letter-spacing:1px;margin:0;text-transform:uppercase}
+  h1 b{color:#ff4a1c}
+  small{font-weight:800;font-size:11px;letter-spacing:4px;color:#0a0a0a;background:#d9ff3f;padding:5px 14px}
+  p{max-width:520px;margin:0;opacity:.75}
+  a{display:inline-block;margin-top:8px;background:linear-gradient(100deg,#ff3d12,#ff9a3d);color:#fff;text-decoration:none;font:italic 800 24px "Arial Narrow",Impact,sans-serif;letter-spacing:2px;padding:14px 38px;clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+</style><small>ONE MORE STEP</small><h1>Open SEND IT from<br>the <b>launcher</b></h1>
+<p>SEND IT now runs from the SEND IT Launcher. It installs the game, keeps it up to date and starts it with one click. Your account, coins and skins are saved online, so nothing is lost.</p>
+<a href="https://play-sendit.netlify.app/#download">GET THE LAUNCHER</a>`;
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1600, height: 900, minWidth: 960, minHeight: 540,
@@ -94,12 +119,12 @@ function createWindow() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
   });
   win.once('ready-to-show', () => win.show());
-  win.loadURL('app://game/index.html');
+  win.loadURL(LAUNCHER_OK ? 'app://game/index.html' : 'data:text/html;charset=utf-8,' + encodeURIComponent(GATE_HTML));
   // links (Discord sign-in, the website) open in the normal browser
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
-  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://')) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url); } });
+  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://') && !url.startsWith('data:')) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url); } });
   win.webContents.on('did-finish-load', () => {
-    win.webContents.executeJavaScript(`window.__sendItVersion && window.__sendItVersion(${JSON.stringify({ game: gameVersion, shell: SHELL_VERSION })})`).catch(() => { });
+    win.webContents.executeJavaScript(`window.__sendItVersion && window.__sendItVersion(${JSON.stringify({ game: gameVersion, shell: SHELL_VERSION, launcher: true })})`).catch(() => { });
     if (notified && notified.kind === 'download') tellGame(notified);
     if (pendingJoin) { const c = pendingJoin; pendingJoin = null; setTimeout(() => deliverJoin(c), 1500); }
   });
@@ -121,7 +146,7 @@ app.whenReady().then(() => {
     if (root !== __dirname && !fs.existsSync(file)) file = path.normalize(path.join(__dirname, decodeURIComponent(pathname)));
     return net.fetch(pathToFileURL(file).toString());
   });
-  setTimeout(checkForUpdate, 4000);
+  if (LAUNCHER_OK) setTimeout(checkForUpdate, 4000);
   setInterval(() => {
     const cfg = readJSON(path.join(gameRoot, 'discord.json')) || readJSON(path.join(__dirname, 'discord.json'));
     if (cfg && cfg.clientId) discord.start(cfg.clientId);

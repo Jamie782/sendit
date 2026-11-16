@@ -1,7 +1,7 @@
 {
- "version": "2.9.1",
+ "version": "3.0.0",
  "minShell": "1.5.0",
- "notes": "Coins are harder to get and the garage costs 4x more",
+ "notes": "SEND IT 3: rebuilt skatepark, new look, HYPE and SEND MODE, callouts, spray cans",
  "files": [
   {
    "path": "discord.json",
@@ -9,19 +9,19 @@
   },
   {
    "path": "index.html",
-   "sha256": "8dc54a875af82800b1e43a990268997bf395bfe1baf03df4f05ea498fc445b6b"
+   "sha256": "2d8ab13119e1f6a6531fc93820fa5f17e65685446a4d7300056c751573c746dd"
   },
   {
    "path": "style.css",
-   "sha256": "58cb6c15cd4a8312778aaae59976b52ff73e1f8670f6996551518e8bb2505370"
+   "sha256": "8f67da3f2c48f33d48844dac0e0d2edd5635231d74585f44d756c29d1ccf0b96"
   },
   {
    "path": "version.json",
-   "sha256": "c7c259ef1774f38e5e683a2923ba85050c039d3b38f3a25b3d0b1efa84986c05"
+   "sha256": "231afd299c9923408ca5db2b2b919dabae4def836753d211d988b541c7171d34"
   },
   {
    "path": "src/game.js",
-   "sha256": "223c0ae433d540d4bf7629c83338c60cf11251f310f646ae05cc7290767e2e20"
+   "sha256": "04a00276b350bddddca30266fa21db3229d3736f9ba4882feef834ae38a09587"
   },
   {
    "path": "assets/logo-icon.png",

@@ -108,7 +108,7 @@ async function install() {
 function play() {
   if (gameProc) return state();
   if (!isInstalled()) throw new Error('Install SEND IT first.');
-  const p = PLATFORM === 'win' ? spawn(exePath(), [], { detached: true, stdio: 'ignore', cwd: path.dirname(exePath()) }) : spawn('open', ['-W', '-n', exePath()], { stdio: 'ignore' });
+  const p = PLATFORM === 'win' ? spawn(exePath(), ['--from-launcher'], { detached: true, stdio: 'ignore', cwd: path.dirname(exePath()) }) : spawn('open', ['-W', '-n', exePath(), '--args', '--from-launcher'], { stdio: 'ignore' });
   gameProc = p;
   p.on('exit', () => { gameProc = null; send('state', state()); if (settings.onLaunch === 'minimise' && win && !win.isDestroyed()) { win.restore(); } });
   p.on('error', e => { gameProc = null; send('toast', "Couldn't start SEND IT: " + e.message); send('state', state()); });

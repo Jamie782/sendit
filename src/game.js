@@ -5,6 +5,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -17,7 +18,7 @@ if (!IS_APP && !IS_DEV) {
   const REL = 'https://github.com/Jamie782/sendit/releases/latest/download/';
   document.body.innerHTML = `<div class="gate"><img src="assets/logo-wordmark.svg" alt="SEND IT"><h1>SEND IT IS A DESKTOP GAME</h1>
     <p>${phone ? "It doesn't run on phones or tablets. Grab it on a Windows PC or a Mac." : 'It only runs in the free app for Windows and Mac now, not in a browser.'}</p>
-    ${phone ? '' : `<div class="gate-btns"><a href="${REL}SendIt-Windows.zip">WINDOWS</a><a href="${REL}SendIt-Mac-AppleSilicon.zip">MAC (M1–M4)</a><a href="${REL}SendIt-Mac-Intel.zip">MAC (INTEL)</a></div>`}
+    ${phone ? '' : `<div class="gate-btns"><a href="${REL}SendIt-Launcher-Windows.zip">WINDOWS</a><a href="${REL}SendIt-Launcher-Mac-AppleSilicon.zip">MAC (M1–M4)</a><a href="${REL}SendIt-Launcher-Mac-Intel.zip">MAC (INTEL)</a></div>`}
     <a class="gate-site" href="https://play-sendit.netlify.app/">play-sendit.netlify.app</a></div>`;
   throw new Error('SEND IT runs in the desktop app');
 }
@@ -60,7 +61,37 @@ const QUALITY = {
   high: { pr: Math.min(devicePixelRatio, 1.5), shadow: 3072, shadowSize: 85, bloom: true, samples: 4, ao: true, grass: 32000 },
 };
 let qualityName = store.get('quality', IS_TOUCH ? 'low' : 'high');
-let composer, bloomPass, aoPass, grassReady = false;
+let composer, bloomPass, aoPass, gradePass, grassReady = false;
+// the last pass: grades the finished picture like a film camera would
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uTime: { value: 0 }, uSpeed: { value: 0 }, uSharp: { value: 0.35 }, uHype: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uTime, uSpeed, uSharp, uHype; varying vec2 vUv;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main(){
+      vec2 px = 1.0 / uRes, c = vUv - 0.5; float r = length(c);
+      vec3 col = texture2D(tDiffuse, vUv).rgb;
+      // speed: the edges of the picture streak outwards
+      if (uSpeed > 0.01) { vec3 acc = col; float k = uSpeed * 0.035 * smoothstep(0.18, 0.75, r); for (int i = 1; i <= 5; i++) acc += texture2D(tDiffuse, vUv - c * k * float(i) / 5.0).rgb; col = acc / 6.0; }
+      // sharpen
+      if (uSharp > 0.0) { vec3 b = texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, vUv - vec2(px.x, 0.0)).rgb + texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb + texture2D(tDiffuse, vUv - vec2(0.0, px.y)).rgb; col += (col - b * 0.25) * uSharp * (1.0 - uSpeed * 0.8); }
+      // a touch of lens colour fringing at the edges
+      float ca = 0.0016 * smoothstep(0.3, 0.8, r) * (1.0 + uSpeed * 2.0 + uHype * 2.0);
+      col.r = mix(col.r, texture2D(tDiffuse, vUv + c * ca).r, 0.8); col.b = mix(col.b, texture2D(tDiffuse, vUv - c * ca).b, 0.8);
+      // contrast curve, then richer colour, then warm highlights and cool shadows
+      col = clamp(col, 0.0, 1.0);
+      col = mix(col, col * col * (3.0 - 2.0 * col), 0.42);
+      float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
+      col = mix(vec3(l), col, 1.16);
+      col += vec3(0.022, 0.008, -0.022) * smoothstep(0.45, 1.0, l) + vec3(-0.014, 0.0, 0.02) * (1.0 - smoothstep(0.0, 0.4, l));
+      col = mix(col, col * vec3(1.12, 0.92, 0.8) + vec3(0.03, 0.0, 0.0), uHype * 0.22 * smoothstep(0.25, 0.8, r));
+      // vignette and film grain
+      col *= 1.0 - 0.34 * smoothstep(0.38, 0.95, r);
+      col += (hash(vUv * uRes + fract(uTime) * 91.7) - 0.5) * 0.022;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+};
 function buildComposer() {
   const q = QUALITY[qualityName];
   renderer.setPixelRatio(q.pr);
@@ -85,6 +116,8 @@ function buildComposer() {
     composer.addPass(bloomPass);
   }
   composer.addPass(new OutputPass());
+  gradePass = new ShaderPass(GradeShader); gradePass.uniforms.uRes.value.set(innerWidth * q.pr, innerHeight * q.pr); gradePass.uniforms.uSharp.value = qualityName === 'low' ? 0 : 0.35;
+  composer.addPass(gradePass);
   if (sun) {
     sun.shadow.mapSize.set(q.shadow, q.shadow);
     const s = q.shadowSize; Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s }); sun.shadow.camera.updateProjectionMatrix();
@@ -96,6 +129,7 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight);
   if (aoPass) aoPass.setSize(innerWidth * QUALITY[qualityName].pr, innerHeight * QUALITY[qualityName].pr);
+  if (gradePass) gradePass.uniforms.uRes.value.set(innerWidth * QUALITY[qualityName].pr, innerHeight * QUALITY[qualityName].pr);
 });
 
 // ───────────────────────── sky, light, fog ─────────────────────────
@@ -383,8 +417,8 @@ const M = {
   asphalt: new THREE.MeshStandardMaterial({ map: T.asphalt, normalMap: T.asphaltN, roughness: 0.9 }),
   sidewalk: new THREE.MeshStandardMaterial({ map: T.paving, normalMap: T.pavingN, roughness: 0.85 }),
   kerb: new THREE.MeshStandardMaterial({ color: 0x9a978f, roughness: 0.8, normalMap: T.skateN }),
-  park: new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.78, metalness: 0 }),
-  rampTop: new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.62, metalness: 0 }),
+  park: new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.8, metalness: 0, color: 0xb9b3a8 }),
+  rampTop: new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.66, metalness: 0, color: 0xc9c3b9 }),
   rampSide: new THREE.MeshStandardMaterial({ color: 0x9c968c, roughness: 0.85, normalMap: T.skateN }),
   dirt: new THREE.MeshStandardMaterial({ map: T.dirt, normalMap: T.dirtN, roughness: 1 }),
   dirtRamp: new THREE.MeshStandardMaterial({ map: T.dirt, normalMap: T.dirtN, color: 0xc49a76, roughness: 0.97 }),
@@ -472,7 +506,7 @@ const WORLD = 300;
 const BOUNDS = { x0: -620, x1: 930, z0: -1000, z1: 1100 };   // the whole riding area, new maps included
 const ZONES = {
   street: { name: 'STREET', pos: v3(-150, 0, 0), yaw: Math.PI / 2 },
-  park: { name: 'SKATEPARK', pos: v3(65, 0, 52), yaw: 0 },
+  park: { name: 'SKATEPARK', pos: v3(53.5, 0, 56), yaw: Math.PI / 2 },
   dirt: { name: 'DIRT JUMPS', pos: v3(10, 0, -48), yaw: Math.PI / 2 },
   mega: { name: 'MEGA RAMP', pos: v3(98, 20, 130), yaw: Math.PI / 2 },
   plaza: { name: 'PLAZA', pos: v3(214, 1.12, 57), yaw: -Math.PI / 2 },
@@ -610,25 +644,7 @@ function concreteRamp(o, extra = {}) {
   return r;
 }
 
-// Skatepark
-{
-  const R = 3.6;
-  concreteRamp({ x: 65, z: 82, yaw: 0, width: 34, length: R * 0.965 + 3, type: 'qp', R, profile: PROF.qp(R) }, { graffiti: true });
-  concreteRamp({ x: 65, z: 30, yaw: Math.PI, width: 34, length: R * 0.965 + 3, type: 'qp', R, profile: PROF.qp(R) }, { graffiti: true });
-  const R2 = 2.8;
-  concreteRamp({ x: 104, z: 56, yaw: Math.PI / 2, width: 22, length: R2 * 0.965 + 2.5, type: 'qp', R: R2, profile: PROF.qp(R2) }, { graffiti: true });
-  concreteRamp({ x: 26, z: 56, yaw: -Math.PI / 2, width: 22, length: R2 * 0.965 + 2.5, type: 'qp', R: R2, profile: PROF.qp(R2) }, { graffiti: true });
-  // funbox (along x)
-  concreteRamp({ x: 44, z: 60, yaw: Math.PI / 2, width: 7, length: 14, type: 'funbox', profile: PROF.funbox(4, 6, 4, 1.25) }, { graffiti: true });
-  // kicker -> landing gap
-  concreteRamp({ x: 74, z: 44, yaw: Math.PI / 2, width: 4, length: 3.2, type: 'kicker', profile: PROF.kicker(3.2, 1.3, 1.7) });
-  concreteRamp({ x: 82, z: 44, yaw: Math.PI / 2, width: 5, length: 5.5, type: 'landing', profile: PROF.landing(1, 4.5, 1.3) });
-  // manual pad
-  concreteRamp({ x: 52, z: 40, yaw: Math.PI / 2, width: 3, length: 10, type: 'box', profile: PROF.box(0.28) });
-  // pyramid-ish double kicker
-  concreteRamp({ x: 80, z: 64, yaw: -Math.PI / 2, width: 5, length: 3, type: 'kicker', profile: PROF.kicker(3, 1.0, 1.4) });
-  concreteRamp({ x: 86, z: 64, yaw: Math.PI / 2, width: 5, length: 3, type: 'kicker', profile: PROF.kicker(3, 1.0, 1.4) });
-}
+// (the skatepark is built further down, with the other parks)
 // Street kickers
 for (const [x, z, h, yaw] of [[-110, 0, 0.7, Math.PI / 2], [-95, 0, 1.0, Math.PI / 2], [-40, 0, 0.8, Math.PI / 2], [-175, 0, 0.9, -Math.PI / 2]]) {
   const r = new Ramp({ x, z, yaw, width: 2.0, length: 2.2, type: 'kicker', surface: 'wood', profile: PROF.kicker(2.2, h, 1.3) });
@@ -2293,7 +2309,7 @@ function addToCombo(name, pts, mult = 1) {
   const f = Math.max(0.15, 1 - 0.3 * (n - 1));
   combo.active = true; combo.parts.push(n > 1 ? `${name} ×${n}` : name);
   dailyEvent('trick', name);
-  combo.pts += pts * f;
+  combo.pts += pts * f * (hypeOn ? HYPE.score : 1); addHype(pts * f / 45);
   combo.mult = Math.min(MULT_CAP, combo.mult + (n <= 2 ? mult : n <= 4 ? Math.min(1, mult) : 0));
   renderCombo();
 }
@@ -2314,6 +2330,7 @@ function endCombo(bank) {
     online.submit('combo', total);
     addXP(Math.min(2500, total / 8)); dailyEvent('combo', total); dailyEvent('mult', combo.mult); dailyEvent('zone', nearestZone());
     if (total >= 5000) goal('combo5k');
+    if (total >= 10000 && hypeOn) goal('sendmode');
     if (combo.mult >= 8) goal('mult8');
     if (total >= 800) net.trick(combo.parts.slice(-3).join(' + '), total);
     net.renderRoom();
@@ -2954,6 +2971,7 @@ function scoreAir(P, C, yawErr, flipErr) {
   if (perfect) pts *= 1.15;
   addToCombo(name, pts, Math.max(1, mult));
   if (perfect && mult >= 2) showPopup('PERFECT', 'good', 'CLEAN LANDING');
+  if (perfect && P === player) { P.v = Math.min(P.v * 1.07 + 0.5, Math.max(P.v, C.top * 1.2)); addHype(6); }   // stomp it and you keep your speed
   player.landWindow = 1.4;
 }
 
@@ -3495,10 +3513,6 @@ const PLAZA = { x0: 150, x1: 242, z0: 16, z1: 98 };
   for (const [bx, bz, ry] of [[164, 46, 0], [164, 68, Math.PI], [222, 30, 0]]) bench(bx, bz, ry);
 }
 // skatepark street section: rails and ledges
-addRail(v3(88, 0.45, 52), v3(98, 0.45, 52), 'rail', { name: 'flat bar' });
-addRail(v3(48.3, 1.25 + 0.42, 60), v3(53.7, 1.25 + 0.42, 60), 'rail', { name: 'funbox rail' });
-ledge(34, 42, 8, 0.6, 0.45, Math.PI / 2);
-ledge(34, 72, 8, 0.6, 0.45, Math.PI / 2);
 // benches in the street are grindable along the front edge of the seat
 for (const b of BENCHES) addRail(b.a, b.b, 'ledge', { visual: false, name: 'bench' });
 
@@ -3587,12 +3601,12 @@ for (const [x, z] of [[14, 18], [116, 18], [14, 94], [116, 94]]) {
 const LETTERS = [];
 {
   const spots = [
-    ['S', v3(65, 5.0, 83.2)],                 // vert air on the big quarter pipe
+    ['S', v3(89, 4.9, 89.5)],                 // vert air on the big quarter pipe
     ['E', v3(DIRT_GAPS[5].x, DIRT_GAPS[5].y, -82)],   // middle of the big dirt gap
     ['N', v3(176, 9.2, 130)],                 // over the mega ramp gap
     ['D', v3(197.6, 2.4, 57)],                // down the plaza 7-stair
     ['I', v3(-90.6, 2.0, 0)],                 // street kicker in the high street
-    ['T', v3(51, 3.0, 60)],                   // over the funbox
+    ['T', v3(65.5, 3.5, 56)],                   // over the funbox
   ];
   const got = store.get('letters', []);
   for (const [ch, p] of spots) {
@@ -4285,7 +4299,7 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
   const woodKick = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'kicker', surface: 'wood', base, profile: PROF.kicker(L, H, 1.5) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 14 }); return r; };
   const woodBank = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'kicker', surface: 'wood', base, profile: PROF.kicker(L, H, 1) }); buildRampMesh(r, M.wood, M.woodSide, { nu: 4 }); return r; };
   // a smooth pool: any shape from a signed distance function, raised on a deck, with round coping and a tile line
-  const POOL_MAT = new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.5, vertexColors: true });
+  const POOL_MAT = new THREE.MeshStandardMaterial({ map: T.skate, normalMap: T.skateN, roughness: 0.5, vertexColors: true, color: 0xd2ccc2 });
   const pool = (cx, cz, w, d, BH, sdf, inner = [0, 0]) => {
     const Rt = BH / 0.738;
     const fn = (lx, lz) => { const sd = sdf(lx, lz); if (sd >= 0) return BH; const xx = Rt * 0.965 + sd; return xx <= 0 ? 0 : Rt - Math.sqrt(Math.max(0, Rt * Rt - xx * xx)); };
@@ -4558,11 +4572,54 @@ function inWater(x, z) { return z < SEA_Z && heightAt(x, z) <= 0.01; }
     deckSign(X - 31.4, 0, Z - 15, Math.PI / 2, 8, 4.5);
   }
 
-  // ── the old skatepark gets deck signs and banners ──
+  // ── THE SKATEPARK: a concrete park with a clover bowl, quarters, a jump line and a street plaza ──
   {
-    deckSign(57, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4); deckSign(73, qh(3.6), 82 + 3.6 * 0.965 + 2.4, Math.PI, 5, 2.4);
-    deckSign(65, qh(3.6), 30 - 3.6 * 0.965 - 2.4, 0, 6, 2.4);
-    deckSign(104 + 2.8 * 0.965 + 1.9, qh(2.8), 56, -Math.PI / 2, 5, 2.2); deckSign(26 - 2.8 * 0.965 - 1.9, qh(2.8), 56, Math.PI / 2, 5, 2.2);
+    const PI = Math.PI, E = PI / 2, Wd = -PI / 2;
+    const cq = (x, z, yaw, w, R, deck = 2.2, base = 0) => woodQP(x, z, yaw, w, R, deck, base, 'concrete', M.rampTop, M.rampSide);
+    const cbank = (x, z, yaw, w, L, H, base = 0) => { const r = new Ramp({ x, z, yaw, width: w, length: L, type: 'kicker', surface: 'concrete', base, profile: PROF.kicker(L, H, 1) }); buildRampMesh(r, M.rampTop, M.rampSide, { nu: 4 }); return r; };
+    const mound = (cx, cz, w, d, fn) => {
+      const r = fieldRamp({ cx, cz, w, d, fn, type: 'bank' });
+      const nx = Math.ceil(w / 0.25), nz = Math.ceil(d / 0.25), geo = new THREE.PlaneGeometry(w, d, nx, nz).rotateX(-PI / 2), pa = geo.attributes.position;
+      for (let i = 0; i < pa.count; i++) pa.setY(i, fn(pa.getX(i), pa.getZ(i)) + 0.035);
+      const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 3, uv.getY(i) * d / 3);
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, M.rampTop); m.position.set(cx, 0, cz); m.castShadow = m.receiveShadow = true; scene.add(m); return r;
+    };
+    // 1. the clover bowl, set into a raised deck at the west end
+    const BH = 2.4, BR = BH / 0.738;
+    pool(33, 56, 30, 52, BH, (lx, lz) => smin(smin(circ(lx, lz, 0, -14, 8), circ(lx, lz, 1.5, 0, 6), 3), circ(lx, lz, -0.5, 14, 7), 3), [1, 0]);
+    cq(48 + BR * 0.965 + 0.4, 56, Wd, 36, BR, 0.4);                       // the deck's east face is a big quarter
+    cbank(55, 34, Wd, 8, 7, BH); cbank(55, 78, Wd, 8, 7, BH);             // and a bank at each end to ride up onto the deck
+    deckSign(18.6, BH, 44, E, 5, 2.4); deckSign(18.6, BH, 68, E, 5, 2.4);
+    bannerStrip(33, 1.2, 29.96, PI, 22, 0.9); bannerStrip(33, 1.2, 82.04, 0, 22, 0.9);
+    // 2. quarters along the north wall (a 1.9 m one and a 2.5 m extension) and the south wall
+    cq(66, 92 - (2.6 * 0.965 + 2.4), 0, 28, 2.6, 2.4); cq(89, 92 - (3.4 * 0.965 + 2.4), 0, 18, 3.4, 2.4);
+    cq(75, 20 + (2.2 * 0.965 + 2.2), PI, 46, 2.2, 2.2);
+    deckSign(66, qh(2.6), 91.6, PI, 6, 2.4); deckSign(89, qh(3.4), 91.6, PI, 5, 2.4); deckSign(75, qh(2.2), 20.4, 0, 6, 2.4);
+    // 3. the jump box down the middle, with a rail on one side of the table and a ledge on the other
+    { const r = new Ramp({ x: 58, z: 56, yaw: E, width: 8, length: 15, type: 'funbox', surface: 'concrete', profile: PROF.funbox(4.5, 5, 5.5, 1.5) }); buildRampMesh(r, M.rampTop, M.rampSide, { nu: 30, sideMap: graffitiTex('SEND IT') }); }
+    addRail(v3(62.4, 1.95, 59.3), v3(67.6, 1.95, 59.3), 'rail', { name: 'funbox rail' });
+    ledge(65, 52.4, 5, 0.5, 1.9, E);
+    // 4. a spine
+    cq(80 - 2.0 * 0.965, 56, E, 18, 2.0, 0); cq(80 + 2.0 * 0.965, 56, Wd, 18, 2.0, 0);
+    // 5. a pyramid with a rail over the top, and a volcano
+    mound(66, 73, 11, 11, (x, z) => clamp((5.5 - Math.max(Math.abs(x), Math.abs(z))) * 0.34, 0, 1.1));
+    addRail(v3(64.2, 1.5, 73), v3(67.8, 1.5, 73), 'rail', { name: 'pyramid rail' });
+    mound(64, 38, 10, 10, (x, z) => { const d = Math.hypot(x, z); return d < 5 ? 0.6 * (1 + Math.cos(PI * d / 5)) : 0; });
+    // 6. street bits on the flat: a manual pad, a flat bar, a ledge and an up-rail
+    ledge(89, 40, 8, 2.4, 0.3, E);
+    addRail(v3(85, 0.45, 48), v3(93, 0.45, 48), 'rail', { name: 'flat bar' });
+    ledge(89, 67, 7, 0.6, 0.5, E);
+    addRail(v3(85, 0.35, 75), v3(92, 0.8, 75), 'rail', { name: 'up rail' });
+    // 7. the raised street plaza at the east end: a 7-stair with a handrail and hubbas, banks, ledges and a quarter
+    const PH = 1.19;
+    block(100, 114, 22, 90, PH, M.park, M.rampSide, 'park', 6);
+    stairs(101, 56, Wd, 6, 7, 0.17, 0.36, 1.0, { rails: [0], hubbas: [-3.3, 3.3] });
+    cbank(95.5, 34, E, 10, 4.5, PH); cbank(96.5, 76, E, 6, 3.5, PH);
+    ledge(106, 44, 8, 0.6, PH + 0.45, 0); ledge(104, 68, 6, 0.6, PH + 0.45, 0);
+    addRail(v3(109, PH + 0.45, 52), v3(109, PH + 0.45, 60), 'rail', { name: 'plaza rail' });
+    cq(114 - (1.8 * 0.965 + 1.6), 56, E, 40, 1.8, 1.6, PH);
+    deckSign(113.6, PH + qh(1.8), 56, Wd, 6, 2.4);
   }
 
 }
@@ -4590,7 +4647,7 @@ function buildGrass() {
   const c = makeCanvas(128, 128), g = c.getContext('2d');
   for (let i = 0; i < 26; i++) {
     const x = rand(10, 118), h = rand(60, 124), lean = rand(-18, 18), w = rand(3, 6);
-    const gr = g.createLinearGradient(0, 128, 0, 128 - h); gr.addColorStop(0, '#2f4a1c'); gr.addColorStop(1, ['#8fae5a', '#a3b866', '#7a9a48'][i % 3]);
+    const gr = g.createLinearGradient(0, 128, 0, 128 - h); gr.addColorStop(0, '#4c6e2c'); gr.addColorStop(1, ['#8fae5a', '#a3b866', '#7a9a48'][i % 3]);
     g.fillStyle = gr; g.beginPath(); g.moveTo(x - w, 128); g.quadraticCurveTo(x + lean * 0.3, 128 - h * 0.6, x + lean, 128 - h); g.quadraticCurveTo(x + lean * 0.3 + w * 0.3, 128 - h * 0.6, x + w, 128); g.fill();
   }
   const gt = new THREE.CanvasTexture(c); gt.colorSpace = THREE.SRGBColorSpace;
@@ -4738,7 +4795,7 @@ function spawnPeds(n) {
       ped = { mode: 'wander', x: 155 + srand() * 38, z: 20 + srand() * 74, tx: 0, tz: 0, box: [153, 195, 19, 95] };
       ped.tx = ped.x; ped.tz = ped.z;
     } else { // skatepark spectators
-      const spots = [[20, 30], [20, 84], [110, 28], [110, 86], [40, 94], [90, 94]];
+      const spots = [[30, 25], [42, 26], [26, 87], [44, 87]];
       const sp = spots[i % spots.length];
       ped = { mode: 'watch', x: sp[0] + rand(-3, 3), z: sp[1] + rand(-2, 2) };
     }
@@ -4829,7 +4886,7 @@ const stars = (() => {
 const moon = new THREE.Mesh(new THREE.SphereGeometry(28, 24, 16), new THREE.MeshBasicMaterial({ color: 0xe8eeff, fog: false }));
 moon.visible = false; scene.add(moon);
 const TOD = {
-  day: { el: 40, az: 205, sun: 0xfff0dc, si: 4.7, hs: 0xa9c4ea, hg: 0x5d5040, hi: 0.9, exp: 0.76, fog: 0xc3cfda, fd: 0.0008, tur: 2.2, ray: 1.5, mie: 0.0018, mieG: 0.78, win: 0.12, lamp: 0.5, night: 0, env: 0.5, cloud: 0.42, car: 0.25 },
+  day: { el: 33, az: 212, sun: 0xffe6c4, si: 4.6, hs: 0x9dbdf0, hg: 0x5d5040, hi: 0.72, exp: 0.66, fog: 0xbfd2e6, fd: 0.0007, tur: 1.6, ray: 1.9, mie: 0.0016, mieG: 0.78, win: 0.12, lamp: 0.5, night: 0, env: 0.5, cloud: 0.42, car: 0.25 },
   sunset: { el: 6.5, az: 238, sun: 0xffa868, si: 4.4, hs: 0x93a2c8, hg: 0x5a4535, hi: 0.55, exp: 0.85, fog: 0xd9b59c, fd: 0.0012, tur: 6.5, ray: 2.6, mie: 0.009, mieG: 0.92, win: 0.75, lamp: 3.0, night: 0, env: 0.55, cloud: 0.5, car: 1.2 },
   night: { el: -14, az: 238, sun: 0x9db4ff, si: 0.55, hs: 0x22304e, hg: 0x0c0c12, hi: 0.45, exp: 0.95, fog: 0x0e1424, fd: 0.0016, tur: 2, ray: 0.6, mie: 0.002, mieG: 0.8, win: 1.7, lamp: 7, night: 1, env: 0.22, cloud: 0.25, car: 4 },
 };
@@ -5952,12 +6009,13 @@ function setAvatar(key, v) {
 }
 function applyAvatarLook() { me.outfit = null; equipLook(); }
 // ── updates: the desktop app downloads new game files by itself and tells us here ──
-const GAME_VERSION = '2.9.1';
+const GAME_VERSION = '3.0.0';
 window.__sendItVersion = v => { const el = document.getElementById('ver-line'); if (el) el.textContent = `Version ${v.game}` + (v.shell !== v.game ? ` (app ${v.shell})` : ''); };
 window.__sendItUpdate = info => {
   const el = document.getElementById('update-toast'); if (!el) return;
   if (info.kind === 'ready') el.innerHTML = `<div class="grow"><b>SEND IT ${esc(info.version)} is ready</b><div class="s">${esc(info.notes || 'Restart to play the new version.')}</div></div><button class="act" id="upd-go">RESTART NOW</button><button class="mini" id="upd-x">LATER</button>`;
-  else el.innerHTML = `<div class="grow"><b>SEND IT ${esc(info.version)} is out</b><div class="s">This one needs a fresh download.</div></div><button class="act" id="upd-dl">GET IT</button><button class="mini" id="upd-x">LATER</button>`;
+  else if (info.kind === 'launcher') el.innerHTML = `<div class="grow"><b>SEND IT now runs from the launcher</b><div class="s">Get the SEND IT Launcher from the website to keep getting updates. Your account is saved online.</div></div><button class="act" id="upd-dl">GET IT</button><button class="mini" id="upd-x">LATER</button>`;
+  else el.innerHTML = `<div class="grow"><b>SEND IT ${esc(info.version)} is out</b><div class="s">Update it in the SEND IT Launcher.</div></div><button class="act" id="upd-dl">GET IT</button><button class="mini" id="upd-x">LATER</button>`;
   el.classList.remove('hidden');
   const go = document.getElementById('upd-go'); if (go) go.onclick = () => { online.saveSoon(0); setTimeout(() => location.reload(), 400); };
   const dl = document.getElementById('upd-dl'); if (dl) dl.onclick = () => window.open(SITE_URL + '/#download', '_blank');
@@ -6146,6 +6204,8 @@ function renderZoneCard() {
   const info = ZONE_INFO[real] || [ZONES[real].name, '', ''];
   el.style.setProperty('--img', `url(${zoneThumb(real)})`);
   el.innerHTML = `<div class="zc-txt"><small>${k === 'auto' ? 'BEST FOR YOUR RIDE' : info[2]}</small><b>${info[0]}</b><span>${info[1]}</span></div><div class="zc-chg">CHANGE ›</div>`;
+  const hero = document.getElementById('hero');
+  if (hero) { const h = `<small>${VEH[player.kind].label}</small><b>${info[0]}</b>`; if (hero.dataset.h !== h) { hero.dataset.h = h; hero.innerHTML = h; hero.style.animation = 'none'; void hero.offsetWidth; hero.style.animation = ''; } }
 }
 function openZonePicker() {
   const g = document.getElementById('zp-grid');
@@ -6294,6 +6354,7 @@ function rollDaily() {
   daily = { day, list, km: 0 }; store.set('daily', daily); renderDaily();
 }
 function dailyEvent(k, v) {
+  callEvent(k, v);
   rollDaily(); let changed = false;
   for (const c of daily.list) {
     if (c.done || c.k !== k) continue;
@@ -6709,7 +6770,7 @@ const BRANDS = {
 let inv = store.get('inv', {});
 const buffs = store.get('buffs', []).filter(b => b.until > Date.now());
 const buffMul = () => { const now = Date.now(); let m = 0; for (const b of buffs) if (b.until > now) m = Math.max(m, b.spd); return 1 + m; };
-const rideBuff = () => 1 + (buffMul() - 1) * 0.5;
+const rideBuff = () => (1 + (buffMul() - 1) * 0.5) * (hypeOn ? HYPE.top : 1);
 function buy(id) {
   const it = ITEMS[id]; if (!it) return;
   if (cash < it.price) { showPopup('NOT ENOUGH COINS'); return false; }
@@ -7067,7 +7128,7 @@ function T_TILE() { if (_tileTex) return _tileTex; const c = makeCanvas(256, 256
 
 // ── quests: talk to someone, find what they lost, bring it back ──
 const QUESTS = [
-  { id: 'cat', giver: { name: 'Margaret', x: -8.8, z: 238, yaw: Math.PI / 2, top: 0x9b59b6, hat: true, job: 'walker' }, item: { n: 'Mittens the cat', x: 108, z: 90, model: 'cat' },
+  { id: 'cat', giver: { name: 'Margaret', x: -8.8, z: 238, yaw: Math.PI / 2, top: 0x9b59b6, hat: true, job: 'walker' }, item: { n: 'Mittens the cat', x: 94, z: 80, model: 'cat' },
     hint: 'Mittens ran off towards the skatepark.', ask: ["Oh, hello dear. Have you seen my cat, Mittens?", "She's ginger and very naughty. She ran off towards the skatepark!", "Could you find her for me?"], thanks: ["Mittens! Oh, you found her!", "Thank you, dear. Here, take these coins. And this outfit, I knitted it myself."], reward: { coins: 500, outfit: 'tabby' } },
   { id: 'delivery', giver: { name: 'Chef Dac', x: 0, z: 0, inShop: 'dcmonalds', top: 0xffffff, hat: true, job: 'cashier' }, item: { n: 'Delivery bag', x: 128, z: -104, model: 'bag' },
     hint: 'The delivery bag fell off the van at the dirt jumps.', ask: ["Disaster! A delivery bag fell off our van.", "The driver says it was somewhere near the dirt jumps.", "Bring it back and I'll make it worth your while."], thanks: ["You legend! The Big Dacs are saved!", "Here's some coins, and a proper chef's outfit."], reward: { coins: 400, outfit: 'chef' } },
@@ -7458,10 +7519,10 @@ const BIND_DEF = {
   up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', wheelie: 'ShiftLeft',
   t1: 'KeyJ', t2: 'KeyK', t3: 'KeyL', t4: 'KeyI', t5: 'KeyU', t6: 'KeyO', t7: 'KeyY',
   use: 'KeyE', getoff: 'KeyF', punch: 'KeyJ', run: 'ShiftLeft', bag: 'KeyB', quests: 'KeyG',
-  ride: 'KeyQ', map: 'KeyM', cam: 'KeyC', reset: 'KeyR', replay: 'KeyV', photo: 'KeyP', radio: 'KeyN', chat: 'KeyT', help: 'KeyH',
+  hype: 'KeyX', ride: 'KeyQ', map: 'KeyM', cam: 'KeyC', reset: 'KeyR', replay: 'KeyV', photo: 'KeyP', radio: 'KeyN', chat: 'KeyT', help: 'KeyH',
 };
 const BIND_GROUPS = [
-  ['RIDING', [['up', 'Ride / frontflip'], ['down', 'Brake / reverse / backflip'], ['left', 'Steer left / spin'], ['right', 'Steer right / spin'], ['jump', 'Hop / ollie'], ['wheelie', 'Wheelie / manual']]],
+  ['RIDING', [['up', 'Ride / frontflip'], ['down', 'Brake / reverse / backflip'], ['left', 'Steer left / spin'], ['right', 'Steer right / spin'], ['jump', 'Hop / ollie'], ['wheelie', 'Wheelie / manual'], ['hype', 'SEND MODE (when HYPE is full)']]],
   ['AIR TRICKS', [['t1', 'Trick 1'], ['t2', 'Trick 2'], ['t3', 'Trick 3'], ['t4', 'Trick 4'], ['t5', 'Trick 5'], ['t6', 'Trick 6'], ['t7', 'Overhead whip']]],
   ['ON FOOT', [['getoff', 'Get off / get on'], ['use', 'Talk / use / open'], ['punch', 'Punch'], ['run', 'Run'], ['bag', 'Bag (food & drink)'], ['quests', 'Quest log']]],
   ['OTHER', [['ride', 'Switch ride'], ['map', 'World map'], ['cam', 'Camera'], ['reset', 'Reset'], ['replay', 'Instant replay'], ['photo', 'Photo mode'], ['radio', 'Next radio station'], ['chat', 'Chat'], ['help', 'Hide help']]],
@@ -7498,7 +7559,7 @@ function renderHint() {
   }
   el.innerHTML = `<b>${K('up')}/${K('down')}</b> ride · brake · reverse &nbsp; <b>${K('left')}/${K('right')}</b> steer &nbsp; <b>${K('jump')}</b> hop &nbsp; <b>${K('wheelie')}</b> wheelie<br>` +
     `<b>IN AIR:</b> <b>${K('up')}/${K('down')}</b> flips &nbsp; <b>${K('left')}/${K('right')}</b> spin &nbsp; <b>${['t1', 't2', 't3', 't4', 't5', 't6'].map(K).join(' ')}</b> tricks &nbsp; <b>${K('t7')}</b> overhead whip<br>` +
-    `<b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
+    `<b>${K('hype')}</b> SEND MODE &nbsp; <b>${K('getoff')}</b> get off / on &nbsp; <b>${K('use')}</b> talk · use &nbsp; <b>${K('punch')}</b> punch (on foot) &nbsp; <b>${K('bag')}</b> bag &nbsp; <b>${K('quests')}</b> quests<br>` +
     `<b>${K('map')}</b> map &nbsp; <b>1-0</b> places &nbsp; <b>${K('ride')}</b> ride &nbsp; <b>${K('cam')}</b> camera &nbsp; <b>${K('replay')}</b> replay &nbsp; <b>${K('photo')}</b> photo &nbsp; <b>${K('reset')}</b> reset &nbsp; <b>${K('chat')}</b> chat &nbsp; <b>${K('help')}</b> hide &nbsp; <b>ESC</b> menu`;
 }
 
@@ -7904,7 +7965,7 @@ function capeMesh(col) {
 
 // ───────────────────────── v2.1: more goals & leaderboards ─────────────────────────
 GOALS.push(
-  ['the100', 'Clear the gap on The 100'], ['skysend', 'Land The Sky Send on the airbag'], ['foampit', 'Land in the foam pit'],
+  ['cans', 'Find every hidden spray can'], ['sendmode', 'Bank a 10,000 combo in SEND MODE'], ['the100', 'Clear the gap on The 100'], ['skysend', 'Land The Sky Send on the airbag'], ['foampit', 'Land in the foam pit'],
   ['shareclip', 'Share a clip or photo to the SEND IT Discord'],
   ['walk', 'Get off and walk around'], ['reverse', 'Ride backwards for 10 m'], ['shop', 'Go into a shop'], ['allshops', 'Visit all five shops on Market Street (the pub is at the far end)'],
   ['buy', 'Buy food or a drink'], ['eat', 'Eat or drink something'], ['eat10', 'Eat or drink 10 things'],
@@ -7925,6 +7986,16 @@ const LOW_BOARDS = ['hill', 'ski', 'woods'];
 
 // ───────────────────────── v2.1: update log ─────────────────────────
 const CHANGELOG = [
+  { v: '3.0.0', d: 'November 2026', t: 'SEND IT 3: the big one', items: [
+    "The skatepark is rebuilt from scratch: a clover bowl with pool coping, quarter pipes all round, a jump box, a spine, a pyramid, a volcano, and a raised street plaza with a 7-stair, hubbas, ledges and rails",
+    "New: the HYPE bar. Tricks fill it, then press X for SEND MODE: 10 seconds of double points and more speed",
+    "New: callouts. Every so often the game throws you a quick challenge (a combo, an air, a grind) with coins for doing it in time",
+    "New: over 50 hidden spray cans, around every place on the map. Each one pays coins and XP, and finding them all pays 2,000",
+    "Bikes and everything else: squeeze past a car for a Close Call, brake and steer for a Powerslide, and a perfect landing now keeps your speed",
+    "Graphics: film-style colour grading, sharper picture, warmer afternoon light, a bluer sky, lens vignette and grain, and the edges of the screen streak when you go fast",
+    "A whole new look: new menus, new HUD, a proper loading screen with tips, and the ride and place shown big on the main menu",
+    "SEND IT now runs from the SEND IT Launcher only. The website no longer has a download for just the game",
+  ] },
   { v: '2.9.1', d: 'November 2026', t: 'Coins are harder to get', items: [
     "Coins are harder to get: tricks and combos pay about a third of what they did, the most one combo pays is 400 (was 2,500), and you can earn at most 600 coins a minute from tricks",
     "Trick Attack pays a lot less, and Hill Bomb, Woods Downhill and Peak Run pay less",
@@ -8089,6 +8160,112 @@ INTERACT.push({ x: ROOF.ground.x, z: ROOF.ground.z, r: 3.5, label: () => placeOp
 INTERACT.push({ x: ROOF.lift.x, z: ROOF.lift.z, y: ROOF.H, r: 3.5, label: 'Take the lift down', fn: () => rideLift(v3(ROOF.ground.x - 2, 0, ROOF.ground.z)) });
 INTERACT.push({ x: H100.base.x, z: H100.base.z, r: 4, label: () => unlockAll || curLevel() >= PLACE_LVL.the100 ? 'Take the lift up The 100' : `Lift up The 100 (unlocks at level ${PLACE_LVL.the100})`, fn: () => { if (!unlockAll && curLevel() < PLACE_LVL.the100) return lockedPlaceMsg('the100'); rideLift(H100.top.clone()); showPopup('THE 100', '', '100 M UP'); } });
 INTERACT.push({ x: SKY.base.x, z: SKY.base.z, r: 4, label: () => placeOpen('sky') ? 'Take the lift up The Sky Send' : `Lift up The Sky Send (unlocks at level ${PLACE_LVL.sky})`, fn: () => { if (!placeOpen('sky')) return lockedPlaceMsg('sky'); rideLift(SKY.top.clone()); showPopup('THE SKY SEND', '', '60 M UP'); } });
+// ───────────────────────── v3.0: HYPE and SEND MODE, callouts, spray cans, close calls ─────────────────────────
+// Tricks fill the HYPE bar. When it's full, X starts SEND MODE: 10 seconds of double points and more speed.
+const HYPE = { need: 100, time: 10, top: 1.18, score: 2 };
+let hype = 0, hypeOn = false, hypeT = 0;
+const elHype = document.createElement('div'); elHype.id = 'hype'; elHype.innerHTML = '<div class="hy-lbl"><b>HYPE</b><span></span></div><div class="hy-bar"><i></i></div>';
+document.getElementById('hud').appendChild(elHype);
+const elCall = document.createElement('div'); elCall.id = 'callout'; elCall.className = 'hidden'; document.getElementById('hud').appendChild(elCall);
+function addHype(n) { if (!hypeOn) hype = Math.min(HYPE.need, hype + n); }
+function startHype() {
+  hypeOn = true; hypeT = HYPE.time; showPopup('SEND MODE', 'good', 'DOUBLE POINTS · MORE SPEED'); sfx.ding(); shake = Math.max(shake, 0.35);
+  document.body.classList.add('hype-on');
+}
+// live callouts: a quick challenge every so often while you ride
+const CALLS = [
+  { k: 'combo', n: [1500, 3000, 6000], t: n => `Bank a ${n.toLocaleString()} point combo` },
+  { k: 'air', n: [1.2, 1.8, 2.5], t: n => `Get ${n}s of air in one jump` },
+  { k: 'mult', n: [3, 5, 7], t: n => `Hit a ×${n} multiplier` },
+  { k: 'grind', n: [1.5, 2.5, 4], t: n => `Grind for ${n}s in one go` },
+  { k: 'manual', n: [3, 5, 8], t: n => `Hold a ${n}s wheelie or manual` },
+  { k: 'trick', n: ['Backflip', '360', 'Frontflip'], t: n => `Land a ${n}` },
+];
+const CALL_PAY = [60, 90, 130];
+let call = null, callNext = 30, callsDone = store.get('calls', 0);
+function newCall() {
+  const tier = clamp(Math.floor(levelOf(xp).l / 4) - (Math.random() < 0.4 ? 1 : 0), 0, 2);
+  let c; do { c = CALLS[Math.floor(Math.random() * CALLS.length)]; } while (call && c.k === call.k);
+  const n = c.k === 'trick' ? c.n[Math.floor(Math.random() * c.n.length)] : c.n[tier];
+  call = { k: c.k, n, t: c.t(n), left: 45, pay: CALL_PAY[c.k === 'trick' ? 0 : tier] };
+  elCall.classList.remove('hidden', 'won', 'lost'); sfx.tick && sfx.tick();
+}
+function callEvent(k, v) {
+  if (!call || call.done || call.k !== k) return;
+  const ok = k === 'trick' ? String(v).includes(call.n) : v >= call.n;
+  if (!ok) return;
+  call.done = true; callsDone++; store.set('calls', callsDone);
+  const coins = earn(call.pay, 'callout'); addXP(200); addHype(20); sfx.ding();
+  elCall.classList.add('won'); elCall.innerHTML = `<small>CALLOUT DONE</small><b>${call.t}</b><em>+${coins} COINS</em>`;
+  callNext = 6; setTimeout(() => { if (call && call.done) { call = null; elCall.classList.add('hidden'); callNext = rand(28, 45); } }, 2600);
+}
+// hidden spray cans: two near every place
+const CANS = [], cansGot = new Set(store.get('cans', []));
+{
+  seed = 77;
+  const cols = [0xff4d1f, 0xffc531, 0x2ad1ff, 0x3ddc84, 0xb14dff, 0xff3b8d];
+  const body = new THREE.CylinderGeometry(0.11, 0.11, 0.34, 12), cap = new THREE.CylinderGeometry(0.06, 0.1, 0.1, 10), ringG = new THREE.TorusGeometry(0.42, 0.025, 6, 24).rotateX(Math.PI / 2);
+  for (const [key, Z] of Object.entries(ZONES)) for (let j = 0; j < 2; j++) {
+    let x = 0, z = 0, ok = false;
+    for (let t = 0; t < 12 && !ok; t++) {
+      const a = srand() * Math.PI * 2, r = 7 + srand() * 11; x = Z.pos.x + Math.cos(a) * r; z = Z.pos.z + Math.sin(a) * r;
+      ok = !inWater(x, z) && !colliders.some(c => x > c.x0 - 0.6 && x < c.x1 + 0.6 && z > c.z0 - 0.6 && z < c.z1 + 0.6) && Math.abs(heightAt(x, z) - heightAt(Z.pos.x, Z.pos.z)) < 8;
+    }
+    if (!ok) continue;
+    const id = key + j, col = cols[CANS.length % cols.length], g = new THREE.Group();
+    const m1 = new THREE.Mesh(body, new THREE.MeshStandardMaterial({ color: col, metalness: 0.7, roughness: 0.3, emissive: col, emissiveIntensity: 0.35 })); g.add(m1);
+    const m2 = new THREE.Mesh(cap, M.darkMetal); m2.position.y = 0.22; g.add(m2);
+    const m3 = new THREE.Mesh(ringG, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.7 })); m3.position.y = -0.55; g.add(m3);
+    g.position.set(x, heightAt(x, z) + 1.0, z); g.visible = !cansGot.has(id); g.traverse(o => { o.userData.noMerge = true; }); scene.add(g);
+    CANS.push({ id, g, x, y: g.position.y, z });
+  }
+}
+let slideT = 0, nmT = 0, canT = 0;
+function updateFun(dt) {
+  const P = player, riding = P.mode !== 'walk' && P.mode !== 'heli' && !P.bailed && !P.carried;
+  // SEND MODE runs down; the bar shows what's left
+  if (hypeOn) { hypeT -= dt; hype = HYPE.need * Math.max(0, hypeT / HYPE.time); if (hypeT <= 0) { hypeOn = false; hype = 0; document.body.classList.remove('hype-on'); showPopup('SEND MODE OVER'); } }
+  const full = hype >= HYPE.need && !hypeOn;
+  elHype.firstChild.lastChild.textContent = hypeOn ? hypeT.toFixed(1) + 's' : full ? 'PRESS ' + keyName(BIND.hype) : '';
+  elHype.lastChild.firstChild.style.width = (hype / HYPE.need * 100).toFixed(1) + '%';
+  elHype.classList.toggle('full', full); elHype.classList.toggle('on', hypeOn);
+  elHype.classList.toggle('hidden', !riding);
+  // callouts
+  if (riding && !attack.on) {
+    if (!call) { callNext -= dt; if (callNext <= 0) newCall(); }
+    else if (!call.done) {
+      call.left -= dt;
+      if (call.left <= 0) { elCall.classList.add('lost'); elCall.innerHTML = `<small>CALLOUT MISSED</small><b>${call.t}</b>`; const c0 = call; call.done = true; setTimeout(() => { if (call === c0) { call = null; elCall.classList.add('hidden'); callNext = rand(25, 40); } }, 1800); }
+      else elCall.innerHTML = `<small>CALLOUT · ${Math.ceil(call.left)}s</small><b>${call.t}</b><em><i class="coin"></i>${call.pay}</em><u style="width:${(call.left / 45 * 100).toFixed(1)}%"></u>`;
+    }
+  }
+  if (!riding) { slideT = 0; return; }
+  const sp = Math.abs(P.v);
+  // close calls: squeeze past a moving car
+  nmT -= dt;
+  if (!P.air && sp > 7 && nmT <= 0) for (const c of TRAFFIC) {
+    const [cx, cz] = carXZ(c), d = Math.hypot(cx - P.pos.x, cz - P.pos.z);
+    if (d < 2.6 && d > 1.2) { nmT = 2.5; addToCombo('Close Call', 250, 1); P.landWindow = Math.max(P.landWindow || 0, 2); addHype(8); sfx.whoosh && sfx.whoosh(); break; }
+  }
+  // powerslides: brake and steer at speed
+  if (P.skidding && Math.abs(input.steer) > 0.4 && sp > 4 && !P.air) slideT += dt;
+  else { if (slideT > 0.55) { addToCombo('Powerslide', 100 + Math.min(600, slideT * 220), 1); P.landWindow = Math.max(P.landWindow || 0, 1.6); } slideT = 0; }
+  // spray cans
+  canT -= dt;
+  for (const c of CANS) {
+    if (!c.g.visible) continue;
+    const dx = c.x - P.pos.x, dz = c.z - P.pos.z;
+    if (Math.abs(dx) > 40 || Math.abs(dz) > 40) continue;
+    c.g.rotation.y += dt * 2.2; c.g.position.y = c.y + Math.sin(clock * 2.4 + c.x) * 0.12;
+    if (dx * dx + dz * dz < 3.2 && Math.abs(P.pos.y + 0.8 - c.y) < 2.6) {
+      c.g.visible = false; cansGot.add(c.id); store.set('cans', [...cansGot]);
+      const coins = earn(60, 'spray can'); addXP(150); addHype(15); sfx.ding();
+      const n = CANS.filter(k => cansGot.has(k.id)).length;
+      showPopup('SPRAY CAN', 'good', `${n} / ${CANS.length} FOUND · +${coins} COINS`);
+      if (n >= CANS.length) { goal('cans'); earn(2000, 'every spray can found'); }
+    }
+  }
+}
 // ───────────────────────── v2.5: Discord Rich Presence ─────────────────────────
 // The desktop app reads window.__presence every few seconds and shows it on your Discord profile
 // ("Playing SEND IT", where you are, what you ride, how many are in your server). Turn it off in Settings.
@@ -8146,6 +8323,15 @@ setInterval(updatePresence, 4000); setTimeout(updatePresence, 0);
   const seg = row.querySelector('#discord-seg');
   const draw = () => { seg.innerHTML = ''; for (const [v, n] of [[true, 'ON'], [false, 'OFF']]) { const b = document.createElement('button'); b.textContent = n; b.className = discordOn === v ? 'sel' : ''; b.onclick = () => { discordOn = v; store.set('discordPresence', v); draw(); updatePresence(); }; seg.appendChild(b); } };
   draw();
+}
+// 3.0: the game runs from the launcher. Copies of the app from before that are told to switch.
+{
+  const prev0 = window.__sendItVersion;
+  window.__sendItVersion = v => {
+    if (prev0) prev0(v);
+    const p = String((v && v.shell) || '').split('.').map(Number);
+    if (v && v.shell && !v.launcher && (p[0] < 1 || (p[0] === 1 && p[1] < 7))) setTimeout(() => window.__sendItUpdate({ kind: 'launcher', version: '' }), 2500);
+  };
 }
 // older copies of the app can't talk to Discord yet: say so under the setting
 {
@@ -8777,6 +8963,7 @@ function tick(dt, doRender = true) {
     if (hit('help')) { hintHidden = !hintHidden; document.getElementById('hint').style.display = hintHidden ? 'none' : ''; }
     if (hit('use')) useNear();
     if (hit('getoff')) { if (player.mode === 'heli') exitHeli('walk'); else if (player.carried) showPopup("YOU'RE ON A ROPE", '', 'WAIT FOR THEM TO DROP YOU'); else if (walking) getOn(); else getOff(); }
+    if (hit('hype') && !walking && player.mode !== 'heli') { if (hype >= HYPE.need && !hypeOn) startHype(); else if (!hypeOn) showPopup('HYPE NOT FULL', '', 'LAND TRICKS TO FILL IT'); }
     if (hit('bag')) toggleBag();
     if (hit('quests')) toggleQuests();
     if (walking && hit('punch')) punch();
@@ -8799,6 +8986,7 @@ function tick(dt, doRender = true) {
     updateHUD(dt);
     updateLetters(dt);
     updateRace(sdt);
+    updateFun(sdt);
     updateWoods();
     trackKm(dt);
     recordReplay();
@@ -8842,6 +9030,7 @@ function tick(dt, doRender = true) {
   sun.position.copy(root.position).addScaledVector(sunDir, 150); sun.target.position.copy(root.position); sun.target.updateMatrixWorld();
   if (su.time) su.time.value += dt;
   grassTime.value += dt;
+  if (gradePass) { const gu = gradePass.uniforms; gu.uTime.value = clock; const tv = !player.bailed && player.mode !== 'foot' ? clamp((player.v - 9) / 16, 0, 1) : 0; gu.uSpeed.value = damp(gu.uSpeed.value, tv, 3, dt); gu.uHype.value = damp(gu.uHype.value, typeof hypeOn !== 'undefined' && hypeOn ? 1 : 0, 5, dt); }
   if (doRender) { composer.render(); if (clipRec) drawClipFrame(); }
 }
 

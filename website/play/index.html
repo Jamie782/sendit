@@ -58,7 +58,7 @@
     <b>W/S</b> ride · brake &nbsp; <b>A/D</b> steer &nbsp; <b>SPACE</b> hop &nbsp; <b>SHIFT</b> wheelie<br>
     <b>IN AIR:</b> <b>W/S</b> flips &nbsp; <b>A/D</b> spin &nbsp; <b>J K L I U O SHIFT</b> tricks (shown on screen)<br>
     <b>GRIND:</b> hop onto any rail or ledge &nbsp; <b>SHIFT+S</b> stoppie / nose manual<br>
-    <b>M</b> map &nbsp; <b>1-0</b> places &nbsp; <b>Q</b> ride &nbsp; <b>C</b> camera &nbsp; <b>V</b> replay &nbsp; <b>P</b> photo &nbsp; <b>R</b> reset &nbsp; <b>N</b> radio &nbsp; <b>T</b> chat &nbsp; <b>H</b> hide &nbsp; <b>ESC</b> menu
+    <b>X</b> SEND MODE &nbsp; <b>M</b> map &nbsp; <b>1-0</b> places &nbsp; <b>Q</b> ride &nbsp; <b>C</b> camera &nbsp; <b>V</b> replay &nbsp; <b>P</b> photo &nbsp; <b>R</b> reset &nbsp; <b>N</b> radio &nbsp; <b>T</b> chat &nbsp; <b>H</b> hide &nbsp; <b>ESC</b> menu
   </div>
   <button id="pause-btn" class="touch-only">II</button>
 </div>
@@ -234,6 +234,8 @@
       </div>
     </section>
   </main>
+  <div id="hero"></div>
+  <div class="menu-foot">SEND IT · MADE BY JAMIE</div>
 </div>
 
 <div id="notice" class="modal hidden"><div class="modal-box notice-box"><button class="x">✕</button><div class="m-title"></div><div class="nt-body"></div><button class="act nt-ok">OK</button></div></div>
@@ -300,7 +302,15 @@
   </div>
 </div>
 
-<div id="loading">LOADING…</div>
+<div id="loading"><img src="assets/logo-wordmark.svg" alt="SEND IT"><div class="ld-bar"></div><div class="ld-tip" id="ld-tip"></div><div class="ld-ver">LOADING THE WORLD</div></div>
+<script>
+(function () {
+  var tips = ['Land tricks to fill the HYPE bar, then press X for SEND MODE: double points and more speed.', 'Mix your tricks up. Doing the same one again in a combo scores less each time.', 'Hold a manual or a wheelie between jumps to keep your combo alive.', 'There are over 50 spray cans hidden around the map. Look near every place.', 'A perfect landing keeps your speed. Line the wheels up before you touch down.', 'Hop onto any rail, ledge or coping to grind it.', 'Squeeze past a moving car for a Close Call bonus.', 'Press M for the world map. Click any place to go there.'];
+  var el = document.getElementById('ld-tip'), i = Math.floor(Math.random() * tips.length);
+  function next() { if (!document.getElementById('ld-tip')) return; el.innerHTML = '<b>TIP</b>' + tips[i++ % tips.length]; setTimeout(next, 3800); }
+  next();
+})();
+</script>
 <script>
 // if the game hits an error while starting, say so on the loading screen instead of hanging
 (function () {

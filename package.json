@@ -1,7 +1,7 @@
 {
   "name": "send-it",
   "productName": "Send It",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Bike, e-bike, scooter and e-scooter stunt game",
   "main": "main.js",
   "author": "Jamie",

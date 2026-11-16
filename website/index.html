@@ -3,141 +3,156 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SEND IT — stunt bike & scooter game</title>
-<meta name="description" content="SEND IT is a free 3D stunt game for Windows and Mac. Ride a bike, e-bike, scooter, e-scooter or skateboard, land flips, whips, kickflips and wheelies, and ride online with your friends.">
-<meta property="og:title" content="SEND IT — stunt bike & scooter game">
-<meta property="og:description" content="Flips, tailwhips, wheelies and a bus jump. Free for Windows and Mac, with online servers, friends and leaderboards.">
-<meta property="og:image" content="media/hill.jpg">
-<meta name="theme-color" content="#0a0b0f">
+<title>SEND IT — the open-world stunt game</title>
+<meta name="description" content="SEND IT is a free open-world stunt game for Windows and Mac. Bikes, e-bikes, scooters and skateboards, a rebuilt concrete skatepark, 20 seconds of air off The Sky Send, online servers and leaderboards.">
+<meta property="og:title" content="SEND IT — the open-world stunt game">
+<meta property="og:description" content="Bikes, scooters and skateboards. One open world. Free for Windows and Mac.">
+<meta property="og:image" content="media/v3-park.jpg">
+<meta name="theme-color" content="#06070a">
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="site.css">
-<script src="config.js"></script>
+<link rel="stylesheet" href="site3.css?v=3">
+<script src="config.js?v=3"></script>
 </head>
 <body>
-<nav class="nav"><div class="wrap">
-  <a href="#"><img src="media/logo-wordmark.svg" alt="SEND IT"></a>
-  <div class="links"><a href="#rides">Rides</a><a href="#places">Places</a><a href="#online">Online</a><a href="#garage">Garage</a><a href="#download">Download</a></div>
-  <a class="btn sm" href="#download">DOWNLOAD</a>
+<nav class="nav" id="nav"><div class="wrap">
+  <a href="#top"><img src="media/logo-wordmark.svg" alt="SEND IT"></a>
+  <div class="links"><a href="#new">New in 3.0</a><a href="#rides">Rides</a><a href="#places">Places</a><a href="#online">Online</a><a href="#news">Updates</a></div>
+  <a class="btn sm" href="#download">Play free</a>
 </div></nav>
 
-<header class="hero">
-  <video src="media/trailer.mp4?v=2.7" poster="media/trailer-poster.jpg" autoplay muted loop playsinline></video>
+<header class="hero" id="top">
+  <img class="still" src="media/v3-flow.jpg" alt="">
   <div class="wrap">
-    <img class="logo" src="media/logo-wordmark.svg" alt="SEND IT">
-    <h1>BIKES · SCOOTERS · SKATEBOARDS</h1>
-    <p>Backflips off a 30 m mega ramp, kickflips down the 20-stair, surfing out to treasure islands, a ski run down a snowy mountain, and a whole town to get off and explore. Free for Windows and Mac — ride online with your mates.</p>
+    <div class="tag"><i></i>VERSION <span class="ver"></span> IS OUT NOW</div>
+    <h1><span>Ride it.</span><span class="o">Flip it.</span><span class="a">Send it.</span></h1>
+    <p>One open world. Bikes, e-bikes, scooters, e-scooters and skateboards. A concrete skatepark with a clover bowl, a 60 m tower that throws you 650 m into the sky, and servers full of your mates. Free on Windows and Mac.</p>
     <div class="cta">
-      <a class="btn" href="#download" id="hero-dl">DOWNLOAD FREE</a>
+      <a class="btn" href="#download" id="hero-dl">Get the launcher</a>
+      <a class="btn ghost" href="#new">See what's new</a>
     </div>
-    <div class="note">Version <span class="ver"></span> · Windows 10/11 · macOS 11+</div>
+    <div class="note">Free · Windows 10/11 · macOS 11+ · No ads</div>
   </div>
+  <div class="scroll">SCROLL</div>
 </header>
 
-<section id="rides"><div class="wrap">
-  <div class="kicker">FIVE RIDES</div>
-  <h2>PICK YOUR WEAPON</h2>
-  <p class="lead">Every ride handles differently and has its own 7 tricks. Upgrade each one in the garage.</p>
+<div class="ticker" aria-hidden="true"><div>
+  Backflip<b>/</b>Tailwhip<b>/</b>Barspin<b>/</b>Kickflip<b>/</b>Superman<b>/</b>360<b>/</b>Overhead whip<b>/</b>Boardslide<b>/</b>Flair<b>/</b>No-hander<b>/</b>Manual<b>/</b>Powerslide<b>/</b>Close call<b>/</b>
+  Backflip<b>/</b>Tailwhip<b>/</b>Barspin<b>/</b>Kickflip<b>/</b>Superman<b>/</b>360<b>/</b>Overhead whip<b>/</b>Boardslide<b>/</b>Flair<b>/</b>No-hander<b>/</b>Manual<b>/</b>Powerslide<b>/</b>Close call<b>/</b>
+</div></div>
+
+<section id="new"><div class="wrap">
+  <div class="kicker rv">NEW IN 3.0</div>
+  <h2 class="rv">The big <em>one</em></h2>
+  <p class="lead rv">A rebuilt skatepark, a new look for the whole game, and new reasons to keep riding.</p>
+  <div class="new-grid">
+    <div class="tile a rv"><img src="media/v3-park.jpg" alt="The rebuilt skatepark from above" loading="lazy"><div class="t"><small>REBUILT FROM SCRATCH</small><h3>The skatepark</h3><p>A clover bowl with pool coping, quarter pipes on every wall, a jump box, a spine, a pyramid, a volcano, and a raised street plaza with a 7-stair, hubbas, ledges and rails.</p></div></div>
+    <div class="tile b flat rv"><div class="t"><div class="big">×2</div><small>THE HYPE BAR</small><h3>Send mode</h3><p>Tricks fill the HYPE bar. When it's full, hit X for 10 seconds of double points and more speed.</p></div></div>
+    <div class="tile c rv"><img src="media/v3-action.jpg" alt="A backflip over the jump box with the new HUD" loading="lazy"><div class="t"><small>NEW LOOK</small><h3>New menus and HUD</h3><p>Everything on screen has been redrawn.</p></div></div>
+    <div class="tile d rv"><img src="media/v3-bowl.jpg" alt="The clover bowl" loading="lazy"><div class="t"><small>LIVE CHALLENGES</small><h3>Callouts</h3><p>The game throws you quick challenges as you ride. Beat the clock, take the coins.</p></div></div>
+    <div class="tile e rv"><img src="media/v3-plaza.jpg" alt="The street plaza stairs" loading="lazy"><div class="t"><small>OVER 50 TO FIND</small><h3>Spray cans</h3><p>Hidden around every place on the map. Find them all for a 2,000 coin payout.</p></div></div>
+  </div>
+</div></section>
+
+<section id="rides" class="alt"><div class="wrap">
+  <div class="kicker rv">FIVE RIDES · SIX MODELS</div>
+  <h2 class="rv">Pick your <em>weapon</em></h2>
+  <p class="lead rv">Every ride handles differently and has its own tricks. Upgrade them in the garage, or buy a new model like the VOLT MX electric dirt bike or the dual-motor THUNDER scooter.</p>
   <div class="rides">
-    <div class="ride"><b>BIKE</b><span>Flips, tailwhips and barspins. Built for dirt jumps.</span></div>
-    <div class="ride"><b>E-BIKE</b><span>Motor-assisted and fast. Huge on the mega ramp.</span></div>
-    <div class="ride"><b>SCOOTER</b><span>The skatepark king — whips, grinds and vert air.</span></div>
-    <div class="ride"><b>E-SCOOTER</b><span>Top speed and endless wheelies on the road.</span></div>
-    <div class="ride"><b>SKATEBOARD</b><span>Kickflips, shove-its and boardslides. Made for stairs.</span></div>
+    <div class="ride rv"><i>01</i><svg viewBox="0 0 86 52"><circle cx="17" cy="36" r="13"/><circle cx="69" cy="36" r="13"/><path d="M17 36 32 14h24l13 22M32 14l12 22H17M56 14l-12 22M28 10h9M56 14l3-6h7"/></svg><b>Bike</b><span>Flips, tailwhips and barspins. Built for dirt jumps and the bowl.</span></div>
+    <div class="ride rv"><i>02</i><svg viewBox="0 0 86 52"><circle cx="17" cy="36" r="13"/><circle cx="69" cy="36" r="13"/><path d="M17 36 32 14h24l13 22M32 14l12 22H17M56 14l-12 22M28 10h9M56 14l3-6h7"/><path class="bolt" d="M45 4l-6 10h7l-4 9"/></svg><b>E-bike</b><span>Motor-assisted and fast. Three models, including an electric dirt bike.</span></div>
+    <div class="ride rv"><i>03</i><svg viewBox="0 0 86 52"><circle cx="16" cy="42" r="7"/><circle cx="70" cy="42" r="7"/><path d="M16 42h54M64 42 56 6M48 6h16"/></svg><b>Scooter</b><span>The skatepark king. Whips, grinds and vert air.</span></div>
+    <div class="ride rv"><i>04</i><svg viewBox="0 0 86 52"><circle cx="16" cy="42" r="7"/><circle cx="70" cy="42" r="7"/><path d="M16 42h54M64 42 56 6M48 6h16"/><path class="bolt" d="M36 10l-6 10h7l-4 9"/></svg><b>E-scooter</b><span>Top speed and endless wheelies on the road.</span></div>
+    <div class="ride rv"><i>05</i><svg viewBox="0 0 86 52"><path d="M6 26c4 4 8 5 14 5h46c6 0 10-1 14-5"/><circle cx="24" cy="40" r="6"/><circle cx="62" cy="40" r="6"/></svg><b>Skateboard</b><span>Kickflips, shove-its and boardslides. Made for stairs.</span></div>
   </div>
 </div></section>
 
-<section id="places" class="alt"><div class="wrap">
-  <div class="kicker">TWENTY-ONE PLACES</div>
-  <h2>ONE BIG CITY TO SEND</h2>
-  <p class="lead">Ride from the high street to Big Air, Downtown, the Canyon, the Woods, the skatepark, dirt jumps, mega ramp, hill bomb, seafront and construction yard — all one open world, with traffic, people and day or night.</p>
+<section id="places"><div class="wrap">
+  <div class="kicker rv">25 PLACES · ONE MAP</div>
+  <h2 class="rv">A whole world <em>to send</em></h2>
+  <p class="lead rv">Ride from the high street to the mountains without a loading screen. Traffic, people, shops, quests and treasure islands on the way.</p>
   <div class="places">
-    <div class="place"><img src="media/woodpark.jpg" alt="" loading="lazy"><div><b>WOOD PARK</b><span>Wooden comp park in the trees, with a kidney pool</span></div></div>
-    <div class="place"><img src="media/warehouse.jpg" alt="" loading="lazy"><div><b>THE WAREHOUSE</b><span>Indoor park with a flow bowl, quarters and banners</span></div></div>
-    <div class="place"><img src="media/rooftop.jpg" alt="" loading="lazy"><div><b>ROOFTOP PARK</b><span>A park on a roof between the skyscrapers</span></div></div>
-    <div class="place"><img src="media/islands.jpg" alt="" loading="lazy"><div><b>ISLANDS</b><span>Surf out to sea and open treasure chests</span></div></div>
-    <div class="place"><img src="media/mountain.jpg" alt="" loading="lazy"><div><b>PEAK RUN</b><span>Hire skis, take the chairlift and ski down</span></div></div>
-    <div class="place"><img src="media/market.jpg" alt="" loading="lazy"><div><b>MARKET STREET</b><span>DcMonalds, Kurger Bings, Barstucks, Ocset and quests</span></div></div>
-    <div class="place"><img src="media/bigair.jpg" alt="" loading="lazy"><div><b>BIG AIR</b><span>XL mega ramp, vert ramp, airbag and trampolines</span></div></div>
-    <div class="place"><img src="media/downtown.jpg" alt="" loading="lazy"><div><b>DOWNTOWN</b><span>Town Hall 12-stair, El Toro and hubbas</span></div></div>
-    <div class="place"><img src="media/canyon.jpg" alt="" loading="lazy"><div><b>CANYON</b><span>Roll in off a mesa and jump the gap</span></div></div>
-    <div class="place"><img src="media/woods.jpg" alt="" loading="lazy"><div><b>WOODS</b><span>Forest downhill with drops and log rides</span></div></div>
-    <div class="place"><img src="media/hill.jpg" alt="" loading="lazy"><div><b>HILL BOMB</b><span>36 m downhill race with tabletops</span></div></div>
-    <div class="place"><img src="media/bowl.jpg" alt="" loading="lazy"><div><b>SEAFRONT</b><span>Concrete bowl, promenade and pier</span></div></div>
-    <div class="place"><img src="media/bus.jpg" alt="" loading="lazy"><div><b>CONSTRUCTION YARD</b><span>Drop in and jump the bus</span></div></div>
-    <div class="place"><img src="media/radio.jpg" alt="" loading="lazy"><div><b>HIGH STREET</b><span>Wheelies, kickers and traffic</span></div></div>
-    <div class="place"><img src="media/park.jpg" alt="" loading="lazy"><div><b>AND MORE</b><span>Skatepark, dirt jumps, mega ramp, plaza, desert line</span></div></div>
+    <div class="place rv"><img src="media/v3-flow.jpg" alt="" loading="lazy"><div><b>The Skatepark</b><span>Bowl, flow section and street plaza</span></div></div>
+    <div class="place rv"><img src="media/the100.jpg" alt="" loading="lazy"><div><b>The 100</b><span>A 100 m roll-in inside a stadium</span></div></div>
+    <div class="place rv"><img src="media/woodpark.jpg" alt="" loading="lazy"><div><b>Wood Park</b><span>Comp park in the trees</span></div></div>
+    <div class="place rv"><img src="media/rooftop.jpg" alt="" loading="lazy"><div><b>Rooftop Park</b><span>Between the skyscrapers</span></div></div>
+    <div class="place rv"><img src="media/islands.jpg" alt="" loading="lazy"><div><b>Islands</b><span>Surf out and open treasure chests</span></div></div>
+    <div class="place rv"><img src="media/bigair.jpg" alt="" loading="lazy"><div><b>Big Air</b><span>XL mega ramp, vert ramp, airbag and trampolines</span></div></div>
+    <div class="place rv"><img src="media/mountain.jpg" alt="" loading="lazy"><div><b>Peak Run</b><span>Chairlift up, ski down</span></div></div>
+    <div class="place rv"><img src="media/warehouse.jpg" alt="" loading="lazy"><div><b>The Warehouse</b><span>Indoor flow bowl</span></div></div>
+    <div class="place rv"><img src="media/downtown.jpg" alt="" loading="lazy"><div><b>Downtown</b><span>12-stair and hubbas</span></div></div>
+    <div class="place rv"><img src="media/canyon.jpg" alt="" loading="lazy"><div><b>Canyon</b><span>Roll in off a mesa</span></div></div>
+    <div class="place rv"><img src="media/woods.jpg" alt="" loading="lazy"><div><b>Woods</b><span>Forest downhill</span></div></div>
+    <div class="place rv"><img src="media/market.jpg" alt="" loading="lazy"><div><b>Market Street</b><span>Shops, food and quests</span></div></div>
+    <div class="place rv"><img src="media/bigbowl.jpg" alt="" loading="lazy"><div><b>The Big Bowl</b><span>Deep concrete and long carves</span></div></div>
+    <div class="place rv"><img src="media/hill.jpg" alt="" loading="lazy"><div><b>Hill Bomb</b><span>Downhill race with tabletops</span></div></div>
   </div>
 </div></section>
 
-<section id="online"><div class="wrap split">
+<section id="online" class="alt"><div class="wrap split">
   <div>
-    <div class="kicker">ONLINE</div>
-    <h2>RIDE WITH YOUR MATES</h2>
-    <p class="lead">Make an account (or sign in with Discord) and your progress follows you to any computer.</p>
-    <ul class="ticks">
-      <li><span><b>Public servers</b> — pick one from the list and join in one click.</span></li>
-      <li><span><b>Friends-only servers</b> — only your friends can see them and get in.</span></li>
-      <li><span><b>Invites</b> — invite friends from the game or send them an invite link.</span></li>
-      <li><span><b>Friends list</b> — see who's online and which server they're in.</span></li>
-      <li><span><b>Leaderboards</b> — best combo, Trick Attack, Hill Bomb time, biggest air and most coins.</span></li>
+    <div class="kicker rv">ONLINE</div>
+    <h2 class="rv">Ride with <em>your mates</em></h2>
+    <p class="lead rv">Make an account or sign in with Discord, and your coins, rides and skins follow you to any computer.</p>
+    <ul class="ticks rv">
+      <li><span><b>Public servers.</b> Pick one from the list and join in one click.</span></li>
+      <li><span><b>Friends-only servers.</b> Only your friends can see them and get in.</span></li>
+      <li><span><b>Invite links.</b> Send a link, they click it, they're in your server.</span></li>
+      <li><span><b>Leaderboards.</b> Best combo, Trick Attack, Hill Bomb time, biggest air and more.</span></li>
+      <li><span><b>Clips.</b> Share a replay or a photo to the SEND IT Discord from inside the game.</span></li>
     </ul>
   </div>
-  <div class="shot"><img src="media/online.jpg" alt="Online menu with servers and friends" loading="lazy"></div>
-</div></section>
-
-<section id="garage" class="alt"><div class="wrap split rev">
-  <div class="shot"><img src="media/garage.jpg" alt="Garage paint jobs" loading="lazy"></div>
-  <div>
-    <div class="kicker">THE GARAGE</div>
-    <h2>BIGGER TRICKS, MORE COINS</h2>
-    <p class="lead">Every trick earns coins — flips, whips and long combos pay the most. Spend them on:</p>
-    <ul class="ticks">
-      <li><span><b>Upgrades</b> — top speed, acceleration, pop, trick speed and handling for each ride.</span></li>
-      <li><span><b>14 paint jobs</b> — camo, carbon, chrome, flames, neon, galaxy, lava, gold, diamond…</span></li>
-      <li><span><b>12 rider skins</b> and an <b>avatar</b> you design yourself — or upload your own picture.</span></li>
-      <li><span><b>5 radio stations</b> made live in the game: drum & bass, lo-fi, skate punk, trap and synthwave.</span></li>
-    </ul>
-  </div>
+  <div class="shot rv"><img src="media/v3-menu.jpg" alt="The new main menu" loading="lazy"></div>
 </div></section>
 
 <section><div class="wrap">
-  <div class="kicker">THE NUMBERS</div>
-  <h2>NO ADS. NO PAY-TO-WIN.</h2>
-  <div class="stats">
-    <div class="stat"><b>4</b><span>rides</span></div>
-    <div class="stat"><b>8</b><span>places to ride</span></div>
-    <div class="stat"><b>28</b><span>tricks plus flips, spins and grinds</span></div>
-    <div class="stat"><b>19</b><span>goals to complete</span></div>
+  <div class="kicker rv">THE NUMBERS</div>
+  <h2 class="rv">No ads. <em>No pay-to-win.</em></h2>
+  <div class="stats rv">
+    <div class="stat"><b>5</b><span>rides</span></div>
+    <div class="stat"><b>25</b><span>places on one map</span></div>
+    <div class="stat"><b>20<sup>s</sup></b><span>of air off The Sky Send</span></div>
+    <div class="stat"><b>£0</b><span>to play</span></div>
   </div>
 </div></section>
 
-<section id="download" class="alt"><div class="wrap">
-  <div class="kicker">FREE</div>
-  <h2>DOWNLOAD SEND IT</h2>
-  <p class="lead">Get the <b>SEND IT Launcher</b>: it installs the game, keeps it updated and starts it with one click. Version <span class="ver"></span>.</p>
+<section id="news" class="alt"><div class="wrap">
+  <div class="kicker rv">UPDATE LOG</div>
+  <h2 class="rv">Always <em>moving</em></h2>
+  <p class="lead rv">The game updates itself. Here's what the last few brought.</p>
+  <div class="news" id="news-list"></div>
+</div></section>
+
+<section id="download"><div class="wrap">
+  <div class="kicker rv">FREE</div>
+  <h2 class="rv">Get the <em>launcher</em></h2>
+  <p class="lead rv">SEND IT runs from the <b style="color:#fff">SEND IT Launcher</b>. It installs the game, keeps it up to date and starts it with one click. Version <span class="ver"></span>.</p>
   <div class="dl">
-    <div class="dlc" id="dl-win">
-      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5 10.4 4.5v7H3zm8.4-1.1L21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zm8.4 0H21V21l-9.6-1.4z"/></svg>WINDOWS</h3>
-      <p>Windows 10 or 11, 64-bit. Unzip the folder, open <b>SEND IT Launcher.exe</b> and press <b>INSTALL</b>.</p>
-      <a class="btn" data-dl="launcherWin">GET THE LAUNCHER</a>
-      <p class="small alt-dl">Or just the game: <a data-dl="windows">Send It for Windows</a></p>
+    <div class="dlc rv" id="dl-win">
+      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5 10.4 4.5v7H3zm8.4-1.1L21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zm8.4 0H21V21l-9.6-1.4z"/></svg>Windows</h3>
+      <p>Windows 10 or 11, 64-bit.</p>
+      <a class="btn" data-dl="launcherWin">Download for Windows</a>
     </div>
-    <div class="dlc" id="dl-mac">
-      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1.1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.5z"/></svg>MAC</h3>
-      <p>macOS 11 or newer. Pick the version for your Mac (Apple menu → About This Mac), then open <b>SEND IT Launcher</b> and press <b>INSTALL</b>.</p>
-      <div class="row"><a class="btn" data-dl="launcherMacArm">LAUNCHER · M1–M4</a><a class="btn ghost" data-dl="launcherMacIntel">LAUNCHER · INTEL</a></div>
-      <p class="small alt-dl">Or just the game: <a data-dl="macArm">Apple M1–M4</a> · <a data-dl="macIntel">Intel</a></p>
+    <div class="dlc rv" id="dl-mac">
+      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1.1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.5z"/></svg>Mac</h3>
+      <p>macOS 11 or newer. Check which chip you have under Apple menu → About This Mac.</p>
+      <div class="row"><a class="btn" data-dl="launcherMacArm">Apple M1–M4</a><a class="btn ghost" data-dl="launcherMacIntel">Intel</a></div>
     </div>
   </div>
+  <div class="steps">
+    <div class="step rv"><b>Download</b><span>Get the launcher for your computer and unzip it.</span></div>
+    <div class="step rv"><b>Install</b><span>Open SEND IT Launcher and press INSTALL. It downloads the game for you.</span></div>
+    <div class="step rv"><b>Play</b><span>Press PLAY. Updates install themselves from then on.</span></div>
+  </div>
+  <details><summary>Where's the download for just the game?</summary><p>There isn't one any more. The game now only runs from the launcher, so everyone is always on the newest version. If you have an old copy of the game on its own, get the launcher and install from there. Your account, coins and skins are saved online.</p></details>
   <details><summary>Windows says "Windows protected your PC"</summary><p>That's SmartScreen being careful with new apps. Click <b>More info</b>, then <b>Run anyway</b>. You only have to do it once.</p></details>
-  <details><summary>Mac says the app "is damaged" or "can't be opened"</summary><p>SEND IT isn't from the App Store, so macOS blocks it the first time. Fix it once:</p><ol><li>Drag <b>SEND IT Launcher</b> (or <b>Send It</b>) into your Applications folder.</li><li>Open <b>Terminal</b> and paste: <code>xattr -cr "/Applications/SEND IT Launcher.app"</code> then press Return (for the game on its own it's <code>"/Applications/Send It.app"</code>).</li><li>Open Send It. If it still won't open, paste <code>codesign --force --deep --sign - "/Applications/Send It.app"</code> and press Return, then open it again.</li></ol></details>
-  <details><summary>Got an invite link from a friend?</summary><p>Open it and press <b>Open in SEND IT</b> — the game starts and joins their server. You can also type the code into <b>Online → Join with code</b>.</p></details>
+  <details><summary>Mac says the app "is damaged" or "can't be opened"</summary><p>SEND IT isn't from the App Store, so macOS blocks it the first time. Fix it once:</p><ol><li>Drag <b>SEND IT Launcher</b> into your Applications folder.</li><li>Open <b>Terminal</b>, paste <code>xattr -cr "/Applications/SEND IT Launcher.app"</code> and press Return.</li><li>Open the launcher again.</li></ol></details>
+  <details><summary>Got an invite link from a friend?</summary><p>Open it and press <b>Open in SEND IT</b>. The game starts and joins their server. You can also type the code into <b>Online → Join with code</b>.</p></details>
 </div></section>
 
 <footer><div class="wrap">
   <img src="media/logo-wordmark.svg" alt="SEND IT">
   <span>© <span id="yr"></span> SEND IT. Made by Jamie.</span>
-  <span style="margin-left:auto"><a href="#download">Download</a><span id="dc-link"></span></span>
+  <span style="margin-left:auto"><a href="#download">Get the launcher</a><span id="dc-link"></span></span>
 </div></footer>
 
 <script>
@@ -145,17 +160,25 @@
   document.querySelectorAll('.ver').forEach(e => e.textContent = C.version);
   document.querySelectorAll('[data-dl]').forEach(a => a.href = C.downloads[a.dataset.dl]);
   document.getElementById('yr').textContent = new Date().getFullYear();
-  const dcLink = u => { if (/^https:\/\/discord\.(gg|com)\//.test(u || '')) document.getElementById('dc-link').innerHTML = ` · <a href="${u}">Discord</a>`; };
-  // the invite link the SEND IT bot saved when it set up the server (or the one in config.js)
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const dcLink = u => { if (/^https:\/\/discord\.(gg|com)\//.test(u || '')) document.getElementById('dc-link').innerHTML = ` &nbsp;·&nbsp; <a href="${esc(u)}">Discord</a>`; };
   if (C.discord) dcLink(C.discord);
   else fetch('https://jmrgxreacfnakwsbwjyk.supabase.co/rest/v1/rpc/si_discord_invite', { method: 'POST', headers: { apikey: 'sb_publishable_dT28MOtEkXkeXclJnqzcvQ_xTSOJqlX', 'Content-Type': 'application/json' }, body: '{}' })
     .then(r => r.ok ? r.json() : null).then(dcLink).catch(() => {});
-  // put the right download first
-  const mac = /Mac/.test(navigator.platform) || /Mac OS X/.test(navigator.userAgent);
+  // the right download first
+  const mac = /Mac/.test(navigator.platform) || /Mac OS X/.test(navigator.userAgent), win = /Windows/.test(navigator.userAgent);
   const box = document.getElementById(mac ? 'dl-mac' : 'dl-win'); if (box) box.classList.add('rec');
   const hero = document.getElementById('hero-dl');
-  if (/Windows/.test(navigator.userAgent)) { hero.textContent = 'DOWNLOAD FOR WINDOWS'; hero.href = C.downloads.windows; }
-  else if (mac) { hero.textContent = 'DOWNLOAD FOR MAC'; hero.href = '#download'; }
+  if (win) { hero.textContent = 'Download for Windows'; hero.href = C.downloads.launcherWin; }
+  // the update log, straight from the game's news file
+  fetch('news.json?t=' + Date.now()).then(r => r.json()).then(d => {
+    const v = d.news[0] && d.news[0].v; if (v) document.querySelectorAll('.ver').forEach(e => e.textContent = v);
+    document.getElementById('news-list').innerHTML = d.news.slice(0, 3).map(n => `<div class="nw rv in"><small>VERSION ${esc(n.v)} · ${esc(n.date).toUpperCase()}</small><h3>${esc(n.title)}</h3><ul>${n.items.slice(0, 5).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+  }).catch(() => { document.getElementById('news').style.display = 'none'; });
+  // nav background and reveal-on-scroll
+  const nav = document.getElementById('nav'); const onS = () => nav.classList.toggle('stuck', scrollY > 30); addEventListener('scroll', onS, { passive: true }); onS();
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
+  document.querySelectorAll('.rv').forEach((e, i) => { e.style.transitionDelay = (i % 5) * 60 + 'ms'; io.observe(e); });
 </script>
 </body>
 </html>
